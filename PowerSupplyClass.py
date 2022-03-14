@@ -9,9 +9,9 @@ import sys # for exit
 import time # for sleep
 
 
-class PowerSupply:
-    def __init__(self, IP4_address, port=50000, MAX_voltage=1000, MAX_current=100, reset_channels=True):
-        self._IP4_address = IP4_address
+class EthernetPowerSupply:
+    def __init__(self, ip4_address=None, port=50000, MAX_voltage=1000, MAX_current=100, reset_channels=True):
+        self._ip4_address = ip4_address
         self._port = port
         self._MAX_voltage_limit = MAX_voltage
         self._MAX_current_limit = MAX_current
@@ -22,8 +22,8 @@ class PowerSupply:
         
         try:
             socket_ps = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket_ps.connect((self._IP4_address, self._port))
-        except:
+            socket_ps.connect((self._ip4_address, self._port))
+        except socket.error:
             print('ERROR: Could not connect to power supply')
             sys.exit()
             
@@ -33,18 +33,18 @@ class PowerSupply:
             self.reset_channels()
         
     def __query(self, query):
-        queryBytes = query.encode('utf-8')
+        query_bytes = query.encode('utf-8')
         socket_ps = self._socket
-        socket_ps.sendall(queryBytes)
-        replyBytes = socket_ps.recv(4096)
-        reply = replyBytes.decode('utf-8').strip()
+        socket_ps.sendall(query_bytes)
+        reply_bytes = socket_ps.recv(4096)
+        reply = reply_bytes.decode('utf-8').strip()
         time.sleep(0.3)
         return reply
     
     def __command(self, cmd):
-        cmdBytes = cmd.encode('utf-8')
+        cmd_bytes = cmd.encode('utf-8')
         socket_ps = self._socket
-        out = socket_ps.sendall(cmdBytes)  # return None if succesful
+        out = socket_ps.sendall(cmd_bytes)  # return None if successful
         time.sleep(0.3)
         return out
     
@@ -64,12 +64,12 @@ class PowerSupply:
 # =============================================================================    
     
     @property
-    def IDN(self):
+    def idn(self):
         qry = '*IDN?'
         return self.__query(qry)
     
     @property
-    def IP4_address(self):
+    def ip4_address(self):
         qry = 'IP?'
         return self.__query(qry)
     
@@ -250,9 +250,9 @@ class PowerSupply:
     
     
 def main():
-    SPD3303X = PowerSupply('10.176.42.121', 5025, MAX_voltage=32, MAX_current=3.2)
-    print(SPD3303X.IDN)
-    print(SPD3303X.IP4_address)
+    SPD3303X = EthernetPowerSupply('10.176.42.121', 5025, MAX_voltage=32, MAX_current=3.2)
+    print(SPD3303X.idn)
+    print(SPD3303X.ip4_address)
     print(SPD3303X.system_status_binary)
     print()
     
