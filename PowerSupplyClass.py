@@ -5,6 +5,7 @@ Created on Fri Mar 11 12:53:39 2022
 """
 
 import socket # for sockets
+
 import sys # for exit
 import time # for sleep
 
@@ -247,7 +248,19 @@ class EthernetPowerSupply:
                   than present ch2 current')
         else:    
             self.ch2_current_limit = amps
-    
+
+
+class UsbtmcPowerSupply:
+    def __init__(self, id_vendor=None, id_product=None, MAX_voltage=1000, MAX_current=100, reset_channels=True):
+        self._id_vendor = id_vendor
+        self._id_product = id_product
+        self._MAX_voltage = MAX_voltage
+        self._MAX_current = MAX_current
+        self._ch1_voltage_limit = MAX_voltage
+        self._ch1_current_limit = MAX_current
+        self._ch2_voltage_limit = MAX_voltage
+        self._ch2_current_limit = MAX_current
+
     
 def main():
     SPD3303X = EthernetPowerSupply('10.176.42.121', 5025, MAX_voltage=32, MAX_current=3.2)
