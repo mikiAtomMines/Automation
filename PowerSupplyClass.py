@@ -5,6 +5,7 @@ Created on Fri Mar 11 12:53:39 2022
 """
 
 # TODO: fix usbtmc power supply class.
+# TODO: write master class power
 
 import socket
 import usbtmc
@@ -13,7 +14,7 @@ import sys
 import time
 
 
-class EthernetPowerSupply:
+class PowerSupply:
     """An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply."""
 
     def __init__(
@@ -37,7 +38,12 @@ class EthernetPowerSupply:
                                      supply. For other devices, can use any between 49152 and 65536.
         - param MAX_voltage_limit: - Maximum voltage that the power supply can output.
         - param MAX_current_limit: - Maximum current that the power supply can output.
-        - param
+        - param ch1_voltage_limit: - Set an upper limit on the voltage output of channel 1.
+        - param ch1_current_limit: - Set an upper limit on the current output of channel 1.
+        - param ch2_voltage_limit: - Set an upper limit on the voltage output of channel 2.
+        - param ch2_current_limit: - Set an upper limit on the current output of channel 2.
+        - param reset_channels: ---- If True, run a routine to set turn off the output of both channels and set the set
+
         """
 
         self._ip4_address = ip4_address
@@ -61,7 +67,7 @@ class EthernetPowerSupply:
         if reset_channels:
             self.reset_channels()
         
-    def __query(self, query):
+    def _query(self, query):
         query_bytes = query.encode('utf-8')
         socket_ps = self._socket
         socket_ps.sendall(query_bytes)
@@ -70,7 +76,7 @@ class EthernetPowerSupply:
         time.sleep(0.3)
         return reply
     
-    def __command(self, cmd):
+    def _command(self, cmd):
         cmd_bytes = cmd.encode('utf-8')
         socket_ps = self._socket
         out = socket_ps.sendall(cmd_bytes)  # return None if successful
@@ -95,17 +101,17 @@ class EthernetPowerSupply:
     @property
     def idn(self):
         qry = '*IDN?'
-        return self.__query(qry)
+        return self._query(qry)
     
     @property
     def ip4_address(self):
         qry = 'IP?'
-        return self.__query(qry)
+        return self._query(qry)
     
     @property    
     def system_status_binary(self):
         qry = 'system:status?'
-        reply_hex_str = self.__query(qry)   # bytes representing hex number
+        reply_hex_str = self._query(qry)   # bytes representing hex number
         reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # binary num as string
         return reply_bin_str
     
@@ -122,58 +128,58 @@ class EthernetPowerSupply:
     @property
     def ch1_set_voltage(self):
         qry = 'CH1:voltage?'
-        return self.__query(qry)
+        return self._query(qry)
             
     @property       
     def ch2_set_voltage(self):
         qry = 'CH2:voltage?'
-        return self.__query(qry)
+        return self._query(qry)
         
     def get_set_voltage(self, channel):
         qry = channel.upper() + ':voltage?'
-        return self.__query(qry)
+        return self._query(qry)
     
     @property
     def ch1_actual_voltage(self):
         qry = 'measure:voltage? CH1'
-        return self.__query(qry)
+        return self._query(qry)
             
     @property       
     def ch2_actual_voltage(self):
         qry = 'measure:voltage? CH2'
-        return self.__query(qry)
+        return self._query(qry)
         
     def get_actual_voltage(self, channel):
         qry = 'measure:voltage? ' + channel.upper()
-        return self.__query(qry)
+        return self._query(qry)
         
     @property
     def ch1_set_current(self):
         qry = 'CH1:current?'
-        return self.__query(qry)
+        return self._query(qry)
         
     @property
     def ch2_set_current(self):
         qry = 'CH2:current?'
-        return self.__query(qry)
+        return self._query(qry)
         
     def get_set_current(self, channel):
         qry = channel.upper() + ':current?'
-        return self.__query(qry)
+        return self._query(qry)
     
     @property
     def ch1_actual_current(self):
         qry = 'measure:current? CH1'
-        return self.__query(qry)
+        return self._query(qry)
             
     @property       
     def ch2_actual_current(self):
         qry = 'measure:current? CH2'
-        return self.__query(qry)
+        return self._query(qry)
         
     def get_actual_current(self, channel):
         qry = 'measure:current? ' + channel.upper()
-        return self.__query(qry)  
+        return self._query(qry)
     
     @property     
     def ch1_voltage_limit(self):
@@ -198,40 +204,40 @@ class EthernetPowerSupply:
     @ch1_state.setter
     def ch1_state(self, state):
         cmd = 'Output CH1,' + state.upper()
-        self.__command(cmd)
+        self._command(cmd)
         
     @ch2_state.setter
     def ch2_state(self, state):
         cmd = 'Output CH2,' + state.upper()
-        self.__command(cmd)
+        self._command(cmd)
     
     @ch1_set_voltage.setter
     def ch1_set_voltage(self, volts):
         cmd = 'CH1:voltage ' + str(volts)
-        self.__command(cmd)
+        self._command(cmd)
 
     @ch2_set_voltage.setter
     def ch2_set_voltage(self, volts):
         cmd = 'CH2:voltage ' + str(volts)
-        self.__command(cmd)
+        self._command(cmd)
     
     def set_voltage(self, channel, volts):
         cmd = channel.upper() + ':voltage ' + str(volts)
-        self.__command(cmd)
+        self._command(cmd)
     
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
         cmd = 'CH1:current ' + str(amps)
-        self.__command(cmd)
+        self._command(cmd)
     
     @ch2_set_current.setter
     def ch2_set_current(self, amps):
         cmd = 'CH2:current ' + str(amps)
-        self.__command(cmd)
+        self._command(cmd)
     
     def set_current(self, channel, amps):
         cmd = channel.upper() + ':current ' + str(amps)
-        self.__command(cmd)
+        self._command(cmd)
 
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
@@ -291,7 +297,7 @@ class UsbtmcPowerSupply:
 
         self._instrument = usbtmc.Instrument(id_vendor, id_product)
 
-    def __query(self, query):
+    def _query(self, query):
         reply = self._instrument.ask('*IDN?')
         return reply
 
