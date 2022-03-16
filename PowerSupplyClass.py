@@ -4,7 +4,7 @@ Created on Fri Mar 11 12:53:39 2022
 @author: Sebastian Miki-Silva
 """
 
-#TODO: fix usbtmc power supply class.
+# TODO: fix usbtmc power supply class.
 
 import socket
 import usbtmc
@@ -14,15 +14,40 @@ import time
 
 
 class EthernetPowerSupply:
-    def __init__(self, ip4_address=None, port=50000, MAX_voltage=1000, MAX_current=100, reset_channels=True):
+    """An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply."""
+
+    def __init__(
+            self,
+            ip4_address=None,
+            port=50000,
+            MAX_voltage_limit=1000,
+            MAX_current_limit=100,
+            ch1_voltage_limit=1000,
+            ch1_current_limit=100,
+            ch2_voltage_limit=1000,
+            ch2_current_limit=100,
+            reset_channels=True
+    ):
+
+        """
+        Initialize a new ethernet power supply.
+
+        - param ip4_address: ------- IPv4 address of the power supply.
+        - param port: -------------- port used for communication. Siglent recommends to use 5025 for the SPD3303X power
+                                     supply. For other devices, can use any between 49152 and 65536.
+        - param MAX_voltage_limit: - Maximum voltage that the power supply can output.
+        - param MAX_current_limit: - Maximum current that the power supply can output.
+        - param
+        """
+
         self._ip4_address = ip4_address
         self._port = port
-        self._MAX_voltage_limit = MAX_voltage
-        self._MAX_current_limit = MAX_current
-        self._ch1_voltage_limit = MAX_voltage
-        self._ch1_current_limit = MAX_current
-        self._ch2_voltage_limit = MAX_voltage
-        self._ch2_current_limit = MAX_current
+        self._MAX_voltage_limit = MAX_voltage_limit
+        self._MAX_current_limit = MAX_current_limit
+        self._ch1_voltage_limit = ch1_voltage_limit
+        self._ch1_current_limit = ch1_current_limit
+        self._ch2_voltage_limit = ch2_voltage_limit
+        self._ch2_current_limit = ch2_current_limit
         
         try:
             socket_ps = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,8 +78,8 @@ class EthernetPowerSupply:
         return out
     
     def reset_channels(self):
-        self.ch1_state='OFF'
-        self.ch2_state='OFF'
+        self.ch1_state = 'OFF'
+        self.ch2_state = 'OFF'
         self.ch1_set_voltage = 0
         self.ch2_set_voltage = 0
         print('Both channels set to 0 and turned off')
@@ -80,7 +105,7 @@ class EthernetPowerSupply:
     @property    
     def system_status_binary(self):
         qry = 'system:status?'
-        reply_hex_str = self.__query(qry)  #bytes representing hex number
+        reply_hex_str = self.__query(qry)   # bytes representing hex number
         reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # binary num as string
         return reply_bin_str
     
@@ -173,40 +198,40 @@ class EthernetPowerSupply:
     @ch1_state.setter
     def ch1_state(self, state):
         cmd = 'Output CH1,' + state.upper()
-        return self.__command(cmd)
+        self.__command(cmd)
         
     @ch2_state.setter
     def ch2_state(self, state):
         cmd = 'Output CH2,' + state.upper()
-        return self.__command(cmd)
+        self.__command(cmd)
     
     @ch1_set_voltage.setter
     def ch1_set_voltage(self, volts):
         cmd = 'CH1:voltage ' + str(volts)
-        return self.__command(cmd)
+        self.__command(cmd)
 
     @ch2_set_voltage.setter
     def ch2_set_voltage(self, volts):
         cmd = 'CH2:voltage ' + str(volts)
-        return self.__command(cmd)
+        self.__command(cmd)
     
     def set_voltage(self, channel, volts):
         cmd = channel.upper() + ':voltage ' + str(volts)
-        return self.__command(cmd)
+        self.__command(cmd)
     
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
         cmd = 'CH1:current ' + str(amps)
-        return self.__command(cmd)
+        self.__command(cmd)
     
     @ch2_set_current.setter
     def ch2_set_current(self, amps):
         cmd = 'CH2:current ' + str(amps)
-        return self.__command(cmd)
+        self.__command(cmd)
     
     def set_current(self, channel, amps):
         cmd = channel.upper() + ':current ' + str(amps)
-        return self.__command(cmd)
+        self.__command(cmd)
 
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
@@ -217,7 +242,7 @@ class EthernetPowerSupply:
             print('Voltage limit not set. \
                   New voltage limit is lower than present ch1 voltage')
         else:    
-            self.ch1_voltage_limit = volts
+            self._ch1_voltage_limit = volts
     
     @ch1_current_limit.setter
     def ch1_current_limit(self, amps):
@@ -228,7 +253,7 @@ class EthernetPowerSupply:
             print('Current limit not set. \
                   New current limit is lower than present ch1 current')
         else:    
-            self.ch1_current_limit = amps
+            self._ch1_current_limit = amps
             
     @ch2_voltage_limit.setter
     def ch2_voltage_limit(self, volts):
@@ -239,7 +264,7 @@ class EthernetPowerSupply:
             print('Voltage limit not set. New voltage limit is lower \
                   than present ch2 voltage')
         else:    
-            self.ch1_voltage_limit = volts
+            self._ch1_voltage_limit = volts
     
     @ch2_current_limit.setter
     def ch2_current_limit(self, amps):
@@ -250,19 +275,19 @@ class EthernetPowerSupply:
             print('Current limit not set. New current limit is lower \
                   than present ch2 current')
         else:    
-            self.ch2_current_limit = amps
+            self._ch2_current_limit = amps
 
 
 class UsbtmcPowerSupply:
-    def __init__(self, id_vendor=None, id_product=None, MAX_voltage=1000, MAX_current=100, reset_channels=True):
+    def __init__(self, id_vendor=None, id_product=None, MAX_voltage_limit=1000, MAX_current_limit=100, reset_channels=True):
         self._id_vendor = id_vendor
         self._id_product = id_product
-        # self._MAX_voltage = MAX_voltage
-        # self._MAX_current = MAX_current
-        # self._ch1_voltage_limit = MAX_voltage
-        # self._ch1_current_limit = MAX_current
-        # self._ch2_voltage_limit = MAX_voltage
-        # self._ch2_current_limit = MAX_current
+        # self._MAX_voltage_limit = MAX_voltage_limit
+        # self._MAX_current_limit = MAX_current_limit
+        # self._ch1_voltage_limit = MAX_voltage_limit
+        # self._ch1_current_limit = MAX_current_limit
+        # self._ch2_voltage_limit = MAX_voltage_limit
+        # self._ch2_current_limit = MAX_current_limit
 
         self._instrument = usbtmc.Instrument(id_vendor, id_product)
 
@@ -273,7 +298,7 @@ class UsbtmcPowerSupply:
     
 def testing_EthernetPowerSupply():
 
-    SPD3303X = EthernetPowerSupply('10.176.42.121', 5025, MAX_voltage=32, MAX_current=3.2)
+    SPD3303X = EthernetPowerSupply('10.176.42.121', 5025, MAX_voltage_limit=32, MAX_current_limit=3.2)
     print(SPD3303X.idn)
     print(SPD3303X.ip4_address)
     print(SPD3303X.system_status_binary)
@@ -323,10 +348,12 @@ def testing_EthernetPowerSupply():
     SPD3303X.reset_channels()
     SPD3303X.disconnect()
 
+
 def testing_UsbtmcPowerSupply():
     SPD3303X = UsbtmcPowerSupply(id_vendor=0xF4EC, id_product=0x1430)
 
-def main():
+
+def testing_usb_library():
     USBTMC_bInterfaceClass = 0xFE
     USBTMC_bInterfaceSubClass = 3
     USBTMC_bInterfaceProtocol = 0
@@ -394,6 +421,10 @@ def main():
         print(list(usb.core.find(find_all=True, custom_match=is_usbtmc_device)))
 
     list_devices()
+
+
+def main():
+    testing_usb_library()
 
 if __name__ == '__main__':
     main()
