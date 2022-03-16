@@ -9,7 +9,8 @@ Created on Fri Mar 11 12:53:39 2022
 
 import socket
 import usbtmc
-
+import usb
+import sys
 import time
 
 
