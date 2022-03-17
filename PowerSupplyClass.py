@@ -11,6 +11,10 @@ import sys
 import time
 
 
+class EthernetDevice:
+
+
+
 class PowerSupply:
     """A benchtop programmable power supply"""
 
