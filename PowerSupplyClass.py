@@ -7,7 +7,6 @@ Created on Fri Mar 11 12:53:39 2022
 # TODO: Add proper error handling
 
 import socket
-
 import sys
 import time
 
