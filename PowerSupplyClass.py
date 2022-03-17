@@ -4,7 +4,8 @@ Created on Fri Mar 11 12:53:39 2022
 @author: Sebastian Miki-Silva
 """
 
-# TODO: Add proper error handling
+# TODO: Add proper error handling. This includes receiving error from power supply.
+# TODO: Finish adding comments
 
 import socket
 import sys
@@ -18,9 +19,17 @@ class EthernetDevice:
             port=50000,
     ):
 
+        """
+        An ethernet-controlled device.
+
+        :param ip4_address: The IPv4 address of the device.
+        :param port: The port number used to connect the device. Can be any number between 49152 and 65536.
+        """
+
         self._ip4_address = ip4_address
         self._port = port
         self._socket = None
+
 
     @property
     def ip4_address(self):
@@ -62,20 +71,27 @@ class EthernetDevice:
 
 
 class PowerSupply:
-    """A benchtop programmable power supply"""
-
     def __init__(
             self,
             MAX_voltage_limit=None,
             MAX_current_limit=None,
             number_of_channels=1,
-            reset_channels=True,
-
+            reset_on_startup=True
     ):
+
+        """
+        A benchtop programmable power supply.
+
+        :param MAX_voltage_limit: -- Maximum voltage that the power supply can output based on hardware limitations.
+        :param MAX_current_limit: -- Maximum current that the power supply can output based on hardware limitations.
+        :param number_of_channels: - Specifies the number of programmable physical channels in the power supply.
+        :param reset_on_startup: --- If true, will turn channels off and set the output voltage to zero.
+        """
+
         self._MAX_voltage_limit = MAX_voltage_limit
         self._MAX_current_limit = MAX_current_limit
         self.number_of_channels = number_of_channels
-        self.reset_channels = reset_channels
+        self.reset_on_startup = reset_on_startup
 
     @property
     def MAX_voltage_limit(self):
@@ -106,20 +122,19 @@ class SPD3303X(EthernetDevice, PowerSupply):
         """
         Initialize a new SPD3303X power supply.
 
-        - param ip4_address: ------- IPv4 address of the power supply.
-        - param port: -------------- port used for communication. Siglent recommends to use 5025 for the SPD3303X power
-                                     supply. For other devices, can use any between 49152 and 65536.
-        - param MAX_voltage_limit: - Maximum voltage that the power supply can output based on hardware limitations.
-        - param MAX_current_limit: - Maximum current that the power supply can output based on hardware limitations.
-        - param ch1_voltage_limit: - Set an upper limit on the voltage output of channel 1.
-        - param ch1_current_limit: - Set an upper limit on the current output of channel 1.
-        - param ch2_voltage_limit: - Set an upper limit on the voltage output of channel 2.
-        - param ch2_current_limit: - Set an upper limit on the current output of channel 2.
-        - param reset_channels: ---- If True, run a routine to set turn off the output of both channels and set the set
+        :param ip4_address: IPv4 address of the power supply.
+        :param port: port used for communication. Siglent recommends to use 5025 for the SPD3303X power
+            supply. For other devices, can use any between 49152 and 65536.
+        :param ch1_voltage_limit: Set an upper limit on the voltage output of channel 1.
+        :param ch1_current_limit: Set an upper limit on the current output of channel 1.
+        :param ch2_voltage_limit: Set an upper limit on the voltage output of channel 2.
+        :param ch2_current_limit: Set an upper limit on the current output of channel 2.
+        :param reset_on_startup: If True, run a routine to set turn off the output of both channels and set the set
 
 
-        Note that all voltage limits are software-based by this program. The power supply and its firmware does not have
-        any feature for limiting voltage or current outputs.
+        Note that all channel voltage limits are software-based since the power supply does not have any built-in limit
+        features. This means that the channel limits are checked before sending a command to the power supply. If the
+        requested set voltage is higher than the channel voltage limit, the command will not go through.
         """
 
         self._ip4_address = ip4_address
@@ -133,10 +148,11 @@ class SPD3303X(EthernetDevice, PowerSupply):
 
         self._MAX_voltage_limit = 32
         self._MAX_current_limit = 3.3
+        self.reset_on_startup = reset_on_startup
 
         self.connect()
         
-        if reset_on_startup is True:
+        if self.reset_on_startup is True:
             self.reset_channels()
 
     def reset_channels(self):
@@ -163,9 +179,15 @@ class SPD3303X(EthernetDevice, PowerSupply):
         return self._query(qry)
     
     @property    
-    def system_status_binary(self):
+    def system_status(self):
+        """
+        Query the power supply for its status. The output is a hex number represented in bytes. To be interpreted, it
+        needs to be converted into a 10-digit binary number. Each digit in the binary number represents a state for
+        some physical attribute of the power supply. Refer to the manual for the meaning of each digit.
+        :return: 10-digit binary number as a string representing the status of the system
+        """
         qry = 'system:status?'
-        reply_hex_str = self._query(qry)   # bytes representing hex number
+        reply_hex_str = self._query(qry)   # hex number represented in bytes
         reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # binary num as string
         return reply_bin_str
 
@@ -174,7 +196,12 @@ class SPD3303X(EthernetDevice, PowerSupply):
 
     @property
     def ch1_state(self):
-        one_zero = int(self.system_status_binary[-5])
+        """
+        The 5th digit from right to left of the binary output from the system status query gives the state of channel 1,
+        1 for on and 0 for off.
+        :return:
+        """
+        one_zero = int(self.system_status[-5])
         return bool(one_zero)
     
     @property
