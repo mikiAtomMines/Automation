@@ -406,7 +406,7 @@ def testing_EthernetPowerSupply():
 
 
 def main():
-
+    testing_EthernetPowerSupply()
 
 if __name__ == '__main__':
     main()
