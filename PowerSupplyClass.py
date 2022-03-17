@@ -12,7 +12,53 @@ import time
 
 
 class EthernetDevice:
+    def __init__(
+            self,
+            ip4_address=None,
+            port=50000,
+    ):
 
+        self._ip4_address = ip4_address
+        self._port = port
+        self._socket = None
+
+    @property
+    def ip4_address(self):
+        return self._ip4_address
+
+    @property
+    def port(self):
+        return self._port
+
+    def _query(self, query):
+        query_bytes = query.encode('utf-8')
+        socket_ps = self._socket
+        socket_ps.sendall(query_bytes)
+        reply_bytes = socket_ps.recv(4096)
+        reply = reply_bytes.decode('utf-8').strip()
+        time.sleep(0.3)
+        return reply
+
+    def _command(self, cmd):
+        cmd_bytes = cmd.encode('utf-8')
+        socket_ps = self._socket
+        out = socket_ps.sendall(cmd_bytes)  # return None if successful
+        time.sleep(0.3)
+        return out
+
+    def connect(self):
+        try:
+            socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            socket_object.connect((self._ip4_address, self._port))
+        except socket.error:
+            print('ERROR: Could not connect to power supply. Please Check IPv4 address and try again. ')
+            sys.exit()
+
+        self._socket = socket_object
+
+    def disconnect(self):
+        socket_ps = self._socket
+        socket_ps.close()
 
 
 class PowerSupply:
@@ -28,8 +74,8 @@ class PowerSupply:
     ):
         self._MAX_voltage_limit = MAX_voltage_limit
         self._MAX_current_limit = MAX_current_limit
-        self._number_of_channels = number_of_channels
-        self._reset_channels = reset_channels
+        self.number_of_channels = number_of_channels
+        self.reset_channels = reset_channels
 
     @property
     def MAX_voltage_limit(self):
@@ -39,16 +85,8 @@ class PowerSupply:
     def MAX_current_limit(self):
         return self._MAX_current_limit
 
-    @property
-    def number_of_channels(self):
-        return self._number_of_channels
 
-    @property
-    def reset_channels(self):
-        return self._reset_channels
-
-
-class SPD3303X(PowerSupply):
+class SPD3303X(EthernetDevice, PowerSupply):
     """
     An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply.
     All voltages and currents are in Volts and Amps unless specified otherwise.
@@ -57,12 +95,12 @@ class SPD3303X(PowerSupply):
     def __init__(
             self,
             ip4_address=None,
-            port=50000,
+            port=5025,
             ch1_voltage_limit=32,
             ch1_current_limit=3.3,
             ch2_voltage_limit=32,
             ch2_current_limit=3.3,
-            reset_channels=True
+            reset_on_startup=True
     ):
 
         """
@@ -86,66 +124,34 @@ class SPD3303X(PowerSupply):
 
         self._ip4_address = ip4_address
         self._port = port
+        self.number_of_channels = 2
 
         self._ch1_voltage_limit = ch1_voltage_limit
         self._ch1_current_limit = ch1_current_limit
         self._ch2_voltage_limit = ch2_voltage_limit
         self._ch2_current_limit = ch2_current_limit
 
-        self._number_of_channels = 2
         self._MAX_voltage_limit = 32
         self._MAX_current_limit = 3.3
-        self._reset_channels = True
 
-        try:
-            socket_ps = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket_ps.connect((self._ip4_address, self._port))
-        except socket.error:
-            print('ERROR: Could not connect to power supply. Please Check IPv4 address and try again. ')
-            sys.exit()
-            
-        self._socket = socket_ps
+        self.connect()
         
-        if reset_channels is True:
+        if reset_on_startup is True:
             self.reset_channels()
 
-# =============================================================================
-#       Class methods
-# =============================================================================
-
-    def _query(self, query):
-        query_bytes = query.encode('utf-8')
-        socket_ps = self._socket
-        socket_ps.sendall(query_bytes)
-        reply_bytes = socket_ps.recv(4096)
-        reply = reply_bytes.decode('utf-8').strip()
-        time.sleep(0.3)
-        return reply
-    
-    def _command(self, cmd):
-        cmd_bytes = cmd.encode('utf-8')
-        socket_ps = self._socket
-        out = socket_ps.sendall(cmd_bytes)  # return None if successful
-        time.sleep(0.3)
-        return out
-    
     def reset_channels(self):
         self.ch1_state = 'OFF'
         self.ch2_state = 'OFF'
         self.ch1_set_voltage = 0
         self.ch2_set_voltage = 0
         print('Both channels set to 0 and turned off')
-        
-    def disconnect(self):
-        socket_ps = self._socket
-        socket_ps.close()
     
 # =============================================================================
 #       Get methods
 # =============================================================================    
 
-# System =============================================================================
-
+# System
+# =============================================================================
     @property
     def idn(self):
         qry = '*IDN?'
@@ -163,7 +169,8 @@ class SPD3303X(PowerSupply):
         reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # binary num as string
         return reply_bin_str
 
-# Channel properties =============================================================================
+# Channel properties
+# =============================================================================
 
     @property
     def ch1_state(self):
@@ -231,7 +238,8 @@ class SPD3303X(PowerSupply):
     #     qry = 'measure:current? ' + channel.upper()
     #     return self._query(qry)
 
-# channel limits =============================================================================
+# channel limits
+# =============================================================================
 
     @property     
     def ch1_voltage_limit(self):
@@ -253,7 +261,8 @@ class SPD3303X(PowerSupply):
 #       Set methods
 # =============================================================================
 
-# Channel properties =============================================================================
+# Channel properties
+# =============================================================================
 
     @ch1_state.setter
     def ch1_state(self, state):
@@ -309,7 +318,8 @@ class SPD3303X(PowerSupply):
     #     cmd = channel.upper() + ':current ' + str(amps)
     #     self._command(cmd)
 
-# channel limits =============================================================================
+# channel limits
+# =============================================================================
 
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
@@ -365,8 +375,8 @@ def testing_EthernetPowerSupply():
     print()
     
     input('Press enter to set ch1 to 3.45V, and ch2 to 1.51V')
-    SPD3303X_1.ch1_set_voltage=3.45
-    SPD3303X_1.ch2_set_voltage=1.51
+    SPD3303X_1.ch1_set_voltage = 3.45
+    SPD3303X_1.ch2_set_voltage = 1.51
     print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
     print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
     print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
@@ -374,22 +384,22 @@ def testing_EthernetPowerSupply():
     print()
     
     input('Press enter to turn ch1 on, wait 5 sec, then off. Repeat for ch2.')
-    SPD3303X_1.ch1_state='ON'
+    SPD3303X_1.ch1_state = 'ON'
     print('CH1 state is:', str(SPD3303X_1.ch1_state))
     time.sleep(5)
-    SPD3303X_1.ch1_state='OFF'
+    SPD3303X_1.ch1_state = 'OFF'
     print('CH1 state is:', str(SPD3303X_1.ch1_state))
-    SPD3303X_1.ch2_state='ON'
+    SPD3303X_1.ch2_state = 'ON'
     print('CH2 state is:', str(SPD3303X_1.ch2_state))
     time.sleep(5)
-    SPD3303X_1.ch2_state='OFF'
+    SPD3303X_1.ch2_state = 'OFF'
     print('CH2 state is:', str(SPD3303X_1.ch2_state))
     time.sleep(5)
     print()
     
     input('press enter to turn both on for 5 seconds. Then turn both off.')
-    SPD3303X_1.ch1_state='ON'
-    SPD3303X_1.ch2_state='ON'
+    SPD3303X_1.ch1_state = 'ON'
+    SPD3303X_1.ch2_state = 'ON'
     time.sleep(5)
     print('CH1 and CH2 states are:', str(SPD3303X_1.ch1_state), str(SPD3303X_1.ch2_state))
     print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
@@ -397,8 +407,8 @@ def testing_EthernetPowerSupply():
     print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
     print('CH1 and CH2 actual currents are:', SPD3303X_1.ch1_actual_current, SPD3303X_1.ch2_actual_current)
     time.sleep(5)
-    SPD3303X_1.ch1_state='OFF'
-    SPD3303X_1.ch2_state='OFF'
+    SPD3303X_1.ch1_state = 'OFF'
+    SPD3303X_1.ch2_state = 'OFF'
     print('CH1 and CH2 states are:', str(SPD3303X_1.ch1_state), str(SPD3303X_1.ch2_state))
     print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
     print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
@@ -411,6 +421,7 @@ def testing_EthernetPowerSupply():
 
 def main():
     testing_EthernetPowerSupply()
+
 
 if __name__ == '__main__':
     main()
