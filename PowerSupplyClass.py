@@ -9,6 +9,9 @@ Created on Fri Mar 11 12:53:39 2022
 import socket
 import sys
 import time
+import usbtmc
+import usb
+# TODO: import usblib?
 
 
 class PowerSupply:
@@ -44,7 +47,7 @@ class PowerSupply:
         return self._reset_channels
 
 
-class SPD3303X(PowerSupply):
+class SPD3303X_Ethernet(PowerSupply):
     """
     An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply.
     All voltages and currents are in Volts and Amps unless specified otherwise.
@@ -351,7 +354,68 @@ class SPD3303X(PowerSupply):
         else:    
             self._ch2_current_limit = amps
 
-    
+
+class SPD3303x_USBTMC(PowerSupply):
+    """
+     A USBTMC-controlled power supply.
+    All voltages and currents are in Volts and Amps unless specified otherwise.
+    """
+
+    def __init__(
+            self,
+            id_vendor = None,
+            id_product = None,
+            ch1_voltage_limit=32,
+            ch1_current_limit=3.3,
+            ch2_voltage_limit=32,
+            ch2_current_limit=3.3,
+            reset_channels=True
+    ):
+
+        """
+        Initialize a new SPD3303X power supply.
+
+        - param ip4_address: ------- IPv4 address of the power supply.
+        - param port: -------------- port used for communication. Siglent recommends to use 5025 for the SPD3303X power
+                                     supply. For other devices, can use any between 49152 and 65536.
+        - param MAX_voltage_limit: - Maximum voltage that the power supply can output based on hardware limitations.
+        - param MAX_current_limit: - Maximum current that the power supply can output based on hardware limitations.
+        - param ch1_voltage_limit: - Set an upper limit on the voltage output of channel 1.
+        - param ch1_current_limit: - Set an upper limit on the current output of channel 1.
+        - param ch2_voltage_limit: - Set an upper limit on the voltage output of channel 2.
+        - param ch2_current_limit: - Set an upper limit on the current output of channel 2.
+        - param reset_channels: ---- If True, run a routine to set turn off the output of both channels and set the set
+
+
+        Note that all voltage limits are software-based by this program. The power supply and its firmware does not have
+        any feature for limiting voltage or current outputs.
+        """
+
+        self._id_vendor= ip4_address
+        self._port = port
+
+        self._ch1_voltage_limit = ch1_voltage_limit
+        self._ch1_current_limit = ch1_current_limit
+        self._ch2_voltage_limit = ch2_voltage_limit
+        self._ch2_current_limit = ch2_current_limit
+
+        self._number_of_channels = 2
+        self._MAX_voltage_limit = 32
+        self._MAX_current_limit = 3.3
+        self._reset_channels = True
+
+        try:
+            socket_ps = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            socket_ps.connect((self._ip4_address, self._port))
+        except socket.error:
+            print('ERROR: Could not connect to power supply. Please Check IPv4 address and try again. ')
+            sys.exit()
+
+        self._socket = socket_ps
+
+        if reset_channels is True:
+            self.reset_channels()
+
 def testing_EthernetPowerSupply():
 
     SPD3303X_1 = SPD3303X('10.176.42.121', 5025)
