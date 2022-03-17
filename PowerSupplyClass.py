@@ -414,7 +414,9 @@ def testing_EthernetPowerSupply():
     print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
     print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
     print('CH1 and CH2 actual currents are:', SPD3303X_1.ch1_actual_current, SPD3303X_1.ch2_actual_current)
-    
+    print('CH1 and CH2 voltage limits are:', SPD3303X_1.ch1_voltage_limit, SPD3303X_1.ch2_voltage_limit)
+    print('CH1 and CH2 current limits are:', SPD3303X_1.ch1_current_limit, SPD3303X_1.ch2_current_limit)
+    print('MAX voltage and current limits are:', SPD3303X_1.MAX_voltage_limit, SPD3303X_1.MAX_current_limit)
     SPD3303X_1.reset_channels()
     SPD3303X_1.disconnect()
 
