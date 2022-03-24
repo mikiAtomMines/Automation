@@ -188,7 +188,7 @@ class SPD3303X(EthernetDevice, PowerSupply):
         """
         qry = 'system:status?'
         reply_hex_str = self._query(qry)   # hex number represented in bytes
-        reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # binary num as string
+        reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # 10 digit binary num, padded with 0, as string
         return reply_bin_str
 
 # Channel properties
