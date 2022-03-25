@@ -24,7 +24,7 @@ class AlphaIncGaussmeter(serial.Serial):
         More parameters in documentation for serial.Serial class. 
         """
 
-    def query(self, qry):
+    def query(self, qry):  # TODO: Make more general for other commands. Improve algorithm.
         number_bytes = {
             '01': 20,
             '02': 20,
@@ -53,7 +53,7 @@ class AlphaIncGaussmeter(serial.Serial):
 
         return out
 
-    def get_data(self):
+    def get_data(self):  # TODO: Improve readability, add comments, imporve algorithm for formatting.
         # self.write(bytes.fromhex('03'))  # Send the command to the gaussmeter in bytes format.
         # self.write(bytes.fromhex('00' * 5))  # Padding for command.
         #
@@ -92,10 +92,28 @@ class AlphaIncGaussmeter(serial.Serial):
         z_axis_list = bits_data[18:24]
         magnitude_list = bits_data[24:30]
 
-        time_digits = int(time_list[2] + time_list[3] + time_list[4] + time_list[5], 2)
-        if time_list[1][4] ==
+        measurables_lists = [
+            time_list,
+            x_axis_list,
+            y_axis_list,
+            z_axis_list,
+            magnitude_list
+        ]
 
+        print(time_list)
+        out = []
+        for i in range(len(measurables_lists)):
+            measurable = measurables_lists[i]
+            measurable_power = -1 * int(measurable[1][5:8], 2)
+            measurable_digits = int(measurable[2] + measurable[3] + measurable[4] + measurable[5], 2)
+            measurable_sign = 1
+            if measurable[1][4] == 1:
+                measurable_sign = -1
 
+            measurable_value = measurable_digits * measurable_sign * 10**measurable_power
+            out.append(measurable_value)
+
+        return out
 
     @property
     def properties(self):
