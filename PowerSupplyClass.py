@@ -451,12 +451,12 @@ def main():
     power_supply_right = SPD3303X('10.176.42.121', 5025)
     power_supply_left = SPD3303X('10.176.42.171', 5025)
 
-    print('testing power supply right')
-    testing_EthernetPowerSupply(power_supply_right)
-    time.sleep(1)
-    input('press enter to test power supply left')
     print('testing power supply left')
     testing_EthernetPowerSupply(power_supply_left)
+    time.sleep(1)
+    input('press enter to test power supply right')
+    print('testing power supply right')
+    testing_EthernetPowerSupply(power_supply_right)
 
 
 if __name__ == '__main__':
