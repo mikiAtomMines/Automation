@@ -201,12 +201,12 @@ class SPD3303X(EthernetDevice, PowerSupply):
         1 for on and 0 for off.
         :return:
         """
-        one_zero = int(self.system_status[-5])
-        return bool(one_zero)
+        one_or_zero = int(self.system_status[-5])
+        return bool(one_or_zero)
     
     @property
     def ch2_state(self):
-        one_or_zero = int(self.system_status_binary[-6])
+        one_or_zero = int(self.system_status[-6])
         return bool(one_or_zero)
         
     @property
@@ -393,63 +393,70 @@ class SPD3303X(EthernetDevice, PowerSupply):
             self._ch2_current_limit = amps
 
     
-def testing_EthernetPowerSupply():
+def testing_EthernetPowerSupply(power_supply):
 
-    SPD3303X_1 = SPD3303X('10.176.42.121', 5025)
-    print(SPD3303X_1.idn)
-    print(SPD3303X_1.ip4_address)
-    print(SPD3303X_1.system_status_binary)
+    print(power_supply.idn)
+    print(power_supply.ip4_address)
+    print(power_supply.system_status)
     print()
     
     input('Press enter to set ch1 to 3.45V, and ch2 to 1.51V')
-    SPD3303X_1.ch1_set_voltage = 3.45
-    SPD3303X_1.ch2_set_voltage = 1.51
-    print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', SPD3303X_1.ch1_actual_current, SPD3303X_1.ch2_actual_current)
+    power_supply.ch1_set_voltage = 3.45
+    power_supply.ch2_set_voltage = 1.51
+    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
+    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
+    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
+    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
     print()
     
     input('Press enter to turn ch1 on, wait 5 sec, then off. Repeat for ch2.')
-    SPD3303X_1.ch1_state = 'ON'
-    print('CH1 state is:', str(SPD3303X_1.ch1_state))
+    power_supply.ch1_state = 'ON'
+    print('CH1 state is:', str(power_supply.ch1_state))
     time.sleep(5)
-    SPD3303X_1.ch1_state = 'OFF'
-    print('CH1 state is:', str(SPD3303X_1.ch1_state))
-    SPD3303X_1.ch2_state = 'ON'
-    print('CH2 state is:', str(SPD3303X_1.ch2_state))
+    power_supply.ch1_state = 'OFF'
+    print('CH1 state is:', str(power_supply.ch1_state))
+    power_supply.ch2_state = 'ON'
+    print('CH2 state is:', str(power_supply.ch2_state))
     time.sleep(5)
-    SPD3303X_1.ch2_state = 'OFF'
-    print('CH2 state is:', str(SPD3303X_1.ch2_state))
+    power_supply.ch2_state = 'OFF'
+    print('CH2 state is:', str(power_supply.ch2_state))
     time.sleep(5)
     print()
     
     input('press enter to turn both on for 5 seconds. Then turn both off.')
-    SPD3303X_1.ch1_state = 'ON'
-    SPD3303X_1.ch2_state = 'ON'
+    power_supply.ch1_state = 'ON'
+    power_supply.ch2_state = 'ON'
     time.sleep(5)
-    print('CH1 and CH2 states are:', str(SPD3303X_1.ch1_state), str(SPD3303X_1.ch2_state))
-    print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', SPD3303X_1.ch1_actual_current, SPD3303X_1.ch2_actual_current)
+    print('CH1 and CH2 states are:', str(power_supply.ch1_state), str(power_supply.ch2_state))
+    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
+    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
+    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
+    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
     time.sleep(5)
-    SPD3303X_1.ch1_state = 'OFF'
-    SPD3303X_1.ch2_state = 'OFF'
-    print('CH1 and CH2 states are:', str(SPD3303X_1.ch1_state), str(SPD3303X_1.ch2_state))
-    print('CH1 and CH2 set voltages are:', SPD3303X_1.ch1_set_voltage, SPD3303X_1.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', SPD3303X_1.ch1_set_current, SPD3303X_1.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', SPD3303X_1.ch1_actual_voltage, SPD3303X_1.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', SPD3303X_1.ch1_actual_current, SPD3303X_1.ch2_actual_current)
-    print('CH1 and CH2 voltage limits are:', SPD3303X_1.ch1_voltage_limit, SPD3303X_1.ch2_voltage_limit)
-    print('CH1 and CH2 current limits are:', SPD3303X_1.ch1_current_limit, SPD3303X_1.ch2_current_limit)
-    print('MAX voltage and current limits are:', SPD3303X_1.MAX_voltage_limit, SPD3303X_1.MAX_current_limit)
-    SPD3303X_1.reset_channels()
-    SPD3303X_1.disconnect()
+    power_supply.ch1_state = 'OFF'
+    power_supply.ch2_state = 'OFF'
+    print('CH1 and CH2 states are:', str(power_supply.ch1_state), str(power_supply.ch2_state))
+    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
+    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
+    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
+    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
+    print('CH1 and CH2 voltage limits are:', power_supply.ch1_voltage_limit, power_supply.ch2_voltage_limit)
+    print('CH1 and CH2 current limits are:', power_supply.ch1_current_limit, power_supply.ch2_current_limit)
+    print('MAX voltage and current limits are:', power_supply.MAX_voltage_limit, power_supply.MAX_current_limit)
+    power_supply.reset_channels()
+    power_supply.disconnect()
 
 
 def main():
-    testing_EthernetPowerSupply()
+    power_supply_right = SPD3303X('10.176.42.121', 5025)
+    power_supply_left = SPD3303X('10.176.42.171', 5025)
+
+    print('testing power supply right')
+    testing_EthernetPowerSupply(power_supply_right)
+    time.sleep(1)
+    input('press enter to test power supply left')
+    print('testing power supply left')
+    testing_EthernetPowerSupply(power_supply_left)
 
 
 if __name__ == '__main__':
