@@ -11,7 +11,7 @@ import time
 
 class AlphaIncGaussmeter(serial.Serial):
     def __init__(self, *args, **kwargs):
-        super().__init__(baudrate=115200, stopbits=1, parity=serial.PARITY_NONE, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         """
         :param port: Device name. Can be found on device manager.
@@ -36,11 +36,11 @@ class AlphaIncGaussmeter(serial.Serial):
         command used.
         """
 
-        qry_dict = {
+        qry_dict = {  # command as appears in manual: hex command identifyer
             'ID_METER_PROP': '01',
             'ID_METER_SETT': '02',
             'STREAM_DATA': '03',
-            'RESET_TIME': '04',
+            'RE SET_TIME': '04',
             'KILL_ALL_PROCESS': 'FF',
             '01': '01',
             '02': '02',
@@ -55,7 +55,7 @@ class AlphaIncGaussmeter(serial.Serial):
         }
         qry = qry_dict[command]  # TODO: Add error handling
 
-        number_of_bytes_dict = {
+        number_of_bytes_dict = {  # the acknoledge byte is sent
             '01': 20,
             '02': 20,
             '03': 30,
@@ -66,7 +66,6 @@ class AlphaIncGaussmeter(serial.Serial):
         self.write(bytes.fromhex(qry*6))
         # self.write(bytes.fromhex(qry))       # Send the command to the gaussmeter in bytes format.
         # self.write(bytes.fromhex('00' * 5))  # Padding for command.
-        time.sleep(0.1)
         r = self.read(number_of_bytes)       # Read bytes of the response back.
         ack = self.read(1)
 
@@ -169,9 +168,10 @@ def collect_data(gaussmeter, t):
 def test_gaussmeter_class():
     a = 3
 
-    gaussmeter = AlphaIncGaussmeter(port='COM3')
+    gaussmeter = AlphaIncGaussmeter(port='COM3', baudrate=115200, stopbits=1, parity=serial.PARITY_NONE, timeout=5, writeTimeout=5)
     # gaussmeter.command('FF')
-    print(gaussmeter.properties)
+    for i in range(30):
+        print(gaussmeter.properties)
     # print()
     # print(gaussmeter.settings)
     # print()
@@ -189,7 +189,7 @@ def test_gaussmeter_class():
     # print()
     # # print(collect_data(gaussmeter, 3))
     # collect_data(gaussmeter, 10)
-    # gaussmeter.close()
+    gaussmeter.close()
 
 
 
