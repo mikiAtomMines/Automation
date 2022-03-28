@@ -63,12 +63,12 @@ class AlphaIncGaussmeter(serial.Serial):
         }
         number_of_bytes = number_of_bytes_dict[qry]
         ack = ''
-        while ack != bytes.fromhex('08'):
-            self.write(bytes.fromhex(qry * 6))
-            r = self.read(number_of_bytes)       # Read bytes of the response back.
+        while ack != bytes.fromhex('08'):        # loop to confirm that the message has been received
+            self.write(bytes.fromhex(qry*6))
+            r = self.read(number_of_bytes)
             ack = self.read(1)
 
-            if ack != bytes.fromhex('08'):
+            if ack != bytes.fromhex('08'):       # count the number of times a message is not received succesfully.
                 error_count += 1
 
         if qry == '03' or qry == '04':
@@ -78,10 +78,12 @@ class AlphaIncGaussmeter(serial.Serial):
             self.write(bytes.fromhex('08' * 6))
             r += self.read(number_of_bytes)
             ack = self.read(1)
+
         return r
 
     def command(self, command):
         """
+        TODO: Add comments
         """
 
         cmd_dict = {
@@ -92,20 +94,16 @@ class AlphaIncGaussmeter(serial.Serial):
         cmd = cmd_dict[command]  # TODO: Add error handling
 
         self.write(bytes.fromhex(cmd*6))
-        # self.write(bytes.fromhex(cmd))       # Send the command to the gaussmeter in bytes format.
-        # self.write(bytes.fromhex('00' * 5))  # Padding for command.
 
         return None
 
-    def get_instantenous_data(self):  # TODO: Improve readability, add comments, imporve algorithm for formatting.
+    def get_instantenous_data(self):
         """
         query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
         Gauss readings of a magnetic field. Note the time points only serve as an index for the data points but do
         not give meaningful time information.
         :return: list containing the float values for time (s), x-axis (G), y-axis (G), z-axis (G), and magnitude (G).
-        """
 
-        """
         The response from the gaussmeter comes as a long byte string containing hex numbers in the format 'AA. The 
         data can be thought to be split in sections of 6 bytes. Each section contains the information for each 
         measurable that the gaussmeter collects. Currently, there are only 5 measurables, which means that the 
@@ -143,15 +141,13 @@ class AlphaIncGaussmeter(serial.Serial):
 
         return out
 
-    def get_instantenous_data_t0(self):  # TODO: Improve readability, add comments, imporve algorithm for formatting.
+    def get_instantenous_data_t0(self):
         """
         reset the time coordinate and query the gaussmeter for an instantenous reading of the time stamp in seconds,
         x-axis, y-axis, z-axis, and magnitude in Gauss readings of a magnetic field. Note the time points only serve
         as an index for the data points but do not give meaningful time information.
         :return: list containing the float values for time (s), x-axis (G), y-axis (G), z-axis (G), and magnitude (G).
-        """
 
-        """
         The response from the gaussmeter comes as a long byte string containing hex numbers in the format 'AA. The 
         data can be thought to be split in sections of 6 bytes. Each section contains the information for each 
         measurable that the gaussmeter collects. Currently, there are only 5 measurables, which means that the 
@@ -220,9 +216,8 @@ def collect_data(gaussmeter, t):
 
 
 def test_gaussmeter_class():
-    gaussmeter = AlphaIncGaussmeter(port='COM3', timeout=1,
-                                    writeTimeout=1)
-    # gaussmeter.command('FF')
+    gaussmeter = AlphaIncGaussmeter(port='COM3', timeout=1, writeTimeout=1)
+
     # for i in range(100):
     #     a = gaussmeter.properties
     # print()
@@ -232,8 +227,9 @@ def test_gaussmeter_class():
     # for i in range(100):
     #     a = gaussmeter.get_instantenous_data()
 
+    print(gaussmeter.properties)
     # print()
-    print(collect_data(gaussmeter, 300))
+    print(collect_data(gaussmeter, 100))
     # # collect_data(gaussmeter, 10)
     #
 
