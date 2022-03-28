@@ -99,8 +99,9 @@ class AlphaIncGaussmeter(serial.Serial):
 
     def get_instantenous_data(self):  # TODO: Improve readability, add comments, imporve algorithm for formatting.
         """
-        query the gaussmeter for an instantenous reading of the time stamp in seconds, x-axis, y-axis, z-axis,
-        and magnitude in Gauss readings of a magnetic field.
+        query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
+        Gauss readings of a magnetic field. Note the time points only serve as an index for the data points but do
+        not give meaningful time information.
         :return: list containing the float values for time (s), x-axis (G), y-axis (G), z-axis (G), and magnitude (G).
         """
 
@@ -145,7 +146,8 @@ class AlphaIncGaussmeter(serial.Serial):
     def get_instantenous_data_t0(self):  # TODO: Improve readability, add comments, imporve algorithm for formatting.
         """
         reset the time coordinate and query the gaussmeter for an instantenous reading of the time stamp in seconds,
-        x-axis, y-axis, z-axis, and magnitude in Gauss readings of a magnetic field.
+        x-axis, y-axis, z-axis, and magnitude in Gauss readings of a magnetic field. Note the time points only serve
+        as an index for the data points but do not give meaningful time information.
         :return: list containing the float values for time (s), x-axis (G), y-axis (G), z-axis (G), and magnitude (G).
         """
 
@@ -159,8 +161,7 @@ class AlphaIncGaussmeter(serial.Serial):
         60 characters long. 
         """
 
-        self.query('RESET_TIME')
-        query_bytes = self.query('STREAM_DATA')
+        query_bytes = self.query('RESET_TIME')
         # ack = query_bytes[-1].hex()
         # print(ack)
         query_string = query_bytes.hex()
@@ -238,7 +239,6 @@ def test_gaussmeter_class():
 
     print(error_count)
     gaussmeter.write(bytes.fromhex('04'*6))
-    print(len(gaussmeter.read(64)))
 
     gaussmeter.command('KILL_ALL_PROCESS')
     gaussmeter.close()
