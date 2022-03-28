@@ -3,6 +3,8 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+# TODO: Add comments
+
 #######################################################################################################################
 # Heating and cooling functions
 #######################################################################################################################
@@ -172,6 +174,7 @@ def testing_dt_parameter():
 
 def main():
     testing_dt_parameter()
+
 
 if __name__ == '__main__':
     main()
