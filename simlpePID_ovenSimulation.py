@@ -17,22 +17,22 @@ def cooling(T, T_env, rc, dt):
 
 
 def testing_class():
-#   Simulation parameters
-#   ==================================================================================================================
+    # Simulation parameters
+    # ==================================================================================================================
 
     set_temperature = 200  # Celsius
     duration = 20  # seconds of total calculations
     interval = 0.2  # seconds between data points
 
-# Physical Constants
-# ====================================================================================================================
+    # Physical Constants
+    # ==================================================================================================================
     T0 = 30  # Celsius
     T_env = 25  # Celsius
     rc = 0.5
     rh = 1
 
-#   PID controller
-#   ==================================================================================================================
+    # PID controller
+    # ==================================================================================================================
 
     ovenPower = pid.PID(1, 3, 0.10, setpoint=30)
     ovenPower.setpoint = set_temperature
@@ -44,8 +44,8 @@ def testing_class():
     time_array = np.asarray([])
     power_array = np.asarray([])
 
-#   Calculating heating response to PID output
-#   =================================================================================================================
+    # Calculating heating response to PID output
+    # ==================================================================================================================
     T = T0
     initial_time = time.time()
     previous_time = time.time() - initial_time
