@@ -120,11 +120,12 @@ class AlphaIncGaussmeter(serial.Serial):
         query_string = query_bytes.hex()
 
         """
-        We then divide the string into sections of 12 characters (6 bytes) and identify the second  (byte_2) and the 
-        third, fourth, fifth, and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign 
-        and magnitude of the measured quantity. bytes_3456 give the digits. 
+        We then divide the string into sections of 12 characters (6 bytes). Each section contains all the information
+        for a single measurable. Within ech section, we identify the second (byte_2) and the third, fourth, fifth, 
+        and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign and magnitude of the 
+        measured quantity. bytes_3456 give the digits. 
         """
-        number_of_measurables = int(len(query_string)/2 / 6)
+        number_of_measurables = int(len(query_string)/2 / 6)  # find number of measurable variables
         out = []
         for measurable_i in range(number_of_measurables):
             section_i = measurable_i*12
@@ -134,10 +135,10 @@ class AlphaIncGaussmeter(serial.Serial):
             sign = 1
             if byte_2 & 0x08:               # 0x08 = 00001000 : if 4th bit = 1, sign is negative. Else, sign is positive
                 sign = -1
-            power = -1*int(byte_2 & 0x07)   # 0x07 = 00000111 : 1st, 2nd, and 3rd bits give inverse power of 10.
             digits = bytes_3456
+            magnitude = 10**(-1 * int(byte_2 & 0x07))   # 0x07 = 00000111 : 1st, 2nd, 3rd bits give inverse power of 10.
 
-            out.append(sign*digits*10**power)
+            out.append(sign*digits*magnitude)
 
         return out
 
@@ -153,7 +154,7 @@ class AlphaIncGaussmeter(serial.Serial):
         data can be thought to be split in sections of 6 bytes. Each section contains the information for each 
         measurable that the gaussmeter collects. Currently, there are only 5 measurables, which means that the 
         response has a total of 30 bytes.
-
+        
         The response is then converted into a python string. Since each hex number has two characters, the string is 
         60 characters long. 
         """
@@ -165,24 +166,25 @@ class AlphaIncGaussmeter(serial.Serial):
         query_string = query_bytes.hex()
 
         """
-        We then divide the string into sections of 12 characters (6 bytes) and identify the second  (byte_2) and the 
-        third, fourth, fifth, and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign 
-        and magnitude of the measured quantity. bytes_3456 give the digits. 
+        We then divide the string into sections of 12 characters (6 bytes). Each section contains all the information
+        for a single measurable. Within ech section, we identify the second (byte_2) and the third, fourth, fifth, 
+        and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign and magnitude of the 
+        measured quantity. bytes_3456 give the digits. 
         """
         number_of_measurables = int(len(query_string) / 2 / 6)
         out = []
         for measurable_i in range(number_of_measurables):
-            section_i = measurable_i * 12
-            byte_2 = int(query_string[section_i + 2: section_i + 4], 16)
-            bytes_3456 = int(query_string[section_i + 4: section_i + 12], 16)
+            section_i = measurable_i*12
+            byte_2 = int(query_string[section_i+2: section_i+4], 16)
+            bytes_3456 = int(query_string[section_i+4: section_i+12], 16)
 
             sign = 1
-            if byte_2 & 0x08:  # 0x08 = 00001000 : if 4th bit = 1, sign is negative. Else, sign is positive
+            if byte_2 & 0x08:               # 0x08 = 00001000 : if 4th bit = 1, sign is negative. Else, sign is positive
                 sign = -1
-            power = -1 * int(byte_2 & 0x07)  # 0x07 = 00000111 : 1st, 2nd, and 3rd bits give inverse power of 10.
             digits = bytes_3456
+            magnitude = 10**(-1 * int(byte_2 & 0x07))   # 0x07 = 00000111 : 1st, 2nd, 3rd bits give inverse power of 10.
 
-            out.append(sign * digits * 10 ** power)
+            out.append(sign*digits*magnitude)
 
         return out
 
