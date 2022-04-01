@@ -3,6 +3,7 @@ Created on Fri Mar 24 13:41 2022
 
 @author: Sebastian Miki-Silva
 """
+# TODO: Update code with new info from email about frequency/period. Might be able to change frequency of acquisiton.
 
 import serial
 import sys
