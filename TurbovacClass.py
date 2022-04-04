@@ -41,28 +41,13 @@ def main():
 
     bit_query = ''
     for byte_i in bytes_array:
-        if len(byte_i) < 8:
+        if len(byte_i) < 1:  # fill any bitarray object with 0's if it is empty.
             byte_i.frombytes(b'\x00')
-        byte_i.append(util.parity(byte_i))
+        byte_i.append(util.parity(byte_i))  # add parity bit
+        # byte_i.insert(0, 0)  # add start bit
+
         bit_query += byte_i.to01()
 
-
-    # bytes_array = [b'\x00']*24
-    #
-    # qry_designator = '0001' + '0'  # qry designator plus reserved bit
-    # param_num = '00010010110'      # param number. Currently 150
-    # word0 = qry_designator + param_num
-    # byte3 = word0[:8]
-    # byte4 = word0[8:]
-    #
-    #
-    #
-    # bytes_array[0] = (b'\x02')
-    # bytes_array[1] = (b'\x16')
-    # bytes_array[2] = (b'\x00')     # bus address kept as default 0.
-    # bytes_array[3] = binary_to_hex_byte(byte3)
-    # bytes_array[4] = binary_to_hex_byte(byte4)
-    # bytes_array[11] = b'\x04'
 
     for byte_i in bytes_array:
         util.pprint(byte_i)
@@ -75,12 +60,12 @@ def main():
     byte_query = array_query.tobytes()
 
     print(byte_query)
+    print(len(byte_query))
 
     # turbovac.write(query)
     # out = turbovac.read(24)
 
     # turbovac.close()
-
 
 
 if __name__ == '__main__':
