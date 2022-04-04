@@ -12,7 +12,7 @@ import time
 error_count = 0
 
 
-class AlphaIncGaussmeter(serial.Serial):
+class GM3Gaussmeter(serial.Serial):
     def __init__(self, *args, **kwargs):
         super().__init__(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, *args, **kwargs)
 
@@ -36,7 +36,7 @@ class AlphaIncGaussmeter(serial.Serial):
 
         :param command: the command to send to the gaussmeter. Can be a string with the hex value of the command in the
         format 'AA' or '0xAA' or the command name as it appears in the AlphaApp comm protocol manual.
-        :return: byte string containing the response from the gaussmeter. Has variable length depending on the query
+        :return: byte object containing the response from the gaussmeter. Has variable length depending on the query
         command used.
         """
 
