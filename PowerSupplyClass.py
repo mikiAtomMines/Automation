@@ -39,7 +39,22 @@ class EthernetDevice:
     def port(self):
         return self._port
 
-    def _query(self, query):
+    def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
+        """
+        send a query to the ethernet device and receive a response.
+
+        Parameters
+        ----------
+        query : string
+            Python string containing the query command. Dependent on each individual device.
+
+        Returns
+        -------
+        string
+            Returns the reply of the ethernet device as a string. The output of the ethernet device is received as
+            bytes, which is then decoded with utf-8.
+
+        """
         query_bytes = query.encode('utf-8')
         socket_ps = self._socket
         socket_ps.sendall(query_bytes)
@@ -48,7 +63,21 @@ class EthernetDevice:
         time.sleep(0.3)
         return reply
 
-    def _command(self, cmd):
+    def _command(self, cmd):  # TODO: make more general.
+        """
+        send a command to the ethernet device. Does not receive any response.
+
+        Parameters
+        ----------
+        cmd : string
+            Python string containing the command. Dependent on each individual device.
+
+        Returns
+        -------
+        None
+            Returns None if the command is succesfully sent.
+
+        """
         cmd_bytes = cmd.encode('utf-8')
         socket_ps = self._socket
         out = socket_ps.sendall(cmd_bytes)  # return None if successful
