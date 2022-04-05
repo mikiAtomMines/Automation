@@ -23,5 +23,6 @@ GM3 Gaussmeter class. Has a query method that is used for data acquisiton method
 The query method takes input a string of the desired query using the command name as it appears in the manual. Can use the command name, or the hex command identifyer in the format 'AA'. The method will format the query message according to the input. It will also read the response and return it as a byte object. 
 get_instantenous_data queries the gaussmeter for a single reading of all the measurables. It then parses the output into human-readable strings. 
 
+
 ## testing files
 All files with names starting with 'testing' are used as preliminary testing of certain libraries and communication protocols. Currently testing SimplePID library, and serial communication with Leybold TurboVac pumps. 
