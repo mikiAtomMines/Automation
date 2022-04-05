@@ -12,7 +12,7 @@ import sys
 import time
 
 
-class EthernetDevice:
+class SocketEthernetDevice:
     def __init__(
             self,
             ip4_address=None,
@@ -29,7 +29,6 @@ class EthernetDevice:
         self._ip4_address = ip4_address
         self._port = port
         self._socket = None
-
 
     @property
     def ip4_address(self):
@@ -55,13 +54,17 @@ class EthernetDevice:
             bytes, which is then decoded with utf-8.
 
         """
-        query_bytes = query.encode('utf-8')
-        socket_ps = self._socket
-        socket_ps.sendall(query_bytes)
-        reply_bytes = socket_ps.recv(4096)
-        reply = reply_bytes.decode('utf-8').strip()
-        time.sleep(0.3)
-        return reply
+
+        try:
+            query_bytes = query.encode('utf-8')
+            socket_ps = self._socket
+            socket_ps.sendall(query_bytes)
+            reply_bytes = socket_ps.recv(4096)
+            reply = reply_bytes.decode('utf-8').strip()
+            time.sleep(0.3)
+            return reply
+        except OSError:
+            print('ERROR: Socket not found')
 
     def _command(self, cmd):  # TODO: make more general.
         """
@@ -78,11 +81,15 @@ class EthernetDevice:
             Returns None if the command is succesfully sent.
 
         """
-        cmd_bytes = cmd.encode('utf-8')
-        socket_ps = self._socket
-        out = socket_ps.sendall(cmd_bytes)  # return None if successful
-        time.sleep(0.3)
-        return out
+
+        try:
+            cmd_bytes = cmd.encode('utf-8')
+            socket_ps = self._socket
+            out = socket_ps.sendall(cmd_bytes)  # return None if successful
+            time.sleep(0.3)
+            return out
+        except OSError:
+            print('ERROR: Socket not found')
 
     def connect(self):
         try:
@@ -131,7 +138,7 @@ class PowerSupply:
         return self._MAX_current_limit
 
 
-class SPD3303X(EthernetDevice, PowerSupply):
+class SPD3303X(SocketEthernetDevice, PowerSupply):
     """
     An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply.
     All voltages and currents are in Volts and Amps unless specified otherwise.
