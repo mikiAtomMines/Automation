@@ -12,7 +12,7 @@ Had query, command, connect, and disconnect methods. Might need to modify to mak
 Any power supply. Had max voltage and max current limits, number of channels, and an option to reset the power supply on startup. No methods. 
 
 ### SPD3303X:
-Currently the only power supply we control through ethernet. Has methods to set voltage, current, turn the channels on or off, set limits to the voltage and current, and read all these measurables.
+Currently, the only power supply we control through ethernet. Has methods to set voltage, current, turn the channels on or off, set limits to the voltage and current, and read all these measurables.
 
 
 ## GaussmeterClass.py
