@@ -74,7 +74,7 @@ def get_TempScale_unit(units):
         sys.exit()
 
 
-class MCC_device:
+class MCC_device:  # TODO: add API functions
     def __init__(self, board_number=0):
         """
         Class for an MCC device supported by their Universal Library.
@@ -85,6 +85,15 @@ class MCC_device:
             All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
             match the board number of its associated device. Possible values from 0 to 99.
         """
+
+        self._board_number = board_number
+        self._model = self.model
+        self._mac_address = self.mac_address
+        self._serial_number = self.serial_number
+        self._number_temp_channels = self.number_temp_channels
+        self._number_io_cahnnels = self.number_io_channels
+        self._number_ad_channels = self.number_ad_channels
+        self._number_da_channels = self.number_da_channels
 
     @property
     def model(self):
@@ -111,7 +120,7 @@ class MCC_device:
         )
 
     @property
-    def number_temp_chanels(self):
+    def number_temp_channels(self):
         return ul.get_config(
             info_type=InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -119,15 +128,36 @@ class MCC_device:
             config_item=BoardInfo.NUMTEMPCHANS
         )
 
-class Web_Tc:
-    def __init__(
-            self,
-            ip4_address=None,
-            port=54211,
-            board_number=0,
-            io_number_of_channels=8,
-            default_units='celsius'
-    ):
+    @property
+    def number_io_channels(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.NUMIOPORTS
+        )
+
+    @property
+    def number_ad_channels(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.NUMADCHANS
+        )
+
+    @property
+    def number_da_channels(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.NUMDACHANS
+        )
+
+
+class Web_Tc(MCC_device):
+    def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
 
@@ -143,8 +173,6 @@ class Web_Tc:
         board_number : int
             All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
             match the board number of its associated device. Possible values from 0 to 99.
-        io_number_of_channels : int
-            The number of physical digital input/output channels. Currently unused. TODO: CHECK for this model.
         default_units : string
             the units in which the temperature is shown, unless specified otherwise in the method. Possible values
             (not
@@ -156,45 +184,10 @@ class Web_Tc:
             for uncalibrated voltage    raw, none, noscale     r
         """
 
+        super().__init__(board_number)
         self._ip4_address = ip4_address
         self._port = port
-        self._board_number = board_number
-        self._number_temp_channels = self.number_temp_chanels
-        self._number_io_channels = io_number_of_channels
         self._default_units = default_units
-
-    @property
-    def model(self):
-        return ul.get_board_name(self._board_number)
-
-    @property
-    def mac_address(self):
-        return ul.get_config_string(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.DEVMACADDR,
-            max_config_len=255
-        )
-
-    @property
-    def serial_number(self):
-        return ul.get_config_string(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.DEVSERIALNUM,
-            max_config_len=255
-        )
-
-    @property
-    def number_temp_chanels(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.NUMTEMPCHANS
-        )
 
     def get_temp(self, channel_n=0, units=None, averaged=True):
         """
@@ -268,9 +261,9 @@ class Web_Tc:
         """
 
         out = []
-        for channel in range(self._ai_number_of_channels):
+        for channel in range(self._number_temp_channels):
             try:
-                out.append(self.get_temp(channel_n=channel))
+                out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
             except mcculw.ul.ULError:
                 print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
                 out.append(None)
@@ -315,7 +308,7 @@ class Web_Tc:
         out = []
         for channel in range(low_channel, high_channel+1):
             try:
-                out.append(self.get_temp(channel_n=channel))
+                out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
             except mcculw.ul.ULError:
                 print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
                 out.append(None)
@@ -342,7 +335,7 @@ def main():
     print()
     web_tc_1 = Web_Tc(board_number=0)
     print()
-    print(web_tc_1.info)
+    print(web_tc_1.number_temp_channels)
     print(web_tc_1.get_temp_scan(high_channel=4))
     print(web_tc_1.get_temp_all_channels())
 
