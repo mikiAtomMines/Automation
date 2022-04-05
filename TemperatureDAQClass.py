@@ -74,6 +74,51 @@ def get_TempScale_unit(units):
         sys.exit()
 
 
+class MCC_device:
+    def __init__(self, board_number=0):
+        """
+        Class for an MCC device supported by their Universal Library.
+
+        Parameters
+        ----------
+        board_number : int
+            All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
+            match the board number of its associated device. Possible values from 0 to 99.
+        """
+
+    @property
+    def model(self):
+        return ul.get_board_name(self._board_number)
+
+    @property
+    def mac_address(self):
+        return ul.get_config_string(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.DEVMACADDR,
+            max_config_len=255
+        )
+
+    @property
+    def serial_number(self):
+        return ul.get_config_string(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.DEVSERIALNUM,
+            max_config_len=255
+        )
+
+    @property
+    def number_temp_chanels(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.NUMTEMPCHANS
+        )
+
 class Web_Tc:
     def __init__(
             self,
