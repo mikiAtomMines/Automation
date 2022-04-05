@@ -39,9 +39,6 @@ def run_example():
             config_first_detected_device(board_num, dev_id_list)
 
         daq_dev_info = DaqDeviceInfo(board_num)
-        if not daq_dev_info.supports_analog_input:
-            raise Exception('Error: The DAQ device does not support '
-                            'analog input')
 
         print('\nActive DAQ device: ', daq_dev_info.product_name, ' (',
               daq_dev_info.unique_id, ')\n', sep='')
