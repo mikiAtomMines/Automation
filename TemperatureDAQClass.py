@@ -87,13 +87,18 @@ class MCC_device:  # TODO: add API functions
         """
 
         self._board_number = board_number
-        self._model = self.model
-        self._mac_address = self.mac_address
-        self._serial_number = self.serial_number
-        self._number_temp_channels = self.number_temp_channels
-        self._number_io_cahnnels = self.number_io_channels
-        self._number_ad_channels = self.number_ad_channels
-        self._number_da_channels = self.number_da_channels
+        # self._model = self.model
+        # self._mac_address = self.mac_address
+        # self._unique_id = self.unique_id
+        # self._serial_number = self.serial_number
+        # self._number_temp_channels = self.number_temp_channels
+        # self._number_io_cahnnels = self.number_io_channels
+        # self._number_ad_channels = self.number_ad_channels
+        # self._number_da_channels = self.number_da_channels
+
+    @property
+    def board_number(self):
+        return self._board_number
 
     @property
     def model(self):
@@ -106,6 +111,16 @@ class MCC_device:  # TODO: add API functions
             board_num=self._board_number,
             dev_num=0,
             config_item=BoardInfo.DEVMACADDR,
+            max_config_len=255
+        )
+
+    @property
+    def unique_id(self):
+        return ul.get_config_string(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.DEVUNIQUEID,
             max_config_len=255
         )
 
@@ -155,8 +170,24 @@ class MCC_device:  # TODO: add API functions
             config_item=BoardInfo.NUMDACHANS
         )
 
+    @property
+    def clock_frequency_MHz(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.CLOCK
+        )
 
-class Web_Tc(MCC_device):
+    """
+    Plan for API functions:
+    
+    First get device Descriptor object using 
+    
+    """
+
+
+class Web_Tc(MCC_device):  # TODO: Add properties for reading temp of channels
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -189,6 +220,9 @@ class Web_Tc(MCC_device):
         self._port = port
         self._default_units = default_units
 
+    # ==================================================================================================================
+    # Get methods and properties
+    # ==================================================================================================================
     def get_temp(self, channel_n=0, units=None, averaged=True):
         """
         Reads the analog signal out of a channel and returns the value in the desired units.
@@ -261,7 +295,7 @@ class Web_Tc(MCC_device):
         """
 
         out = []
-        for channel in range(self._number_temp_channels):
+        for channel in range(self.number_temp_channels):
             try:
                 out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
             except mcculw.ul.ULError:
@@ -316,29 +350,158 @@ class Web_Tc(MCC_device):
 
         return out
 
+    @property
+    def ip4_address(self):
+        return self._ip4_address
+
+    @property
+    def port(self):
+        return self._port
+
+    @property
+    def default_units(self):
+        return self._default_units
+
+    @property
+    def thermocouple_type_ch0(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=0,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch1(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=1,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch2(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=2,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch3(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=3,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch4(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=4,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch5(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=5,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch6(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=6,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def thermocouple_type_ch7(self):
+        return ul.get_config(
+            info_type=InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=7,
+            config_item=BoardInfo.CHANTCTYPE
+        )
+
+    @property
+    def temp_ch0(self):
+        return self.get_temp(channel_n=0)
+
+    @property
+    def temp_ch1(self):
+        return self.get_temp(channel_n=1)
+
+    @property
+    def temp_ch2(self):
+        return self.get_temp(channel_n=2)
+
+    @property
+    def temp_ch3(self):
+        return self.get_temp(channel_n=3)
+
+    @property
+    def temp_ch4(self):
+        return self.get_temp(channel_n=4)
+
+    @property
+    def temp_ch5(self):
+        return self.get_temp(channel_n=5)
+
+    @property
+    def temp_ch6(self):
+        return self.get_temp(channel_n=6)
+
+    @property
+    def temp_ch7(self):
+        return self.get_temp(channel_n=7)
+
+    # ==================================================================================================================
+    # Set methods and setters
+    # ==================================================================================================================
+    @default_units.setter
+    def default_units(self, new_units):
+        """
+        Set the default units as the new_units. First use get_TempScale_unit() to error check the new_units. If no
+        exception is raised, then the default units are set using new_units.
+
+        Parameters
+        ----------
+        new_units : string
+            the units in which the channel signal is shown. Valid inputs (not case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for calibrated voltage      volts, volt, voltage,  v
+            for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+        """
+        get_TempScale_unit(new_units)
+        self._default_units = new_units
+
 
 def main():
-    """
-    main
 
-    Parameters
-    ----------
-    input : type
-        Python string containing the query command. Dependent on each individual device.
-
-    Returns
-    -------
-    type
-        Descrition.
-
-    """
     print()
     web_tc_1 = Web_Tc(board_number=0)
     print()
     print(web_tc_1.number_temp_channels)
     print(web_tc_1.get_temp_scan(high_channel=4))
     print(web_tc_1.get_temp_all_channels())
-
+    print(web_tc_1.thermocouple_type_ch2)
+    print(web_tc_1.temp_ch0)
+    print(web_tc_1.clock_frequency_MHz)
+    print(web_tc_1.unique_id)
+    web_tc_1.default_units = 'asdf'
 
     # for i in range(100):
     #     print(web_tc_1.get_temp(averaged=True))
