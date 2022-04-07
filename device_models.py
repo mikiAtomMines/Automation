@@ -555,6 +555,17 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         else:
             self._ch2_current_limit = amps
 
+    def set_both_channels_current_limit(self, amps):
+        if amps > self._MAX_current_limit or amps <= 0:
+            print('Current limit not set. New voltage limit is not \
+                  allowed by the power supply')
+        elif amps < self.ch1_set_current or amps < self.ch2_set_current:
+            print('Current limit not set. New current limit is lower \
+                  than present ch1 or ch2 current')
+        else:
+            self._ch1_current_limit = amps
+            self._ch2_current_limit = amps
+
 
 # ======================================================================================================================
 # Temperature DAQs
