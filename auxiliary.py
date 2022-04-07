@@ -27,31 +27,31 @@ def get_TempScale_unit(units):
 
     Returns
     -------
-    enums.TepmScale
-        This object is used by the mcc universal library. Possbile values: enums.TepmScale.CELSIUS,
-        enums.TepmScale.FAHRENHEIT, enums.TepmScale.KELVIN, enums.TepmScale.VOLTS, and enums.TepmScale.NOSCALE.
+    enums.TempScale
+        This object is used by the mcc universal library. Possbile values: enums.TempScale.CELSIUS,
+        enums.TempScale.FAHRENHEIT, enums.TempScale.KELVIN, enums.TempScale.VOLTS, and enums.TempScale.NOSCALE.
 
     """
 
     TempScale_dict = {
-        'celsius': enums.TepmScale.CELSIUS,
-        'c': enums.TepmScale.CELSIUS,
+        'celsius': enums.TempScale.CELSIUS,
+        'c': enums.TempScale.CELSIUS,
 
-        'fahrenheit': enums.TepmScale.FAHRENHEIT,
-        'f': enums.TepmScale.FAHRENHEIT,
+        'fahrenheit': enums.TempScale.FAHRENHEIT,
+        'f': enums.TempScale.FAHRENHEIT,
 
-        'kelvin': enums.TepmScale.KELVIN,
-        'k': enums.TepmScale.KELVIN,
+        'kelvin': enums.TempScale.KELVIN,
+        'k': enums.TempScale.KELVIN,
 
-        'volts': enums.TepmScale.VOLTS,
-        'volt': enums.TepmScale.VOLTS,
-        'voltage': enums.TepmScale.VOLTS,
-        'v': enums.TepmScale.VOLTS,
+        'volts': enums.TempScale.VOLTS,
+        'volt': enums.TempScale.VOLTS,
+        'voltage': enums.TempScale.VOLTS,
+        'v': enums.TempScale.VOLTS,
 
-        'raw': enums.TepmScale.NOSCALE,
-        'none': enums.TepmScale.NOSCALE,
-        'noscale': enums.TepmScale.NOSCALE,
-        'r': enums.TepmScale.NOSCALE
+        'raw': enums.TempScale.NOSCALE,
+        'none': enums.TempScale.NOSCALE,
+        'noscale': enums.TempScale.NOSCALE,
+        'r': enums.TempScale.NOSCALE
     }
 
     try:
