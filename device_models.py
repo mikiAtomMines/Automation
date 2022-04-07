@@ -375,12 +375,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     @property
     def ch1_set_voltage(self):
         qry = 'CH1:voltage?'
-        return self._query(qry)
+        return float(self._query(qry))
 
     @property
     def ch2_set_voltage(self):
         qry = 'CH2:voltage?'
-        return self._query(qry)
+        return float(self._query(qry))
 
     # def get_set_voltage(self, channel):  # TODO: Add format check for parameter channel
     #     qry = channel.upper() + ':voltage?'
@@ -389,12 +389,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     @property
     def ch1_actual_voltage(self):
         qry = 'measure:voltage? CH1'
-        return self._query(qry)
+        return float(self._query(qry))
 
     @property
     def ch2_actual_voltage(self):
         qry = 'measure:voltage? CH2'
-        return self._query(qry)
+        return float(self._query(qry))
 
     # def get_actual_voltage(self, channel):  # TODO: Add format check for parameter channel
     #     qry = 'measure:voltage? ' + channel.upper()
@@ -403,12 +403,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     @property
     def ch1_set_current(self):
         qry = 'CH1:current?'
-        return self._query(qry)
+        return float(self._query(qry))
 
     @property
     def ch2_set_current(self):
         qry = 'CH2:current?'
-        return self._query(qry)
+        return float(self._query(qry))
 
     # def get_set_current(self, channel):  # TODO: Add format check for parameter channel
     #     qry = channel.upper() + ':current?'
@@ -417,12 +417,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     @property
     def ch1_actual_current(self):
         qry = 'measure:current? CH1'
-        return self._query(qry)
+        return float(self._query(qry))
 
     @property
     def ch2_actual_current(self):
         qry = 'measure:current? CH2'
-        return self._query(qry)
+        return float(self._query(qry))
 
     # def get_actual_current(self, channel):  # TODO: Add format check for parameter channel
     #     qry = 'measure:current? ' + channel.upper()
@@ -565,6 +565,17 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         else:
             self._ch1_current_limit = amps
             self._ch2_current_limit = amps
+
+    def set_both_channels_voltage_limit(self, volts):
+        if volts > self._MAX_voltage_limit or volts <= 0:
+            print('Current limit not set. New voltage limit is not \
+                  allowed by the power supply')
+        elif volts < self.ch1_set_voltage or volts < self.ch2_set_voltage:
+            print('Current limit not set. New current limit is lower \
+                  than present ch1 or ch2 current')
+        else:
+            self._ch1_voltage_limit = volts
+            self._ch2_voltage_limit = volts
 
 
 # ======================================================================================================================
