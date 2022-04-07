@@ -7,7 +7,7 @@ Created on Tuesday, April 5, 2022
 import sys
 import time
 
-import mcculw.ul
+from device_type import MCC_instrument
 from mcculw import ul
 from mcculw.enums import TempScale
 from mcculw.enums import TInOptions
@@ -74,120 +74,7 @@ def get_TempScale_unit(units):
         sys.exit()
 
 
-class MCC_device:  # TODO: add API functions
-    def __init__(self, board_number=0):
-        """
-        Class for an MCC device supported by their Universal Library.
-
-        Parameters
-        ----------
-        board_number : int
-            All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
-            match the board number of its associated device. Possible values from 0 to 99.
-        """
-
-        self._board_number = board_number
-        # self._model = self.model
-        # self._mac_address = self.mac_address
-        # self._unique_id = self.unique_id
-        # self._serial_number = self.serial_number
-        # self._number_temp_channels = self.number_temp_channels
-        # self._number_io_cahnnels = self.number_io_channels
-        # self._number_ad_channels = self.number_ad_channels
-        # self._number_da_channels = self.number_da_channels
-
-    @property
-    def board_number(self):
-        return self._board_number
-
-    @property
-    def model(self):
-        return ul.get_board_name(self._board_number)
-
-    @property
-    def mac_address(self):
-        return ul.get_config_string(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.DEVMACADDR,
-            max_config_len=255
-        )
-
-    @property
-    def unique_id(self):
-        return ul.get_config_string(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.DEVUNIQUEID,
-            max_config_len=255
-        )
-
-    @property
-    def serial_number(self):
-        return ul.get_config_string(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.DEVSERIALNUM,
-            max_config_len=255
-        )
-
-    @property
-    def number_temp_channels(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.NUMTEMPCHANS
-        )
-
-    @property
-    def number_io_channels(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.NUMIOPORTS
-        )
-
-    @property
-    def number_ad_channels(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.NUMADCHANS
-        )
-
-    @property
-    def number_da_channels(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.NUMDACHANS
-        )
-
-    @property
-    def clock_frequency_MHz(self):
-        return ul.get_config(
-            info_type=InfoType.BOARDINFO,
-            board_num=self._board_number,
-            dev_num=0,
-            config_item=BoardInfo.CLOCK
-        )
-
-    """
-    Plan for API functions:
-    
-    First get device Descriptor object using 
-    
-    """
-
-
-class Web_Tc(MCC_device):  # TODO: Add properties for reading temp of channels
+class Web_Tc(MCC_instrument):  # TODO: Add properties for reading temp of channels
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -298,7 +185,7 @@ class Web_Tc(MCC_device):  # TODO: Add properties for reading temp of channels
         for channel in range(self.number_temp_channels):
             try:
                 out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
-            except mcculw.ul.ULError:
+            except ul.ULError:
                 print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
                 out.append(None)
                 continue
@@ -343,7 +230,7 @@ class Web_Tc(MCC_device):  # TODO: Add properties for reading temp of channels
         for channel in range(low_channel, high_channel+1):
             try:
                 out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
-            except mcculw.ul.ULError:
+            except ul.ULError:
                 print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
                 out.append(None)
                 continue
@@ -501,7 +388,7 @@ def main():
     print(web_tc_1.temp_ch0)
     print(web_tc_1.clock_frequency_MHz)
     print(web_tc_1.unique_id)
-    web_tc_1.default_units = 'asdf'
+    web_tc_1.default_units = 'celsius'
 
     # for i in range(100):
     #     print(web_tc_1.get_temp(averaged=True))

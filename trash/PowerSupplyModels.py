@@ -10,132 +10,8 @@ Created on Fri Mar 11 12:53:39 2022
 import socket
 import sys
 import time
-
-
-class SocketEthernetDevice:
-    def __init__(
-            self,
-            ip4_address=None,
-            port=50000,
-    ):
-
-        """
-        An ethernet-controlled device.
-
-        :param ip4_address: The IPv4 address of the device.
-        :param port: The port number used to connect the device. Can be any number between 49152 and 65536.
-        """
-
-        self._ip4_address = ip4_address
-        self._port = port
-        self._socket = None
-
-    @property
-    def ip4_address(self):
-        return self._ip4_address
-
-    @property
-    def port(self):
-        return self._port
-
-    def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
-        """
-        send a query to the ethernet device and receive a response.
-
-        Parameters
-        ----------
-        query : string
-            Python string containing the query command. Dependent on each individual device.
-
-        Returns
-        -------
-        string
-            Returns the reply of the ethernet device as a string. The output of the ethernet device is received as
-            bytes, which is then decoded with utf-8.
-
-        """
-
-        try:
-            query_bytes = query.encode('utf-8')
-            socket_ps = self._socket
-            socket_ps.sendall(query_bytes)
-            reply_bytes = socket_ps.recv(4096)
-            reply = reply_bytes.decode('utf-8').strip()
-            time.sleep(0.3)
-            return reply
-        except OSError:
-            print('ERROR: Socket not found')
-
-    def _command(self, cmd):  # TODO: make more general.
-        """
-        send a command to the ethernet device. Does not receive any response.
-
-        Parameters
-        ----------
-        cmd : string
-            Python string containing the command. Dependent on each individual device.
-
-        Returns
-        -------
-        None
-            Returns None if the command is succesfully sent.
-
-        """
-
-        try:
-            cmd_bytes = cmd.encode('utf-8')
-            socket_ps = self._socket
-            out = socket_ps.sendall(cmd_bytes)  # return None if successful
-            time.sleep(0.3)
-            return out
-        except OSError:
-            print('ERROR: Socket not found')
-
-    def connect(self):
-        try:
-            socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket_object.connect((self._ip4_address, self._port))
-        except socket.error:
-            print('ERROR: Could not connect to power supply. Please Check IPv4 address and try again. ')
-            sys.exit()
-
-        self._socket = socket_object
-
-    def disconnect(self):
-        socket_ps = self._socket
-        socket_ps.close()
-
-
-class PowerSupply:
-    def __init__(
-            self,
-            MAX_voltage_limit=None,
-            MAX_current_limit=None,
-            number_of_channels=1,
-            reset_on_startup=True
-    ):
-
-        """
-        A benchtop programmable power supply.
-
-        :param MAX_voltage_limit: -- Maximum voltage that the power supply can output based on hardware limitations.
-        :param MAX_current_limit: -- Maximum current that the power supply can output based on hardware limitations.
-        :param number_of_channels: - Specifies the number of programmable physical channels in the power supply.
-        :param reset_on_startup: --- If true, will turn channels off and set the output voltage to zero.
-        """
-
-        self._MAX_voltage_limit = MAX_voltage_limit
-        self._MAX_current_limit = MAX_current_limit
-        self.number_of_channels = number_of_channels
-        self.reset_on_startup = reset_on_startup
-
-    @property
-    def MAX_voltage_limit(self):
-        return self._MAX_voltage_limit
-
-    @property
-    def MAX_current_limit(self):
-        return self._MAX_current_limit
+from connection_type import SocketEthernetDevice
+from device_type import PowerSupply
 
 
 class SPD3303X(SocketEthernetDevice, PowerSupply):
@@ -191,12 +67,65 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         if self.reset_on_startup is True:
             self.reset_channels()
 
+    def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
+        """
+        send a query to the ethernet device and receive a response.
+
+        Parameters
+        ----------
+        query : string
+            Python string containing the query command. Dependent on each individual device.
+
+        Returns
+        -------
+        string
+            Returns the reply of the ethernet device as a string. The output of the ethernet device is received as
+            bytes, which is then decoded with utf-8.
+
+        """
+
+        try:
+            query_bytes = query.encode('utf-8')
+            socket_ps = self._socket
+            socket_ps.sendall(query_bytes)
+            reply_bytes = socket_ps.recv(4096)
+            reply = reply_bytes.decode('utf-8').strip()
+            time.sleep(0.3)
+            return reply
+        except OSError:
+            print('ERROR: Socket not found')
+
     def reset_channels(self):
         self.ch1_state = 'OFF'
         self.ch2_state = 'OFF'
         self.ch1_set_voltage = 0
         self.ch2_set_voltage = 0
         print('Both channels set to 0 and turned off')
+
+    def _command(self, cmd):  # TODO: make more general.
+        """
+        send a command to the ethernet device. Does not receive any response.
+
+        Parameters
+        ----------
+        cmd : string
+            Python string containing the command. Dependent on each individual device.
+
+        Returns
+        -------
+        None
+            Returns None if the command is succesfully sent.
+
+        """
+
+        try:
+            cmd_bytes = cmd.encode('utf-8')
+            socket_ps = self._socket
+            out = socket_ps.sendall(cmd_bytes)  # return None if successful
+            time.sleep(0.3)
+            return out
+        except OSError:
+            print('ERROR: Socket not found')
     
 # =============================================================================
 #       Get methods
@@ -429,68 +358,17 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
             self._ch2_current_limit = amps
 
     
-def testing_EthernetPowerSupply(power_supply):
 
-    print(power_supply.idn)
-    print(power_supply.ip4_address)
-    print(power_supply.system_status)
-    print()
-    
-    input('Press enter to set ch1 to 3.45V, and ch2 to 1.51V')
-    power_supply.ch1_set_voltage = 3.45
-    power_supply.ch2_set_voltage = 1.51
-    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
-    print()
-    
-    input('Press enter to turn ch1 on, wait 5 sec, then off. Repeat for ch2.')
-    power_supply.ch1_state = 'ON'
-    print('CH1 state is:', str(power_supply.ch1_state))
-    time.sleep(5)
-    power_supply.ch1_state = 'OFF'
-    print('CH1 state is:', str(power_supply.ch1_state))
-    power_supply.ch2_state = 'ON'
-    print('CH2 state is:', str(power_supply.ch2_state))
-    time.sleep(5)
-    power_supply.ch2_state = 'OFF'
-    print('CH2 state is:', str(power_supply.ch2_state))
-    time.sleep(5)
-    print()
-    
-    input('press enter to turn both on for 5 seconds. Then turn both off.')
-    power_supply.ch1_state = 'ON'
-    power_supply.ch2_state = 'ON'
-    time.sleep(5)
-    print('CH1 and CH2 states are:', str(power_supply.ch1_state), str(power_supply.ch2_state))
-    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
-    time.sleep(5)
-    power_supply.ch1_state = 'OFF'
-    power_supply.ch2_state = 'OFF'
-    print('CH1 and CH2 states are:', str(power_supply.ch1_state), str(power_supply.ch2_state))
-    print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
-    print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
-    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
-    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
-    print('CH1 and CH2 voltage limits are:', power_supply.ch1_voltage_limit, power_supply.ch2_voltage_limit)
-    print('CH1 and CH2 current limits are:', power_supply.ch1_current_limit, power_supply.ch2_current_limit)
-    print('MAX voltage and current limits are:', power_supply.MAX_voltage_limit, power_supply.MAX_current_limit)
-    power_supply.reset_channels()
-    power_supply.disconnect()
 
 
 def main():
-    power_supply_right = SPD3303X('10.176.42.121', 5025)
-    power_supply_left = SPD3303X('10.176.42.171', 5025)
+    # power_supply_left = SPD3303X('10.176.42.171', 5025)
+    # print('testing power supply left')
+    # testing_EthernetPowerSupply(power_supply_left)
+    # time.sleep(1)
 
-    print('testing power supply left')
-    testing_EthernetPowerSupply(power_supply_left)
-    time.sleep(1)
     input('press enter to test power supply right')
+    power_supply_right = SPD3303X('10.176.42.121', 5025)
     print('testing power supply right')
     testing_EthernetPowerSupply(power_supply_right)
 
