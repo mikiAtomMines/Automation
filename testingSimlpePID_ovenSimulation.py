@@ -57,7 +57,7 @@ def testing_class():
         # if current_time > 5:
         #     ovenPower.setpoint = set_temperature
 
-        if current_time > 1.5 and current_time < 10:
+        if 1.5 < current_time < 10:
             ovenPower.auto_mode = False
 
         if current_time > 10:
