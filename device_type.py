@@ -44,6 +44,18 @@ class PowerSupply:
     def MAX_current_limit(self):
         return self._MAX_current_limit
 
+    @MAX_voltage_limit.setter
+    def MAX_voltage_limit(self, new_MAX_voltage):
+        print('CAUTION: The MAX voltage limit should always match the hardware limitation of the power supply.')
+        print('Setting MAX voltage limit to', new_MAX_voltage)
+        self._MAX_voltage_limit = new_MAX_voltage
+
+    @MAX_current_limit.setter
+    def MAX_current_limit(self, new_MAX_current):
+        print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
+        print('Setting MAX voltage limit to', new_MAX_current)
+        self._MAX_voltage_limit = new_MAX_current
+
 
 class MCC_instrument:  # TODO: add API functions
     def __init__(self, board_number=0):
