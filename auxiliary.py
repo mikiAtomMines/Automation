@@ -5,6 +5,8 @@ Created on Thursday, April 7, 2022
 
 import time
 import sys
+import matplotlib.pyplot as plt
+import numpy
 from mcculw import enums
 
 
@@ -152,3 +154,28 @@ def testing_SPD3303X(power_supply):
     print('MAX voltage and current limits are:', power_supply.MAX_voltage_limit, power_supply.MAX_current_limit)
     power_supply.reset_channels()
     power_supply.disconnect()
+
+
+def simple_plot(file):
+    file = open(file, 'r')
+    header_size = 5
+    for i in range(header_size):
+        file.readline()
+
+    data = file.readlines()
+    time_list = []
+    actual_temp_list = []
+    set_temp_list = []
+    voltage_list = []
+
+    for str_ in data:
+        time_, actual_temp, set_temp, voltage = [float(a) for a in str.split()]
+
+        time_list.append(time_)
+        actual_temp_list.append(actual_temp)
+        set_temp_list.append(set_temp)
+        voltage_list.append(voltage)
+
+    plt.plot(time_list, actual_temp_list)
+
+    plt.show()
