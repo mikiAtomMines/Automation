@@ -57,7 +57,7 @@ class PowerSupply:
         self._MAX_voltage_limit = new_MAX_current
 
 
-class MCC_device:  # TODO: add API functions
+class MCC_Device:  # TODO: add API functions
     def __init__(self, board_number=None, ip4_address=None, port=50000):
         """
         Class for an MCC device supported by their Universal Library.
