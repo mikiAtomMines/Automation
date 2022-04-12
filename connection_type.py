@@ -28,6 +28,9 @@ class SocketEthernetDevice:
         self._port = port
         self._socket = None
 
+        if ip4_address is not None:
+            self.connect()
+
     @property
     def ip4_address(self):
         return self._ip4_address
