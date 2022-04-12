@@ -24,14 +24,22 @@ class GM3(serial.Serial):
         super().__init__(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, *args, **kwargs)
 
         """
-        :param port: Device name. Can be found on device manager.
-        :param baudrate: Baudrate. Unique to device.
-        :param bytesize: Number of data bits. Possible values: FIVEBITS, SIXBITS, SEVENBITS, EIGHTBITS
-        :param parity: Unique to device. Possible values: PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE
-        :param stopbits: Number of stop bits. Possible values: STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
-        :param timeout: read timeout. Time that read() will wait for response before exiting.
-
-        More parameters in documentation for serial.Serial class. 
+        Parameters
+        ----------
+        port : str
+            Device port name. Can be found on device manager. Example: COM3
+        baudrate : int 
+            The baudrate unique to this device.
+        bytesize : int
+            The size in bits of a single byte. 
+        parity : serial.PARITY
+            Unique to device. Possible values: PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE
+        stopbits : serial.STOPBITS
+            Number of stop bits. Possible values: STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
+        timeout : int
+            read timeout in seconds. Time that read() will wait for response before exiting.
+    
+        More parameters in documentation for serial.Serial class.
         """
 
     def query(self, command):
@@ -228,18 +236,24 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             ch2_current_limit=3.3,
             reset_on_startup=True
     ):
-
         """
-        Initialize a new SPD3303X power supply.
-
-        :param ip4_address: IPv4 address of the power supply.
-        :param port: port used for communication. Siglent recommends to use 5025 for the SPD3303X power
-            supply. For other devices, can use any between 49152 and 65536.
-        :param ch1_voltage_limit: Set an upper limit on the voltage output of channel 1.
-        :param ch1_current_limit: Set an upper limit on the current output of channel 1.
-        :param ch2_voltage_limit: Set an upper limit on the voltage output of channel 2.
-        :param ch2_current_limit: Set an upper limit on the current output of channel 2.
-        :param reset_on_startup: If True, run a routine to set turn off the output of both channels and set the set
+        Parameters
+        ----------
+        ip4_address : str
+            IPv4 address of the power supply.
+        port : int
+            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other devices,
+            can use any between 49152 and 65536.
+        ch1_voltage_limit : float
+            Set an upper limit on the voltage output of channel 1.
+        ch1_current_limit : float
+            Set an upper limit on the current output of channel 1.
+        ch2_voltage_limit : float
+            Set an upper limit on the voltage output of channel 2.
+        ch2_current_limit : float
+            Set an upper limit on the current output of channel 2.
+        reset_on_startup : bool
+            If True, run a routine to set turn off the output of both channels and set the set
 
 
         Note that all channel voltage limits are software-based since the power supply does not have any built-in limit

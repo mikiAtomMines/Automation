@@ -176,6 +176,14 @@ class MCC_Device:  # TODO: add API functions
             config_item=enums.BoardInfo.CLOCK
         )
 
+    @board_number.setter
+    def board_number(self, new_number):
+        if not (0 <= new_number <= 99):
+            print('ERROR: new board number must be a number between 0 and 99, inclusive.')
+            sys.exit()
+
+        self._board_number = new_number
+
     """
     Plan for API functions:
 
