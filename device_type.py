@@ -57,8 +57,8 @@ class PowerSupply:
         self._MAX_voltage_limit = new_MAX_current
 
 
-class MCC_instrument:  # TODO: add API functions
-    def __init__(self, board_number=0):
+class MCC_device:  # TODO: add API functions
+    def __init__(self, board_number=None, ip4_address=None, port=50000):
         """
         Class for an MCC device supported by their Universal Library.
 
@@ -67,9 +67,15 @@ class MCC_instrument:  # TODO: add API functions
         board_number : int
             All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
             match the board number of its associated device. Possible values from 0 to 99.
+        ip4_address : str
+            IPv4 address of the associated MCC device
+        port : int
+            Communication port to be used. Safely chose any number between 49152 and 65536.
         """
 
         self._board_number = board_number
+        self._ip4_address = ip4_address
+        self._port = port
         # self._model = self.model
         # self._mac_address = self.mac_address
         # self._unique_id = self.unique_id
@@ -82,6 +88,14 @@ class MCC_instrument:  # TODO: add API functions
     @property
     def board_number(self):
         return self._board_number
+
+    @property
+    def ip4_address(self):
+        return self._ip4_address
+
+    @property
+    def port(self):
+        return self._port
 
     @property
     def model(self):

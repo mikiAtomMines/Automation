@@ -581,7 +581,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 # ======================================================================================================================
 # Temperature DAQs
 # ======================================================================================================================
-class Web_Tc(device_type.MCC_instrument):  # TODO: Add properties for reading temp of channels
+class Web_Tc(device_type.MCC_device):  # TODO: Add properties for reading temp of channels
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
