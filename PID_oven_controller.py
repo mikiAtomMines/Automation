@@ -10,6 +10,7 @@ import device_models
 import simple_pid as pid
 import numpy as np
 
+
 # TODO: Make a PID_controller class that has power supplies and web_tc as attributes.
 def test_TC():
     web_tc = device_models.Web_Tc()
@@ -28,7 +29,15 @@ def test_TC():
         time.sleep(1)
 
 
+class PID_controller(pid.PID):
+    def __init__(self, ):
+        super().__init__()
+
+
+
 def main():
+    a = pid.PID()
+
     web_tc = device_models.Web_Tc(board_number=0)
     supply = device_models.SPD3303X(ip4_address='10.176.42.121', port=5025, reset_on_startup=True)
     supply.set_both_channels_current_limit(0.25)
