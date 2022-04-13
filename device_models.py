@@ -759,14 +759,6 @@ class Web_Tc(device_type.MCC_Device):  # TODO: Add properties for reading temp o
         return out
 
     @property
-    def ip4_address(self):
-        return self._ip4_address
-
-    @property
-    def port(self):
-        return self._port
-
-    @property
     def default_units(self):
         return self._default_units
 
