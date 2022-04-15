@@ -8,6 +8,7 @@ import time
 
 from mcculw import ul
 from mcculw import enums
+import auxiliary
 
 # TODO: Add proper error handling. This includes receiving error from power supply.
 # TODO: Finish adding comments
@@ -34,7 +35,7 @@ class PowerSupply:
         self._MAX_voltage_limit = MAX_voltage_limit
         self._MAX_current_limit = MAX_current_limit
         self.number_of_channels = number_of_channels
-        self.reset_on_startup = reset_on_startup
+        self._reset_on_startup = reset_on_startup
 
     @property
     def MAX_voltage_limit(self):
@@ -137,6 +138,12 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def number_temp_channels(self):
+        """
+        Return
+        ------
+        int
+            number of channels
+        """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -205,32 +212,45 @@ class HeaterAssembly:
             daq_channel=None,
             pid_function=None,
             set_temperature=None,
+            temp_units=None,
             MAX_set_temp=None,
-            MIN_set__temp=None
+            MIN_set_temp=None,
+            configure_on_startup=False,
+
     ):
         """
-        A heater object.
+        A heater assembly composed of a heater, a temperature measuring device, and a power supply.
 
-        Parameter
+        Parameters
         ----------
         power_supply : device_models.PowerSupply
             The power supply model that is being used for controlling the electrical power going into the heater.
         supply_channel : int
             The physical power supply channel connected to the heater for controlling the electrical power.
-        temperature_probe : device_models.MCC_device
+        temperature_daq : device_models.MCC_device
             The temperature DAQ device that is being used for reading the temperature of the heater.
         daq_channel : int
             The physical DAQ channel used for taking temperature readings of the heater.
-        pid : simple_pid.PID
+        pid_function : simple_pid.PID
             The PID function used to regulate the heater's temperature to the set point.
         set_temperature : float
             The desired set temperature in the same units as the temperature readings from the temperature DAQ.
-        MAX_set_temp : float
+        temp_units : str, None
+            Set the temperature units for all temperature readings, setpoints, etc. Possible values (not
+            case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for default units           None
+        MAX_set_temp : float, None
             The maximum possible value for set temp. Should be based on the physical limitations of the heater.
             Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
-            allows.
-        MIN_set_temp : float
+            allows. If set to None, the limit is infinity.
+        MIN_set_temp : float, None
             The minimum possible value for set temp. Analogous to MAX_temp.
+        configure_on_startup : bool
+            Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
+            True if the pid object has not been manually configured.
         """
 
         self._power_supply = power_supply
@@ -238,8 +258,20 @@ class HeaterAssembly:
         self._temperature_daq = temperature_daq
         self._daq_channel = daq_channel
         self._set_temperature = set_temperature
+        self._temp_units = temp_units
         self._pid_function = pid_function
+        self._MAX_set_temp = MAX_set_temp
+        self._MIN_set_temp = MIN_set_temp
+        self._configure_on_startup = configure_on_startup
 
+        if self._configure_on_startup:
+            self.configure_pid()
+
+        self._temperature_daq.default_units = self._temp_units
+
+    # -----------------------------------------------------------------------------
+    # Get methods
+    # -----------------------------------------------------------------------------
     @property
     def power_supply(self):
         out = 'IDN: ' + self._power_supply.idn + '\n'\
@@ -266,9 +298,91 @@ class HeaterAssembly:
     def set_temperature(self):
         return self._set_temperature
 
+    @property
+    def temp_units(self):
+        return self._temp_units
+
     @property  # TODO: finish later
     def pid_function(self):
         return ''
 
+    @property
+    def MAX_set_temp(self):
+        return self._MAX_set_temp
+
+    @property
+    def MIN_set_temp(self):
+        return self.MIN_set_temp
+
+    @property
+    def configure_on_startup(self):
+        return self._configure_on_startup
+
+    # -----------------------------------------------------------------------------
+    # Set methods
+    # -----------------------------------------------------------------------------
+    @supply_channel.setter
+    def supply_channel(self, new_chan):
+        if 1 <= new_chan <= self._power_supply.number_of_channels:
+            self._supply_channel = new_chan
+        else:
+            print('ERROR: channel not found')
+            sys.exit()
+
+    @daq_channel.setter
+    def daq_channel(self, new_chan):
+        if 1 <= new_chan <= self._temperature_daq.number_temp_channels:
+            self._daq_channel = new_chan
+        else:
+            print('ERROR: channel not found')
+            sys.exit()
+
+    @temp_units.setter
+    def temp_units(self, new_units):
+        self._temperature_daq.default_units = new_units  # this also checks if input is valid
+        self._temp_units = new_units
+
+    def configure_pid(self, *args, **kwargs):
+        """
+        Sets the output limits, set point, and optionally, the Kp, Ki, and Kd of the PID object. Any number of K
+        parameters can be set. The function will only set If no arguments are given, the K parameters of the PID object
+        will not change.
+
+        Parameters
+        ----------
+        *args : float
+            Proportional (Kp), integration (Ki), and differentiation (Kd) terms in the PID function. The order is Kp,
+            Ki, and Kd.
+        *kwargs : float
+            Same as *args. Keywords are Kp, Ki, or Kd.
+
+        """
+
+        pid = self._pid_function
+
+        # pid.output_limits((self._MIN_set_temp, self._MAX_set_temp))
+        # pid.setpoint = self._set_temperature
+
+        try:
+            pid.Kp = args[0]
+            pid.Kp = kwargs['Kp']
+            pid.Ki = args[1]
+            pid.Ki = kwargs['Ki']
+            pid.Kd = args[2]
+            pid.Kd = kwargs['Kd']
+        except IndexError:
+            pass
+        except KeyError:
+            pass
+
     def update_supply(self):
+        """
+        Calculates the new power supply voltage using the PID function based on the current temperature from the
+        temperature daq channel. It then sets the power supply channel voltage to this new voltage.
+        """
+        current_temp = self._temperature_daq.get_temp(channel_n=self._daq_channel)
+        new_ps_voltage = self._pid_function(current_temp)
+        self._power_supply.set_set_voltage(channel=self._supply_channel, volts=new_ps_voltage)
+
+
 
