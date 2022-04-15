@@ -538,11 +538,11 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 
     # voltage and current setters
     # =============================================================================
-    def set_voltage(self, channel, volts):  # TODO: Add voltage limiter based on the current channel's voltage limit
+    def set_set_voltage(self, channel, volts):  # TODO: Add voltage limiter based on the current channel's voltage limit
         cmd = self.channel_syntax(channel) + ':voltage ' + str(volts)
         self._command(cmd)
 
-    def set_current(self, channel, amps):  # TODO: Add current limiter based on the current channel's current limit
+    def set_set_current(self, channel, amps):  # TODO: Add current limiter based on the current channel's current limit
         cmd = self.channel_syntax(channel) + ':current ' + str(amps)
         self._command(cmd)
 
@@ -618,7 +618,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 # ======================================================================================================================
 # Temperature DAQs
 # ======================================================================================================================
-class Web_Tc(device_type.MCC_Device):  # TODO: Add properties for reading temp of channels
+class Web_Tc(device_type.MCC_Device):
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
