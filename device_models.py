@@ -260,23 +260,22 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         features. This means that the channel limits are checked before sending a command to the power supply. If the
         requested set voltage is higher than the channel voltage limit, the command will not go through.
         """
-
+        super().__init__(ip4_address=ip4_address,
+                         port=port)
+        super().__init__(MAX_voltage_limit=32,
+                         MAX_current_limit=3.3,
+                         number_of_channels=2,
+                         reset_on_startup=reset_on_startup)
         self._ip4_address = ip4_address
         self._port = port
-        self.number_of_channels = 2
-
         self._ch1_voltage_limit = ch1_voltage_limit
         self._ch1_current_limit = ch1_current_limit
         self._ch2_voltage_limit = ch2_voltage_limit
         self._ch2_current_limit = ch2_current_limit
 
-        self._MAX_voltage_limit = 32
-        self._MAX_current_limit = 3.3
-        self.reset_on_startup = reset_on_startup
-
         self.connect()
 
-        if self.reset_on_startup is True:
+        if self._reset_on_startup is True:
             self.reset_channels()
 
     def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
@@ -327,7 +326,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         -------
         None
             Returns None if the command is succesfully sent.
-
+ qqq
         """
 
         try:
@@ -338,6 +337,32 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             return out
         except OSError:
             print('ERROR: Socket not found')
+
+    def channel_syntax(self, user_input):
+        if type(user_input) != int or type(user_input) != str:
+            raise TypeError('ERROR: Input should be an int or str')
+
+        ch1_syntax = 'CH1'
+        ch2_syntax = 'CH2'
+
+        chan_syntax = {
+            1:          ch1_syntax,
+            '1':        ch1_syntax,
+            '01':       ch1_syntax,
+            'ch1':      ch1_syntax,
+            'channel1': ch1_syntax,
+            2:          ch2_syntax,
+            '2':        ch2_syntax,
+            '02':       ch2_syntax,
+            'ch2':      ch2_syntax,
+            'channel2': ch2_syntax,
+        }
+
+        try:
+            return chan_syntax[user_input.lower()]
+        except KeyError:
+            print('ERROR: Invalid input. Channel not found.')
+            sys.exit()
 
     # =============================================================================
     #       Get methods
@@ -370,7 +395,6 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 
     # Channel properties
     # =============================================================================
-
     @property
     def ch1_state(self):
         """
@@ -396,9 +420,9 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         qry = 'CH2:voltage?'
         return float(self._query(qry))
 
-    # def get_set_voltage(self, channel):  # TODO: Add format check for parameter channel
-    #     qry = channel.upper() + ':voltage?'
-    #     return self._query(qry)
+    def get_set_voltage(self, channel):
+        qry = self.channel_syntax(channel) + ':voltage?'
+        return self._query(qry)
 
     @property
     def ch1_actual_voltage(self):
@@ -410,9 +434,9 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         qry = 'measure:voltage? CH2'
         return float(self._query(qry))
 
-    # def get_actual_voltage(self, channel):  # TODO: Add format check for parameter channel
-    #     qry = 'measure:voltage? ' + channel.upper()
-    #     return self._query(qry)
+    def get_actual_voltage(self, channel):
+        qry = 'measure:voltage? ' + self.channel_syntax(channel)
+        return self._query(qry)
 
     @property
     def ch1_set_current(self):
@@ -424,9 +448,9 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         qry = 'CH2:current?'
         return float(self._query(qry))
 
-    # def get_set_current(self, channel):  # TODO: Add format check for parameter channel
-    #     qry = channel.upper() + ':current?'
-    #     return self._query(qry)
+    def get_set_current(self, channel):
+        qry = self.channel_syntax(channel) + ':current?'
+        return self._query(qry)
 
     @property
     def ch1_actual_current(self):
@@ -438,13 +462,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         qry = 'measure:current? CH2'
         return float(self._query(qry))
 
-    # def get_actual_current(self, channel):  # TODO: Add format check for parameter channel
-    #     qry = 'measure:current? ' + channel.upper()
-    #     return self._query(qry)
+    def get_actual_current(self, channel):
+        qry = 'measure:current? ' + self.channel_syntax(channel)
+        return self._query(qry)
 
     # channel limits
     # =============================================================================
-
     @property
     def ch1_voltage_limit(self):
         return self._ch1_voltage_limit
@@ -465,9 +488,8 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     #       Set methods
     # =============================================================================
 
-    # Channel properties
+    # Channel-specific properties
     # =============================================================================
-
     @ch1_state.setter
     def ch1_state(self, state):
         cmd = 'Output CH1,' + state.upper()
@@ -496,10 +518,6 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             print('CH2 voltage not set. \
                   New voltage is higher than ch1 voltage limit.')
 
-    # def set_voltage(self, channel, volts):  # TODO: Add voltage limiter based on the current channel's voltage limit
-    #     cmd = channel.upper() + ':voltage ' + str(volts)
-    #     self._command(cmd)
-
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
         if amps <= self._ch1_current_limit:
@@ -518,13 +536,18 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             print('CH2 current not set. \
                   New voltage is higher than ch1 voltage limit.')
 
-    # def set_current(self, channel, amps):  # TODO: Add current limiter based on the current channel's current limit
-    #     cmd = channel.upper() + ':current ' + str(amps)
-    #     self._command(cmd)
+    # voltage and current setters
+    # =============================================================================
+    def set_voltage(self, channel, volts):  # TODO: Add voltage limiter based on the current channel's voltage limit
+        cmd = self.channel_syntax(channel) + ':voltage ' + str(volts)
+        self._command(cmd)
+
+    def set_current(self, channel, amps):  # TODO: Add current limiter based on the current channel's current limit
+        cmd = self.channel_syntax(channel) + ':current ' + str(amps)
+        self._command(cmd)
 
     # channel limits
     # =============================================================================
-
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
         if volts > self._MAX_voltage_limit or volts <= 0:
