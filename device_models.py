@@ -242,8 +242,8 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         ip4_address : str
             IPv4 address of the power supply.
         port : int
-            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other devices,
-            can use any between 49152 and 65536.
+            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
+            devices, can use any between 49152 and 65536.
         ch1_voltage_limit : float
             Set an upper limit on the voltage output of channel 1.
         ch1_current_limit : float
@@ -358,8 +358,10 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             'channel2': ch2_syntax,
         }
 
+        if type(user_input) == str:
+            user_input = user_input.lower()
         try:
-            return chan_syntax[user_input.lower()]
+            return chan_syntax[user_input]
         except KeyError:
             print('ERROR: Invalid input. Channel not found.')
             sys.exit()
@@ -484,6 +486,25 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     def ch2_current_limit(self):
         return self._ch2_current_limit
 
+    def get_voltage_limit(self, channel):
+        chan = self.channel_syntax(channel)  # check for valid input. Returns channel as str with format 'CH' + str(n)
+        if chan == 'CH1':
+            return self._ch1_voltage_limit
+        elif chan == 'CH2':
+            return self._ch2_voltage_limit
+        else:  # this statement should be unecessary
+            print('ERROR: channel not found')
+            sys.exit()
+
+    def get_current_limit(self, channel):
+        chan = self.channel_syntax(channel)  # check for valid input. Returns channel as str with format 'CH' + str(n)
+        if chan == 'CH1':
+            return self._ch1_current_limit
+        elif chan == 'CH2':
+            return self._ch2_current_limit
+        else:  # this statement should be unecessary
+            print('ERROR: channel not found')
+            sys.exit()
     # =============================================================================
     #       Set methods
     # =============================================================================
@@ -500,51 +521,44 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         cmd = 'Output CH2,' + state.upper()
         self._command(cmd)
 
-    @ch1_set_voltage.setter
-    def ch1_set_voltage(self, volts):
-        if volts <= self._ch1_voltage_limit:
-            cmd = 'CH1:voltage ' + str(volts)
+    # voltage and current setters
+    # =============================================================================
+    def set_set_voltage(self, channel, volts):
+        limit = self.get_voltage_limit(channel)
+        chan = self.channel_syntax(channel)
+        if volts <= limit:
+            cmd = chan + ':voltage ' + str(volts)
+            self._command(cmd)
+
+        else:
+            print(chan + ' voltage not set. \
+                  New voltage is higher than ' + chan + ' voltage limit.')
+
+    def set_set_current(self, channel, amps):
+        limit = self.get_current_limit(channel)
+        chan = self.channel_syntax(channel)
+        if amps <= limit:
+            cmd = chan + ':current ' + str(amps)
             self._command(cmd)
         else:
-            print('CH1 voltage not set. \
-                  New voltage is higher than ch1 voltage limit.')
+            print(chan + ' current not set. \
+                  New current is higher than ' + chan + ' current limit')
+
+    @ch1_set_voltage.setter
+    def ch1_set_voltage(self, volts):
+        self.set_set_voltage(1, volts)
 
     @ch2_set_voltage.setter
     def ch2_set_voltage(self, volts):
-        if volts <= self._ch2_voltage_limit:
-            cmd = 'CH2:voltage ' + str(volts)
-            self._command(cmd)
-        else:
-            print('CH2 voltage not set. \
-                  New voltage is higher than ch1 voltage limit.')
+        self.set_set_voltage(2, volts)
 
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
-        if amps <= self._ch1_current_limit:
-            cmd = 'CH1:current ' + str(amps)
-            self._command(cmd)
-        else:
-            print('CH1 current not set. \
-                  New voltage is higher than ch1 voltage limit.')
+        self.set_set_current(1, amps)
 
     @ch2_set_current.setter
     def ch2_set_current(self, amps):
-        if amps <= self._ch2_current_limit:
-            cmd = 'CH2:current ' + str(amps)
-            self._command(cmd)
-        else:
-            print('CH2 current not set. \
-                  New voltage is higher than ch1 voltage limit.')
-
-    # voltage and current setters
-    # =============================================================================
-    def set_set_voltage(self, channel, volts):  # TODO: Add voltage limiter based on the current channel's voltage limit
-        cmd = self.channel_syntax(channel) + ':voltage ' + str(volts)
-        self._command(cmd)
-
-    def set_set_current(self, channel, amps):  # TODO: Add current limiter based on the current channel's current limit
-        cmd = self.channel_syntax(channel) + ':current ' + str(amps)
-        self._command(cmd)
+        self.set_set_current(2, amps)
 
     # channel limits
     # =============================================================================
