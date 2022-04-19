@@ -365,7 +365,11 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         Query the power supply for its status. The output is a hex number represented in bytes. To be interpreted, it
         needs to be converted into a 10-digit binary number. Each digit in the binary number represents a state for
         some physical attribute of the power supply. Refer to the manual for the meaning of each digit.
-        :return: 10-digit binary number as a string representing the status of the system
+
+        Return
+        ------
+        str
+            10-digit binary number as a string representing the status of the system
         """
         qry = 'system:status?'
         reply_hex_str = self._query(qry)  # hex number represented in bytes
@@ -378,28 +382,48 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         The 5th digit from right to left of the binary output from the system status query gives the state of channel 1,
         1 for on and 0 for off.
-        :return: bool
+
+        Parameters
+        ----------
+        channel : int
+            channel to get the state from. Number is from 1 up to the number of channels of the power supply.
+        Return
+        ------
+        bool
+            True for on, False for off.
         """
         self._check_channel_syntax(channel)
         one_or_zero = int(self.system_status[-4-channel])
         return bool(one_or_zero)
 
     def get_set_voltage(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':voltage?'
         return float(self._query(qry))
 
     def get_actual_voltage(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         qry = 'measure:voltage? ' + 'CH' + str(channel)
         return float(self._query(qry))
 
     def get_set_current(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':current?'
         return float(self._query(qry))
 
     def get_actual_current(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         qry = 'measure:current? ' + 'CH' + str(channel)
         return float(self._query(qry))
@@ -447,10 +471,16 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     # channel limits
     # =============================================================================
     def get_voltage_limit(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         return self._voltage_limits[channel-1]
 
     def get_current_limit(self, channel):
+        """
+        :param channel: int
+        """
         self._check_channel_syntax(channel)
         return self._current_limits[channel-1]
 
@@ -474,16 +504,26 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     #       Set methods
     # =============================================================================
     def set_channel_state(self, channel, state):
+        """
+        :param channel: int
+        :param state: str valid inputs (not case sensitive): on, off.
+        """
         self._check_channel_syntax(channel)
         cmd = 'Output CH' + str(channel) + ',' + state.upper()
         self._command(cmd)
 
     @ch1_state.setter
     def ch1_state(self, state):
+        """
+        :param state: str valid inputs (not case sensitive): on, off.
+        """
         self.set_channel_state(1, state)
 
     @ch2_state.setter
     def ch2_state(self, state):
+        """
+        :param state: str valid inputs (not case sensitive): on, off.
+        """
         self.set_channel_state(2, state)
 
     # voltage and current setters
