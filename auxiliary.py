@@ -103,6 +103,21 @@ def test_GM3(gaussmeter):
     gaussmeter.close()
 
 
+# -----------------------------------------------------------------------------------
+# Power supplies
+# -----------------------------------------------------------------------------------
+def channel_syntax(self, power_supply, channel_num):
+    chan_syntax = {
+        'spd3303x': 'CH'
+    }
+
+    try:
+        return chan_syntax[power_supply] + channel_num
+    except KeyError:
+        print('ERROR: Invalid power supply. ')
+        sys.exit()
+
+
 def testing_SPD3303X(power_supply):
     print(power_supply.idn)
     print(power_supply.ip4_address)
