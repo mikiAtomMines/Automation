@@ -19,6 +19,8 @@ class PowerSupply:
             self,
             MAX_voltage_limit=None,
             MAX_current_limit=None,
+            voltage_limits=None,
+            current_limits=None,
             number_of_channels=1,
             reset_on_startup=True
     ):
@@ -34,8 +36,17 @@ class PowerSupply:
 
         self._MAX_voltage_limit = MAX_voltage_limit
         self._MAX_current_limit = MAX_current_limit
-        self.number_of_channels = number_of_channels
+        self._voltage_limits = voltage_limits
+        self._current_limits = current_limits
+        self._number_of_channels = number_of_channels
         self._reset_on_startup = reset_on_startup
+
+    def _check_channel_syntax(self, channel):
+        if type(channel) != int:
+            raise TypeError('ERROR: channel should be an int, starting from 1.', type(channel), 'not supported')
+        elif channel > self.number_of_channels:
+            raise ValueError('ERROR: channel', channel, 'not found. This power supply has',
+                             self.number_of_channels, 'channels.')
 
     @property
     def MAX_voltage_limit(self):
@@ -44,6 +55,10 @@ class PowerSupply:
     @property
     def MAX_current_limit(self):
         return self._MAX_current_limit
+
+    @property
+    def number_of_channels(self):
+        return self._number_of_channels
 
     @MAX_voltage_limit.setter
     def MAX_voltage_limit(self, new_MAX_voltage):
@@ -56,6 +71,85 @@ class PowerSupply:
         print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
         print('Setting MAX voltage limit to', new_MAX_current)
         self._MAX_voltage_limit = new_MAX_current
+
+    @number_of_channels.setter
+    def number_of_channels(self, n):
+        print('CAUTION: The number of channels should always match the hardware')
+        print('Setting number of channels to', n)
+        self._number_of_channels = n
+
+    def set_set_voltage(self, channel, volts):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the set voltage
+        volts : float
+            The desired new value for the set voltage in volts.
+        """
+        pass
+
+    def set_set_current(self, channel, amps):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the set current
+        amps : float
+            The desired new value for the set current in amps.
+        """
+        pass
+
+    def set_channel_voltage_limit(self, channel, volts):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the channel voltage limit
+        volts : float
+            The desired new value for the voltage limit.
+        """
+        pass
+
+    def set_channel_current_limit(self, channel, amps):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the channel current limit
+        amps : float
+            The desired new value for the current limit.
+        """
+        pass
+
+    def set_all_channels_voltage_limit(self, volts):
+        for chan in range(1, self.number_of_channels+1):
+            self.set_channel_voltage_limit(chan, volts)
+
+    def set_all_channels_current_limit(self, amps):
+        for chan in range(1, self.number_of_channels+1):
+            self.set_channel_current_limit(chan, amps)
+
+    def reset_all_channels(self):
+        """
+        Sets the set voltage and set current of all chanles to 0. Then sets all voltage and current channel limits
+        to the maximum allowed limits for full range of operation.
+        """
+        max_v = self.MAX_voltage_limit
+        max_c = self.MAX_current_limit
+        for chan in range(1, self.number_of_channels+1):
+            self.set_set_voltage(channel=chan, volts=0)
+            self.set_set_current(channel=chan, amps=0)
+            self.set_channel_voltage_limit(channel=chan, volts=max_v)
+            self.set_channel_current_limit(channel=chan, amps=max_c)
 
 
 class MCC_Device:  # TODO: add API functions

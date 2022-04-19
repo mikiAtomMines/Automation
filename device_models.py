@@ -230,10 +230,8 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             self,
             ip4_address=None,
             port=5025,
-            ch1_voltage_limit=32,
-            ch1_current_limit=3.3,
-            ch2_voltage_limit=32,
-            ch2_current_limit=3.3,
+            voltage_limits=None,
+            current_limits=None,
             reset_on_startup=True
     ):
         """
@@ -244,14 +242,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         port : int
             port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
             devices, can use any between 49152 and 65536.
-        ch1_voltage_limit : float
-            Set an upper limit on the voltage output of channel 1.
-        ch1_current_limit : float
-            Set an upper limit on the current output of channel 1.
-        ch2_voltage_limit : float
-            Set an upper limit on the voltage output of channel 2.
-        ch2_current_limit : float
-            Set an upper limit on the current output of channel 2.
+        voltage_limits : list
+            Set an upper limit on the set voltage of the channels. Entry 0 represents channel 1, entry 1 represents 
+            channel 2, and so on.
+        current_limits : list
+            Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents 
+            channel 2, and so on.
         reset_on_startup : bool
             If True, run a routine to set turn off the output of both channels and set the set
 
@@ -260,22 +256,33 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         features. This means that the channel limits are checked before sending a command to the power supply. If the
         requested set voltage is higher than the channel voltage limit, the command will not go through.
         """
-        super().__init__(ip4_address=ip4_address,
-                         port=port)
-        super().__init__(MAX_voltage_limit=32,
-                         MAX_current_limit=3.3,
-                         number_of_channels=2,
-                         reset_on_startup=reset_on_startup)
-        self._ip4_address = ip4_address
-        self._port = port
-        self._ch1_voltage_limit = ch1_voltage_limit
-        self._ch1_current_limit = ch1_current_limit
-        self._ch2_voltage_limit = ch2_voltage_limit
-        self._ch2_current_limit = ch2_current_limit
+        if voltage_limits is None:
+            voltage_limits = [32, 32]
+        if current_limits is None:
+            current_limits = [3.3, 3.2]
+            
+        physical_parameters = {
+            'MAX_voltage_limit': 32,
+            'MAX_current_limit': 3.3,
+            'number_of_channels': 2,
+        }
 
-        self.connect()
+        connection_type.SocketEthernetDevice.__init__(
+            self,
+            ip4_address=ip4_address,
+            port=port
+        )
+        device_type.PowerSupply.__init__(
+            self,
+            MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
+            MAX_current_limit=physical_parameters['MAX_current_limit'],
+            number_of_channels=physical_parameters['number_of_channels'],
+            voltage_limits=voltage_limits,
+            current_limits=current_limits,
+            reset_on_startup=reset_on_startup,
+        )
 
-        if self._reset_on_startup is True:
+        if self._reset_on_startup is True and ip4_address is not None:
             self.reset_channels()
 
     def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
@@ -286,13 +293,11 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         ----------
         query : string
             Python string containing the query command. Dependent on each individual device.
-
         Returns
         -------
         string
             Returns the reply of the ethernet device as a string. The output of the ethernet device is received as
             bytes, which is then decoded with utf-8.
-
         """
 
         try:
@@ -300,71 +305,43 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             socket_ps = self._socket
             socket_ps.sendall(query_bytes)
             reply_bytes = socket_ps.recv(4096)
-            reply = reply_bytes.decode('utf-8').strip()
-            time.sleep(0.3)
-            return reply
         except OSError:
-            print('ERROR: Socket not found')
+            print('ERROR: Socket not found. Query not sent.')
+            sys.exit()
 
-    def reset_channels(self):
-        self.ch1_state = 'OFF'
-        self.ch2_state = 'OFF'
-        self.ch1_set_voltage = 0
-        self.ch2_set_voltage = 0
-        print('Both channels set to 0 and turned off')
+        reply = reply_bytes.decode('utf-8').strip()
+        time.sleep(0.3)
+        return reply
 
     def _command(self, cmd):  # TODO: make more general.
         """
         send a command to the ethernet device. Does not receive any response.
-
+        
         Parameters
         ----------
         cmd : string
             Python string containing the command. Dependent on each individual device.
-
         Returns
         -------
         None
             Returns None if the command is succesfully sent.
- qqq
         """
 
         try:
             cmd_bytes = cmd.encode('utf-8')
             socket_ps = self._socket
-            out = socket_ps.sendall(cmd_bytes)  # return None if successful
-            time.sleep(0.3)
-            return out
         except OSError:
-            print('ERROR: Socket not found')
+            raise OSError('ERROR: Socket not found. Command not sent.')
 
-    def channel_syntax(self, user_input):
-        if type(user_input) != int or type(user_input) != str:
-            raise TypeError('ERROR: Input should be an int or str')
+        out = socket_ps.sendall(cmd_bytes)  # return None if successful
+        time.sleep(0.3)
+        return out
 
-        ch1_syntax = 'CH1'
-        ch2_syntax = 'CH2'
-
-        chan_syntax = {
-            1:          ch1_syntax,
-            '1':        ch1_syntax,
-            '01':       ch1_syntax,
-            'ch1':      ch1_syntax,
-            'channel1': ch1_syntax,
-            2:          ch2_syntax,
-            '2':        ch2_syntax,
-            '02':       ch2_syntax,
-            'ch2':      ch2_syntax,
-            'channel2': ch2_syntax,
-        }
-
-        if type(user_input) == str:
-            user_input = user_input.lower()
-        try:
-            return chan_syntax[user_input]
-        except KeyError:
-            print('ERROR: Invalid input. Channel not found.')
-            sys.exit()
+    def reset_channels(self):
+        self.ch1_state = 'OFF'
+        self.ch2_state = 'OFF'
+        self.reset_all_channels()
+        print('Both channels turned off and set to 0. Channel limits are reset to MAX.')
 
     # =============================================================================
     #       Get methods
@@ -397,164 +374,163 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 
     # Channel properties
     # =============================================================================
-    @property
-    def ch1_state(self):
+    def get_channel_state(self, channel):
         """
         The 5th digit from right to left of the binary output from the system status query gives the state of channel 1,
         1 for on and 0 for off.
-        :return:
+        :return: bool
         """
-        one_or_zero = int(self.system_status[-5])
+        self._check_channel_syntax(channel)
+        one_or_zero = int(self.system_status[-4-channel])
         return bool(one_or_zero)
-
-    @property
-    def ch2_state(self):
-        one_or_zero = int(self.system_status[-6])
-        return bool(one_or_zero)
-
-    @property
-    def ch1_set_voltage(self):
-        qry = 'CH1:voltage?'
-        return float(self._query(qry))
-
-    @property
-    def ch2_set_voltage(self):
-        qry = 'CH2:voltage?'
-        return float(self._query(qry))
 
     def get_set_voltage(self, channel):
-        qry = self.channel_syntax(channel) + ':voltage?'
-        return self._query(qry)
-
-    @property
-    def ch1_actual_voltage(self):
-        qry = 'measure:voltage? CH1'
-        return float(self._query(qry))
-
-    @property
-    def ch2_actual_voltage(self):
-        qry = 'measure:voltage? CH2'
+        self._check_channel_syntax(channel)
+        qry = 'CH' + str(channel) + ':voltage?'
         return float(self._query(qry))
 
     def get_actual_voltage(self, channel):
-        qry = 'measure:voltage? ' + self.channel_syntax(channel)
-        return self._query(qry)
-
-    @property
-    def ch1_set_current(self):
-        qry = 'CH1:current?'
-        return float(self._query(qry))
-
-    @property
-    def ch2_set_current(self):
-        qry = 'CH2:current?'
+        self._check_channel_syntax(channel)
+        qry = 'measure:voltage? ' + 'CH' + str(channel)
         return float(self._query(qry))
 
     def get_set_current(self, channel):
-        qry = self.channel_syntax(channel) + ':current?'
-        return self._query(qry)
-
-    @property
-    def ch1_actual_current(self):
-        qry = 'measure:current? CH1'
-        return float(self._query(qry))
-
-    @property
-    def ch2_actual_current(self):
-        qry = 'measure:current? CH2'
+        self._check_channel_syntax(channel)
+        qry = 'CH' + str(channel) + ':current?'
         return float(self._query(qry))
 
     def get_actual_current(self, channel):
-        qry = 'measure:current? ' + self.channel_syntax(channel)
-        return self._query(qry)
+        self._check_channel_syntax(channel)
+        qry = 'measure:current? ' + 'CH' + str(channel)
+        return float(self._query(qry))
+
+    @property
+    def ch1_state(self):
+        return self.get_channel_state(1)
+
+    @property
+    def ch2_state(self):
+        return self.get_channel_state(2)
+
+    @property
+    def ch1_set_voltage(self):
+        return self.get_set_voltage(1)
+
+    @property
+    def ch2_set_voltage(self):
+        return self.get_set_voltage(2)
+
+    @property
+    def ch1_actual_voltage(self):
+        return self.get_actual_voltage(1)
+
+    @property
+    def ch2_actual_voltage(self):
+        return self.get_actual_voltage(2)
+
+    @property
+    def ch1_set_current(self):
+        return self.get_set_current(1)
+
+    @property
+    def ch2_set_current(self):
+        return self.get_set_current(2)
+
+    @property
+    def ch1_actual_current(self):
+        return self.get_actual_current(1)
+
+    @property
+    def ch2_actual_current(self):
+        return self.get_actual_current(2)
 
     # channel limits
     # =============================================================================
+    def get_voltage_limit(self, channel):
+        self._check_channel_syntax(channel)
+        return self._voltage_limits[channel-1]
+
+    def get_current_limit(self, channel):
+        self._check_channel_syntax(channel)
+        return self._current_limits[channel-1]
+
     @property
     def ch1_voltage_limit(self):
-        return self._ch1_voltage_limit
+        return self._voltage_limits[0]
 
     @property
     def ch1_current_limit(self):
-        return self._ch1_current_limit
+        return self._current_limits[0]
 
     @property
     def ch2_voltage_limit(self):
-        return self._ch2_voltage_limit
+        return self._voltage_limits[1]
 
     @property
     def ch2_current_limit(self):
-        return self._ch2_current_limit
+        return self._current_limits[1]
 
-    def get_voltage_limit(self, channel):
-        chan = self.channel_syntax(channel)  # check for valid input. Returns channel as str with format 'CH' + str(n)
-        if chan == 'CH1':
-            return self._ch1_voltage_limit
-        elif chan == 'CH2':
-            return self._ch2_voltage_limit
-        else:  # this statement should be unecessary
-            print('ERROR: channel not found')
-            sys.exit()
-
-    def get_current_limit(self, channel):
-        chan = self.channel_syntax(channel)  # check for valid input. Returns channel as str with format 'CH' + str(n)
-        if chan == 'CH1':
-            return self._ch1_current_limit
-        elif chan == 'CH2':
-            return self._ch2_current_limit
-        else:  # this statement should be unecessary
-            print('ERROR: channel not found')
-            sys.exit()
     # =============================================================================
     #       Set methods
     # =============================================================================
+    def set_channel_state(self, channel, state):
+        self._check_channel_syntax(channel)
+        cmd = 'Output CH' + str(channel) + ',' + state.upper()
+        self._command(cmd)
 
-    # Channel-specific properties
-    # =============================================================================
     @ch1_state.setter
     def ch1_state(self, state):
-        cmd = 'Output CH1,' + state.upper()
-        self._command(cmd)
+        self.set_channel_state(1, state)
 
     @ch2_state.setter
     def ch2_state(self, state):
-        cmd = 'Output CH2,' + state.upper()
-        self._command(cmd)
+        self.set_channel_state(2, state)
 
     # voltage and current setters
     # =============================================================================
     def set_set_voltage(self, channel, volts):
+        """
+        :param channel: int
+        :param volts: float
+        """
+        self._check_channel_syntax(channel)
+        volts = round(volts, 3)
+
         limit = self.get_voltage_limit(channel)
-        chan = self.channel_syntax(channel)
+        chan = 'CH' + str(channel)
         if volts <= limit:
             cmd = chan + ':voltage ' + str(volts)
             self._command(cmd)
-
         else:
-            print(chan + ' voltage not set. \
-                  New voltage is higher than ' + chan + ' voltage limit.')
+            raise ValueError(chan + ' voltage not set. New voltage is higher than ' + chan + ' voltage limit.')
 
     def set_set_current(self, channel, amps):
+        """
+        :param channel: int
+        :param amps: float
+        """
+        self._check_channel_syntax(channel)
+        amps = round(amps, 3)
+
         limit = self.get_current_limit(channel)
-        chan = self.channel_syntax(channel)
+        chan = 'CH' + str(channel)
         if amps <= limit:
             cmd = chan + ':current ' + str(amps)
             self._command(cmd)
         else:
-            print(chan + ' current not set. \
-                  New current is higher than ' + chan + ' current limit')
+            raise ValueError(chan + ' current not set. New current is higher than ' + chan + ' current limit')
 
     @ch1_set_voltage.setter
     def ch1_set_voltage(self, volts):
         self.set_set_voltage(1, volts)
 
-    @ch2_set_voltage.setter
-    def ch2_set_voltage(self, volts):
-        self.set_set_voltage(2, volts)
-
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
         self.set_set_current(1, amps)
+
+    @ch2_set_voltage.setter
+    def ch2_set_voltage(self, volts):
+        self.set_set_voltage(2, volts)
 
     @ch2_set_current.setter
     def ch2_set_current(self, amps):
@@ -562,71 +538,49 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 
     # channel limits
     # =============================================================================
+    def set_channel_voltage_limit(self, channel, volts):
+        """
+        :param channel: int
+        :param volts: float
+        """
+        self._check_channel_syntax(channel)
+
+        if volts > self._MAX_voltage_limit or volts <= 0:
+            print('Voltage limit not set. New voltage limit is not allowed by the power supply.')
+        elif volts < self.ch1_set_voltage:
+            print('Voltage limit not set. New voltage limit is lower than present channel set voltage.')
+        else: 
+            self._voltage_limits[channel-1] = volts
+            
+    def set_channel_current_limit(self, channel, amps):
+        """
+        :param channel: int
+        :param amps: float
+        """
+        self._check_channel_syntax(channel)
+
+        if amps > self._MAX_current_limit or amps <= 0:
+            print('Current limit not set. New current limit is not allowed by the power supply.')
+        elif amps < self.ch1_set_current:
+            print('Current limit not set. New current limit is lower than present channel set current.')
+        else: 
+            self._current_limits[channel-1] = amps
+    
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
-        if volts > self._MAX_voltage_limit or volts <= 0:
-            print('Voltage limit not set. \
-                  New voltage limit is not allowed by the power supply')
-        elif volts < self.ch1_set_voltage:
-            print('Voltage limit not set. \
-                  New voltage limit is lower than present ch1 voltage')
-        else:
-            self._ch1_voltage_limit = volts
+        self.set_channel_voltage_limit(1, volts)
 
     @ch1_current_limit.setter
     def ch1_current_limit(self, amps):
-        if amps > self._MAX_current_limit or amps <= 0:
-            print('Current limit not set. \
-                  New voltage limit is not allowed by the power supply')
-        elif amps < self.ch1_set_current:
-            print('Current limit not set. \
-                  New current limit is lower than present ch1 current')
-        else:
-            self._ch1_current_limit = amps
+        self.set_channel_current_limit(1, amps)
 
     @ch2_voltage_limit.setter
     def ch2_voltage_limit(self, volts):
-        if volts > self._MAX_voltage_limit or volts <= 0:
-            print('Voltage limit not set. New voltage limit is not \
-                   allowed by the power supply')
-        elif volts < self.ch2_set_voltage:
-            print('Voltage limit not set. New voltage limit is lower \
-                  than present ch2 voltage')
-        else:
-            self._ch1_voltage_limit = volts
+        self.set_channel_voltage_limit(2, volts)
 
     @ch2_current_limit.setter
     def ch2_current_limit(self, amps):
-        if amps > self._MAX_current_limit or amps <= 0:
-            print('Current limit not set. New voltage limit is not \
-                  allowed by the power supply')
-        elif amps < self.ch1_set_current:
-            print('Current limit not set. New current limit is lower \
-                  than present ch2 current')
-        else:
-            self._ch2_current_limit = amps
-
-    def set_both_channels_current_limit(self, amps):
-        if amps > self._MAX_current_limit or amps <= 0:
-            print('Current limit not set. New voltage limit is not \
-                  allowed by the power supply')
-        elif amps < self.ch1_set_current or amps < self.ch2_set_current:
-            print('Current limit not set. New current limit is lower \
-                  than present ch1 or ch2 current')
-        else:
-            self._ch1_current_limit = amps
-            self._ch2_current_limit = amps
-
-    def set_both_channels_voltage_limit(self, volts):
-        if volts > self._MAX_voltage_limit or volts <= 0:
-            print('Current limit not set. New voltage limit is not \
-                  allowed by the power supply')
-        elif volts < self.ch1_set_voltage or volts < self.ch2_set_voltage:
-            print('Current limit not set. New current limit is lower \
-                  than present ch1 or ch2 current')
-        else:
-            self._ch1_voltage_limit = volts
-            self._ch2_voltage_limit = volts
+        self.set_channel_current_limit(2, amps)
 
 
 # ======================================================================================================================
