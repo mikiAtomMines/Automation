@@ -119,6 +119,7 @@ def channel_syntax(self, power_supply, channel_num):
 
 
 def testing_SPD3303X(power_supply):
+    print()
     print(power_supply.idn)
     print(power_supply.ip4_address)
     print(power_supply.system_status)
@@ -127,6 +128,8 @@ def testing_SPD3303X(power_supply):
     input('Press enter to set ch1 to 3.45V, and ch2 to 1.51V')
     power_supply.ch1_set_voltage = 3.45
     power_supply.ch2_set_voltage = 1.51
+    power_supply.ch1_set_current = 0.005
+    power_supply.ch2_set_current = 0.005
     print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
     print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
     print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
@@ -144,13 +147,11 @@ def testing_SPD3303X(power_supply):
     time.sleep(5)
     power_supply.ch2_state = 'OFF'
     print('CH2 state is:', str(power_supply.ch2_state))
-    time.sleep(5)
     print()
 
     input('press enter to turn both on for 5 seconds. Then turn both off.')
     power_supply.ch1_state = 'ON'
     power_supply.ch2_state = 'ON'
-    time.sleep(5)
     print('CH1 and CH2 states are:', str(power_supply.ch1_state), str(power_supply.ch2_state))
     print('CH1 and CH2 set voltages are:', power_supply.ch1_set_voltage, power_supply.ch2_set_voltage)
     print('CH1 and CH2 set currents are:', power_supply.ch1_set_current, power_supply.ch2_set_current)
@@ -168,6 +169,8 @@ def testing_SPD3303X(power_supply):
     print('CH1 and CH2 current limits are:', power_supply.ch1_current_limit, power_supply.ch2_current_limit)
     print('MAX voltage and current limits are:', power_supply.MAX_voltage_limit, power_supply.MAX_current_limit)
     power_supply.reset_channels()
+    print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
+    print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
     power_supply.disconnect()
 
 
