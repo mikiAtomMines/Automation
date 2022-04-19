@@ -40,8 +40,8 @@ def main():
 
     web_tc = device_models.Web_Tc(board_number=0)
     supply = device_models.SPD3303X(ip4_address='10.176.42.121', port=5025, reset_on_startup=True)
-    supply.set_both_channels_current_limit(0.25)
-    supply.set_both_channels_voltage_limit(25)
+    supply.set_all_channels_current_limit(0.25)
+    supply.set_all_channels_voltage_limit(25)
     supply.ch1_state = 'on'
     supply.ch1_set_current = 0.205
 
