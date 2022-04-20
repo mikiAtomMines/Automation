@@ -6,33 +6,33 @@ import psutil
 from collections import deque
 
 
-def frames_plot(i):
-    """
-    Live shows x and y data. x and y must be the same lenght
+def main():
+    cpu = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-    Parameters
-    ----------
+    fig = plt.figure()
 
-    """
-    global cpu
-    global ax
+    ax = plt.subplot(111)
+    ax.set_facecolor('#DEDEDE')
 
-    cpu.pop(0)
-    cpu.append(psutil.cpu_percent())
+    def frames_plot(i):
+        """
+        Live shows x and y data. x and y must be the same lenght
 
-    ax.cla()
+        Parameters
+        ----------
 
-    ax.plot(cpu)
-    ax.scatter(len(cpu)-1, cpu[-1])
-    ax.text(len(cpu)-1, cpu[-1]+2, "{}%".format(cpu[-1]))
+        """
+        cpu.pop(0)
+        cpu.append(psutil.cpu_percent())
 
+        ax.cla()
 
-cpu = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-ax = plt.subplot(111)
-ax.set_facecolor('#DEDEDE')
-fig = plt.figure(figsize=(12, 6))
+        ax.plot(cpu)
+        ax.text(len(cpu) - 1, cpu[-1] + 2, "{}%".format(cpu[-1]))
+        ax.set_ylim([0, 100])
 
-ani = anim.FuncAnimation(fig, frames_plot, interval=500)
+    ani = anim.FuncAnimation(fig, frames_plot, interval=1000)
 
-plt.show()
+    plt.show()
 
+main()
