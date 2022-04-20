@@ -197,3 +197,7 @@ def simple_plot(file):
     plt.plot(time_list, actual_temp_list)
 
     plt.show()
+
+
+
+
