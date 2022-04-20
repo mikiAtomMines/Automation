@@ -340,7 +340,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     def reset_channels(self):
         self.ch1_state = 'OFF'
         self.ch2_state = 'OFF'
-        self.reset_all_channels()
+        self.zero_all_channels()
         print('Both channels turned off and set to 0. Channel limits are reset to MAX.')
 
     # =============================================================================
@@ -392,7 +392,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         bool
             True for on, False for off.
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         one_or_zero = int(self.system_status[-4-channel])
         return bool(one_or_zero)
 
@@ -400,7 +400,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':voltage?'
         return float(self._query(qry))
 
@@ -408,7 +408,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         qry = 'measure:voltage? ' + 'CH' + str(channel)
         return float(self._query(qry))
 
@@ -416,7 +416,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':current?'
         return float(self._query(qry))
 
@@ -424,7 +424,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         qry = 'measure:current? ' + 'CH' + str(channel)
         return float(self._query(qry))
 
@@ -474,14 +474,14 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         return self._voltage_limits[channel-1]
 
     def get_current_limit(self, channel):
         """
         :param channel: int
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         return self._current_limits[channel-1]
 
     @property
@@ -508,7 +508,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         :param state: str valid inputs (not case sensitive): on, off.
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         cmd = 'Output CH' + str(channel) + ',' + state.upper()
         self._command(cmd)
 
@@ -533,7 +533,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         :param volts: float
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         volts = round(volts, 3)
 
         limit = self.get_voltage_limit(channel)
@@ -549,7 +549,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         :param amps: float
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
         amps = round(amps, 3)
 
         limit = self.get_current_limit(channel)
@@ -583,7 +583,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         :param volts: float
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
 
         if volts > self._MAX_voltage_limit or volts <= 0:
             print('Voltage limit not set. New voltage limit is not allowed by the power supply.')
@@ -597,7 +597,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         :param amps: float
         """
-        self._check_channel_syntax(channel)
+        self.check_channel_syntax(channel)
 
         if amps > self._MAX_current_limit or amps <= 0:
             print('Current limit not set. New current limit is not allowed by the power supply.')
@@ -916,5 +916,7 @@ class Web_Tc(device_type.MCC_Device):
             for calibrated voltage      volts, volt, voltage,  v
             for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
         """
+        if new_units is None:
+            self._default_units = self._temp
         auxiliary.get_TempScale_unit(new_units)
         self._default_units = new_units
