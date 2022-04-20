@@ -34,8 +34,7 @@ class PID_controller(pid.PID):
         super().__init__()
 
 
-
-def main():
+def test_pid_with_ps():
     a = pid.PID()
 
     web_tc = device_models.Web_Tc(board_number=0)
