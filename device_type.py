@@ -6,6 +6,8 @@ Created on Thursday, April 7, 2022
 import sys
 import time
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as anim
 from mcculw import ul
 from mcculw import enums
 import auxiliary
@@ -41,7 +43,7 @@ class PowerSupply:
         self._number_of_channels = number_of_channels
         self._reset_on_startup = reset_on_startup
 
-    def _check_channel_syntax(self, channel):
+    def check_channel_syntax(self, channel):
         if type(channel) != int:
             raise TypeError('ERROR: channel should be an int, starting from 1.', type(channel), 'not supported')
         elif channel > self.number_of_channels:
@@ -138,7 +140,7 @@ class PowerSupply:
         for chan in range(1, self.number_of_channels+1):
             self.set_channel_current_limit(chan, amps)
 
-    def reset_all_channels(self):
+    def zero_all_channels(self):
         """
         Sets the set voltage and set current of all chanles to 0. Then sets all voltage and current channel limits
         to the maximum allowed limits for full range of operation.
@@ -296,8 +298,11 @@ class MCC_Device:  # TODO: add API functions
 
     """
 
+# TODO: add heater object with physical parmeters as safety, like max temp, max current, max voltage. USe this object
+#  in the heater class.
 
-class HeaterAssembly:
+
+class HeaterAssembly:  # TODO: ass
     def __init__(
             self,
             power_supply=None,
@@ -346,6 +351,10 @@ class HeaterAssembly:
             Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
             True if the pid object has not been manually configured.
         """
+        if MIN_set_temp is None:
+            MIN_set_temp = 0
+        if MAX_set_temp is None:
+            MAX_set_temp = 0
 
         self._power_supply = power_supply
         self._supply_channel = supply_channel
@@ -358,10 +367,11 @@ class HeaterAssembly:
         self._MIN_set_temp = MIN_set_temp
         self._configure_on_startup = configure_on_startup
 
+        self._pid_function.setpoint = self._set_temperature
         if self._configure_on_startup:
             self.configure_pid()
 
-        self._temperature_daq.default_units = self._temp_units
+        self._temp_units = self._temperature_daq.default_units  # If None, default units are Celsius
 
     # -----------------------------------------------------------------------------
     # Get methods
@@ -412,11 +422,17 @@ class HeaterAssembly:
     def configure_on_startup(self):
         return self._configure_on_startup
 
+    @property
+    def current_temperature(self):
+        return self._temperature_daq.get_temp(channel_n=self._daq_channel)
+
     # -----------------------------------------------------------------------------
     # Set methods
     # -----------------------------------------------------------------------------
     @supply_channel.setter
     def supply_channel(self, new_chan):
+        self._power_supply.check_channel_syntax()
+
         if 1 <= new_chan <= self._power_supply.number_of_channels:
             self._supply_channel = new_chan
         else:
@@ -424,19 +440,27 @@ class HeaterAssembly:
             sys.exit()
 
     @daq_channel.setter
-    def daq_channel(self, new_chan):
+    def daq_channel(self, new_chan):  # TODO: add syntax checking for mcc device
         if 1 <= new_chan <= self._temperature_daq.number_temp_channels:
             self._daq_channel = new_chan
         else:
             print('ERROR: channel not found')
             sys.exit()
 
+    @set_temperature.setter
+    def set_temperature(self, new_temp):
+        if self._MAX_set_temp < new_temp < self._MIN_set_temp:
+            raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check the MAX and MIN set '
+                                                                   'temperature limits')
+        self._set_temperature = new_temp
+        self._pid_function.setpoint = new_temp
+
     @temp_units.setter
     def temp_units(self, new_units):
         self._temperature_daq.default_units = new_units  # this also checks if input is valid
         self._temp_units = new_units
 
-    def configure_pid(self, *args, **kwargs):
+    def configure_pid(self, *args, **kwargs):  # TODO: Finish. Currently not working
         """
         Sets the output limits, set point, and optionally, the Kp, Ki, and Kd of the PID object. Any number of K
         parameters can be set. The function will only set If no arguments are given, the K parameters of the PID object
@@ -474,9 +498,45 @@ class HeaterAssembly:
         Calculates the new power supply voltage using the PID function based on the current temperature from the
         temperature daq channel. It then sets the power supply channel voltage to this new voltage.
         """
-        current_temp = self._temperature_daq.get_temp(channel_n=self._daq_channel)
+        current_temp = self.current_temperature
+        print(current_temp)
         new_ps_voltage = self._pid_function(current_temp)
+        # print(new_ps_voltage)
         self._power_supply.set_set_voltage(channel=self._supply_channel, volts=new_ps_voltage)
 
+        return new_ps_voltage
 
+    def live_plot(self, x_size=10):
+        """
+        plots current temp and ps_volts
+        :param x_size:
+        :param current_temp:
+        :param ps_volt:
+        """
+        temp = [0.0]*x_size
+        ps_v = [0.0]*x_size
+        time_ = [0.0]*x_size
+        fig = plt.figure()
+        ax = plt.subplot(111)
 
+        def animate(i):
+            ps_volt = self.update_supply()
+
+            temp.pop(0)
+            temp.append(self.current_temperature)
+
+            time_.pop(0)
+            time_.append(i)
+
+            ps_v.pop(0)
+            ps_v.append(ps_volt)
+
+            ax.cla()
+            ax.plot(time_, temp)
+            ax.plot(time_, ps_v)
+            ax.text(time_[-1], temp[-1]+2, str(temp[-1]))
+            ax.text(time_[-1], ps_v[-1]+2, str(ps_v[-1]))
+            ax.set_ylim([0, self._set_temperature*1.3])
+
+        ani = anim.FuncAnimation(fig, animate, interval=2000)
+        plt.show()
