@@ -230,8 +230,8 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             self,
             ip4_address=None,
             port=5025,
-            voltage_limits=None,
-            current_limits=None,
+            channel_voltage_limits=None,
+            channel_current_limits=None,
             reset_on_startup=True
     ):
         """
@@ -242,10 +242,10 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         port : int
             port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
             devices, can use any between 49152 and 65536.
-        voltage_limits : list
+        channel_voltage_limits : list
             Set an upper limit on the set voltage of the channels. Entry 0 represents channel 1, entry 1 represents 
             channel 2, and so on.
-        current_limits : list
+        channel_current_limits : list
             Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents 
             channel 2, and so on.
         reset_on_startup : bool
@@ -256,11 +256,6 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         features. This means that the channel limits are checked before sending a command to the power supply. If the
         requested set voltage is higher than the channel voltage limit, the command will not go through.
         """
-        if voltage_limits is None:
-            voltage_limits = [32, 32]
-        if current_limits is None:
-            current_limits = [3.3, 3.2]
-            
         physical_parameters = {
             'MAX_voltage_limit': 32,
             'MAX_current_limit': 3.3,
@@ -277,8 +272,8 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
             MAX_current_limit=physical_parameters['MAX_current_limit'],
             number_of_channels=physical_parameters['number_of_channels'],
-            voltage_limits=voltage_limits,
-            current_limits=current_limits,
+            channel_voltage_limits=channel_voltage_limits,
+            channel_current_limits=channel_current_limits,
             reset_on_startup=reset_on_startup,
         )
 
@@ -475,30 +470,30 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         :param channel: int
         """
         self.check_channel_syntax(channel)
-        return self._voltage_limits[channel-1]
+        return self._channel_voltage_limits[channel - 1]
 
     def get_current_limit(self, channel):
         """
         :param channel: int
         """
         self.check_channel_syntax(channel)
-        return self._current_limits[channel-1]
+        return self._channel_current_limits[channel - 1]
 
     @property
     def ch1_voltage_limit(self):
-        return self._voltage_limits[0]
+        return self._channel_voltage_limits[0]
 
     @property
     def ch1_current_limit(self):
-        return self._current_limits[0]
+        return self._channel_current_limits[0]
 
     @property
     def ch2_voltage_limit(self):
-        return self._voltage_limits[1]
+        return self._channel_voltage_limits[1]
 
     @property
     def ch2_current_limit(self):
-        return self._current_limits[1]
+        return self._channel_current_limits[1]
 
     # =============================================================================
     #       Set methods
@@ -590,7 +585,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         elif volts < self.ch1_set_voltage:
             print('Voltage limit not set. New voltage limit is lower than present channel set voltage.')
         else: 
-            self._voltage_limits[channel-1] = volts
+            self._channel_voltage_limits[channel - 1] = volts
             
     def set_channel_current_limit(self, channel, amps):
         """
@@ -604,7 +599,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         elif amps < self.ch1_set_current:
             print('Current limit not set. New current limit is lower than present channel set current.')
         else: 
-            self._current_limits[channel-1] = amps
+            self._channel_current_limits[channel - 1] = amps
     
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
@@ -727,7 +722,7 @@ class Web_Tc(device_type.MCC_Device):
 
         Returns
         -------
-        list of floats
+        list of float
             List containing the temperature or voltage values as a float in the specified units. The index of a value
             corresponds to its respective channel. If a channel is not available, its respective place in the list
             will have None.
@@ -772,7 +767,7 @@ class Web_Tc(device_type.MCC_Device):
 
         Returns
         -------
-        list of floats
+        list of float
             List containing the temperature or voltage values as a float in the specified units. The index of a value
             corresponds to its respective channel. If a channel is not available, its respective place in the list
             will have None.
@@ -901,7 +896,7 @@ class Web_Tc(device_type.MCC_Device):
     # Set methods and setters
     # ==================================================================================================================
     @default_units.setter
-    def default_units(self, new_units):
+    def default_units(self, new_units=None):
         """
         Set the default units as the new_units. First use get_TempScale_unit() to error check the new_units. If no
         exception is raised, then the default units are set using new_units.
@@ -917,6 +912,6 @@ class Web_Tc(device_type.MCC_Device):
             for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
         """
         if new_units is None:
-            self._default_units = self._temp
+            new_units = 'celsius'
         auxiliary.get_TempScale_unit(new_units)
         self._default_units = new_units
