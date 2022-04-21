@@ -21,8 +21,8 @@ class PowerSupply:
             self,
             MAX_voltage_limit=None,
             MAX_current_limit=None,
-            voltage_limits=None,
-            current_limits=None,
+            channel_voltage_limits=None,
+            channel_current_limits=None,
             number_of_channels=1,
             reset_on_startup=True
     ):
@@ -30,18 +30,38 @@ class PowerSupply:
         """
         A benchtop programmable power supply.
 
-        :param MAX_voltage_limit: -- Maximum voltage that the power supply can output based on hardware limitations.
-        :param MAX_current_limit: -- Maximum current that the power supply can output based on hardware limitations.
-        :param number_of_channels: - Specifies the number of programmable physical channels in the power supply.
-        :param reset_on_startup: --- If true, will turn channels off and set the output voltage to zero.
+        Parameters
+        ----------
+        MAX_voltage_limit : float
+            Maximum voltage that the power supply can output based on hardware limitations.
+        MAX_current_limit : float
+            Maximum current that the power supply can output based on hardware limitations.
+        channel_voltage_limits : list of float
+            list containing the individual channel limits for the set voltage. The set voltage of a channel cannot
+            exceed its limit voltage. The 0th item corresponds to the limit of channel 1, 1st item to channel 2,
+            and so on.
+        channel_current_limits : list of float
+            list containing the individual channel limits for the set current. The set current of a channel cannot
+            exceed its limit current. The 0th item corresponds to the limit of channel 1, 1st item to channel 2,
+            and so on.
+        number_of_channels : int
+            the number of physical programmable channels in the power supply.
+        reset_on_startup : bool
+            If set to true, will run a method to set the set voltage and current to 0 and reset the channel limits to
+            their full range.
         """
 
         self._MAX_voltage_limit = MAX_voltage_limit
         self._MAX_current_limit = MAX_current_limit
-        self._voltage_limits = voltage_limits
-        self._current_limits = current_limits
+        self._channel_voltage_limits = channel_voltage_limits
+        self._channel_current_limits = channel_current_limits
         self._number_of_channels = number_of_channels
         self._reset_on_startup = reset_on_startup
+
+        if self._channel_voltage_limits is None and self._MAX_voltage_limit is not None:
+            self._channel_voltage_limits = [self._MAX_voltage_limit] * self._number_of_channels
+        if self._channel_current_limits is None and self._MAX_current_limit is not None:
+            self._channel_current_limits = [self._MAX_current_limit] * self._number_of_channels
 
     def check_channel_syntax(self, channel):
         if type(channel) != int:
@@ -57,6 +77,22 @@ class PowerSupply:
     @property
     def MAX_current_limit(self):
         return self._MAX_current_limit
+
+    @property
+    def channel_voltage_limits(self):
+        out = ''
+        for i, lim in enumerate(self._channel_voltage_limits):
+            out += 'chan' + str(i+1) + ': ' + str(lim) + '\n'
+
+        return out
+
+    @property
+    def channel_current_limits(self):
+        out = ''
+        for i, lim in enumerate(self._channel_current_limits):
+            out += 'chan' + str(i + 1) + ': ' + str(lim) + '\n'
+
+        return out
 
     @property
     def number_of_channels(self):
@@ -184,7 +220,7 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def idn(self):
-        return self.model +', ' + str(self._board_number)
+        return self.model + ', ' + str(self._board_number)
 
     @property
     def board_number(self):
@@ -510,8 +546,6 @@ class HeaterAssembly:  # TODO: ass
         """
         plots current temp and ps_volts
         :param x_size:
-        :param current_temp:
-        :param ps_volt:
         """
         temp = [0.0]*x_size
         ps_v = [0.0]*x_size
