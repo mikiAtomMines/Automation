@@ -19,7 +19,7 @@ from mcculw import enums
 error_count = 0
 
 
-class GM3(serial.Serial):
+class GM3(serial.Serial):  # TODO: needs work.
     def __init__(self, *args, **kwargs):
         super().__init__(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, *args, **kwargs)
 
@@ -48,8 +48,14 @@ class GM3(serial.Serial):
         query function for gaussmeter. The function sends the appropriate command to the gaussmeter and reads the
         appropiate number of bytes and returns them as a byte string. Currently, the only supported commands are:
         ID_METER_PROP (0x01), ID_METER_SETT (0x02), STREAM_DATA (0x03), and RESET_TIME (0x04).
-
-        :param command: the command to send to the gaussmeter. Can be a string with the hex value of the command in the
+        
+        Parameters
+        ----------
+        command : str
+            
+        
+        :param command: the command to send to the gaussmeter. Can be a string with the hex value of the command 
+        in the
         format 'AA' or '0xAA' or the command name as it appears in the AlphaApp comm protocol manual.
         :return: byte object containing the response from the gaussmeter. Has variable length depending on the query
         command used.
@@ -69,20 +75,27 @@ class GM3(serial.Serial):
             '0x03': '03',
             '0x04': '04',
         }
-        qry = qry_dict[command]  # TODO: Add error handling
 
-        number_of_bytes_dict = {  # the acknoledge byte is sent
+        try:
+            qry = qry_dict[command]
+        except KeyError:
+            raise ValueError('ERROR: command', command, 'not found. Possible string commands:',
+                             '\nID_METER_PROP    or    01    or    0x01',
+                             '\nID_METER_SETT    or    02    or    0x02',
+                             '\nSTREAM_DATA      or    03    or    0x03',
+                             '\nRESET_TIME       or    04    or    0x04')
+
+        read_length_dict = {  # read message lenght in bytes
             '01': 20,
             '02': 20,
             '03': 30,
             '04': 31,
         }
-        number_of_bytes = number_of_bytes_dict[qry]
+        read_length = read_length_dict[qry]
         ack = ''
-        r = None
         while ack != bytes.fromhex('08'):  # loop to confirm that the message has been received
             self.write(bytes.fromhex(qry * 6))
-            r = self.read(number_of_bytes)
+            r = self.read(read_length)
             ack = self.read(1)
 
             if ack != bytes.fromhex('08'):  # count the number of times a message is not received succesfully.
@@ -93,7 +106,7 @@ class GM3(serial.Serial):
 
         while ack != bytes.fromhex('07'):
             self.write(bytes.fromhex('08' * 6))
-            r += self.read(number_of_bytes)
+            r += self.read(read_length)
             ack = self.read(1)
 
         return r
@@ -108,7 +121,11 @@ class GM3(serial.Serial):
             'FF': 'FF',
             '0xFF': 'FF'
         }
-        cmd = cmd_dict[command]  # TODO: Add error handling
+        try:
+            cmd = cmd_dict[command]
+        except KeyError:
+            raise ValueError('ERROR: command', command, 'not found. Possible string commands:',
+                             '\nKILL_ALL_PROCESS    or    FF    or    0xFF')
 
         self.write(bytes.fromhex(cmd * 6))
 
@@ -280,7 +297,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         if self._reset_on_startup is True and ip4_address is not None:
             self.reset_channels()
 
-    def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
+    def _query(self, query):
         """
         send a query to the ethernet device and receive a response.
 
@@ -301,14 +318,13 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             socket_ps.sendall(query_bytes)
             reply_bytes = socket_ps.recv(4096)
         except OSError:
-            print('ERROR: Socket not found. Query not sent.')
-            sys.exit()
+            raise OSError('ERROR: Socket not found. Query not sent.')
 
         reply = reply_bytes.decode('utf-8').strip()
         time.sleep(0.3)
         return reply
 
-    def _command(self, cmd):  # TODO: make more general.
+    def _command(self, cmd):
         """
         send a command to the ethernet device. Does not receive any response.
         
