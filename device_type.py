@@ -338,7 +338,7 @@ class MCC_Device:  # TODO: add API functions
 #  in the heater class.
 
 
-class HeaterAssembly:  # TODO: ass
+class HeaterAssembly:
     def __init__(
             self,
             power_supply=None,
@@ -401,10 +401,10 @@ class HeaterAssembly:  # TODO: ass
         self._pid_function = pid_function
         self._MAX_set_temp = MAX_set_temp
         self._MIN_set_temp = MIN_set_temp
-        self._configure_on_startup = configure_on_startup
+        self._configure_pid_on_startup = configure_on_startup
 
         self._pid_function.setpoint = self._set_temperature
-        if self._configure_on_startup:
+        if self._configure_pid_on_startup:
             self.configure_pid()
 
         self._temp_units = self._temperature_daq.default_units  # If None, default units are Celsius
@@ -455,8 +455,8 @@ class HeaterAssembly:  # TODO: ass
         return self.MIN_set_temp
 
     @property
-    def configure_on_startup(self):
-        return self._configure_on_startup
+    def configure_pid_on_startup(self):
+        return self._configure_pid_on_startup
 
     @property
     def current_temperature(self):
