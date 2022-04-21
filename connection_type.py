@@ -39,16 +39,28 @@ class SocketEthernetDevice:
     def port(self):
         return self._port
 
+    @ip4_address.setter
+    def ip4_address(self, new_ip):
+        user_in = input('CAUTION: changing the IP address of device while connected can cause issues. Press y and '
+                        'then Enter to continue. Press n and then Enter to not make any changes')
+        if user_in.lower() == 'y':
+            self._ip4_address = new_ip
+
+    @port.setter
+    def port(self, new_port):
+        user_in = input('CAUTION: changing the port of device while connected can cause issues. Press y and then Enter '
+                        'to continue. Press n and then Enter to not make any changes')
+        if user_in.lower() == 'y':
+            self._port = new_port
+
     def connect(self):
         try:
             socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             socket_object.connect((self._ip4_address, self._port))
-        except socket.error:
-            print('ERROR: Could not connect to power supply. Please Check IPv4 address and try again. ')
-            sys.exit()
+        except OSError:
+            raise OSError('ERROR: Could not connect to ethernet device. Please Check IPv4 address and try again. ')
 
         self._socket = socket_object
 
     def disconnect(self):
-        socket_ps = self._socket
-        socket_ps.close()
+        self._socket.close()
