@@ -6,8 +6,9 @@ Created on Thursday, April 7, 2022
 import serial
 import sys
 import time
-import device_type
-import connection_type
+from connection_type import SocketEthernetDevice
+from device_type import PowerSupply
+from device_type import MCC_Device
 import auxiliary
 from mcculw import ul
 from mcculw import enums
@@ -238,7 +239,7 @@ class GM3(serial.Serial):  # TODO: needs work.
 # ======================================================================================================================
 # Power Supplies
 # ======================================================================================================================
-class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
+class SPD3303X(SocketEthernetDevice, PowerSupply):
     """
     An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply.
     All voltages and currents are in Volts and Amps unless specified otherwise.
@@ -280,12 +281,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             'number_of_channels': 2,
         }
 
-        connection_type.SocketEthernetDevice.__init__(
+        SocketEthernetDevice.__init__(
             self,
             ip4_address=ip4_address,
             port=port
         )
-        device_type.PowerSupply.__init__(
+        PowerSupply.__init__(
             self,
             MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
             MAX_current_limit=physical_parameters['MAX_current_limit'],
@@ -615,7 +616,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
 # ======================================================================================================================
 # Temperature DAQs
 # ======================================================================================================================
-class Web_Tc(device_type.MCC_Device):
+class Web_Tc(MCC_Device):
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -915,7 +916,7 @@ class Web_Tc(device_type.MCC_Device):
 # Picomotor controller DAQs
 #
 # ======================================================================================================================
-class Model8742(connection_type.SocketEthernetDevice):
+class Model8742(SocketEthernetDevice):
     """
     Newport picomotor controller.
     """
@@ -934,7 +935,7 @@ class Model8742(connection_type.SocketEthernetDevice):
             number of physical motor channels
 
         """
-        connection_type.SocketEthernetDevice.__init__(ip4_address=ip4_address, port=port)
+        SocketEthernetDevice.__init__(ip4_address=ip4_address, port=port)
         self._number_of_channels = number_of_channels
 
     def _query_(self, qry):
