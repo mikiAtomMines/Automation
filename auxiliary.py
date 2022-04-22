@@ -6,7 +6,6 @@ Created on Thursday, April 7, 2022
 import time
 import sys
 import matplotlib.pyplot as plt
-import numpy
 from mcculw import enums
 
 
@@ -106,16 +105,16 @@ def test_GM3(gaussmeter):
 # -----------------------------------------------------------------------------------
 # Power supplies
 # -----------------------------------------------------------------------------------
-def channel_syntax(self, power_supply, channel_num):
-    chan_syntax = {
-        'spd3303x': 'CH'
-    }
-
-    try:
-        return chan_syntax[power_supply] + channel_num
-    except KeyError:
-        print('ERROR: Invalid power supply. ')
-        sys.exit()
+# def channel_syntax(self, power_supply, channel_num):
+#     chan_syntax = {
+#         'spd3303x': 'CH'
+#     }
+#
+#     try:
+#         return chan_syntax[power_supply] + channel_num
+#     except KeyError:
+#         print('ERROR: Invalid power supply. ')
+#         sys.exit()
 
 
 def testing_SPD3303X(power_supply):
@@ -172,6 +171,33 @@ def testing_SPD3303X(power_supply):
     print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
     print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
     power_supply.disconnect()
+
+
+# def testing_HeaterAssembly():
+#     ps = device_models.SPD3303X(ip4_address='10.176.42.121')
+#     ps.ch1_state = 'on'
+#     ps.ch1_set_current = 1
+#     daq = device_models.Web_Tc()
+#     pid_func = pid.PID(Kp=3, Ki=0.1, Kd=0, setpoint=100, output_limits=(0, 30))
+#
+#     print(daq.temp_ch0)
+#
+#     heater = device_type.HeaterAssembly(
+#         power_supply=ps,
+#         supply_channel=1,
+#         temperature_daq=daq,
+#         daq_channel=0,
+#         set_temperature=50,
+#         pid_function=pid_func,
+#         MAX_set_temp=200,
+#         MIN_set_temp=0,
+#         configure_on_startup=False,
+#     )
+#
+#     heater.live_plot(x_size=50)
+#
+#     ps.reset_channels()
+#     time.sleep(2)
 
 
 def simple_plot(file):
