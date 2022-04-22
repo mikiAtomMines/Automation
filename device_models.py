@@ -42,7 +42,6 @@ class GM3(serial.Serial):  # TODO: needs work.
         More parameters in documentation for serial.Serial class.
         """
 
-
     def query(self, command):
         global error_count
         """
@@ -94,6 +93,7 @@ class GM3(serial.Serial):  # TODO: needs work.
         }
         read_length = read_length_dict[qry]
         ack = ''
+        r = None
         while ack != bytes.fromhex('08'):  # loop to confirm that the message has been received
             self.write(bytes.fromhex(qry * 6))
             r = self.read(read_length)
@@ -298,55 +298,32 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         if self._reset_on_startup is True and ip4_address is not None:
             self.reset_channels()
 
-    def _query(self, query):
+    def _query_(self, qry):
         """
-        send a query to the ethernet device and receive a response.
-
         Parameters
         ----------
-        query : string
-            Python string containing the query command. Dependent on each individual device.
-        Returns
-        -------
-        string
-            Returns the reply of the ethernet device as a string. The output of the ethernet device is received as
-            bytes, which is then decoded with utf-8.
+        qry : str
+            The qry can have only certain values. Check manual for valid queries.
+        Return
+        ------
+        str
+            Decode the response in bytes using utf-8
         """
-
-        try:
-            query_bytes = query.encode('utf-8')
-            socket_ps = self._socket
-            socket_ps.sendall(query_bytes)
-            reply_bytes = socket_ps.recv(4096)
-        except OSError:
-            raise OSError('ERROR: Socket not found. Query not sent.')
-
-        reply = reply_bytes.decode('utf-8').strip()
-        time.sleep(0.3)
-        return reply
-
-    def _command(self, cmd):
+        out = self._query(qry.encode('utf-8'))
+        return out.decode('utf-8').strip()
+    
+    def _command_(self, cmd):
         """
-        send a command to the ethernet device. Does not receive any response.
-        
         Parameters
         ----------
-        cmd : string
-            Python string containing the command. Dependent on each individual device.
-        Returns
-        -------
-        None
-            Returns None if the command is succesfully sent.
+        cmd : str
+            Check manual for valid commands
+        Return
+        ------
+        Nonetype
+            returns None if command is sent succesfully.
         """
-
-        try:
-            cmd_bytes = cmd.encode('utf-8')
-            socket_ps = self._socket
-        except OSError:
-            raise OSError('ERROR: Socket not found. Command not sent.')
-
-        out = socket_ps.sendall(cmd_bytes)  # return None if successful
-        time.sleep(0.3)
+        out = self._command(cmd.encode('utf-8'))
         return out
 
     def reset_channels(self):
@@ -364,12 +341,12 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
     @property
     def idn(self):
         qry = '*IDN?'
-        return self._query(qry)
+        return self._query_(qry)
 
     @property
     def ip4_address(self):
         qry = 'IP?'
-        return self._query(qry)
+        return self._query_(qry)
 
     @property
     def system_status(self):
@@ -384,7 +361,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
             10-digit binary number as a string representing the status of the system
         """
         qry = 'system:status?'
-        reply_hex_str = self._query(qry)  # hex number represented in bytes
+        reply_hex_str = self._query_(qry)  # hex number represented in bytes
         reply_bin_str = f'{int(reply_hex_str, 16):0>10b}'  # 10 digit binary num, padded with 0, as string
         return reply_bin_str
 
@@ -414,7 +391,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         self.check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':voltage?'
-        return float(self._query(qry))
+        return float(self._query_(qry))
 
     def get_actual_voltage(self, channel):
         """
@@ -422,7 +399,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         self.check_channel_syntax(channel)
         qry = 'measure:voltage? ' + 'CH' + str(channel)
-        return float(self._query(qry))
+        return float(self._query_(qry))
 
     def get_set_current(self, channel):
         """
@@ -430,7 +407,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         self.check_channel_syntax(channel)
         qry = 'CH' + str(channel) + ':current?'
-        return float(self._query(qry))
+        return float(self._query_(qry))
 
     def get_actual_current(self, channel):
         """
@@ -438,7 +415,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         self.check_channel_syntax(channel)
         qry = 'measure:current? ' + 'CH' + str(channel)
-        return float(self._query(qry))
+        return float(self._query_(qry))
 
     @property
     def ch1_state(self):
@@ -522,7 +499,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         """
         self.check_channel_syntax(channel)
         cmd = 'Output CH' + str(channel) + ',' + state.upper()
-        self._command(cmd)
+        self._command_(cmd)
 
     @ch1_state.setter
     def ch1_state(self, state):
@@ -552,7 +529,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         chan = 'CH' + str(channel)
         if volts <= limit:
             cmd = chan + ':voltage ' + str(volts)
-            self._command(cmd)
+            self._command_(cmd)
         else:
             raise ValueError(chan + ' voltage not set. New voltage is higher than ' + chan + ' voltage limit.')
 
@@ -568,7 +545,7 @@ class SPD3303X(connection_type.SocketEthernetDevice, device_type.PowerSupply):
         chan = 'CH' + str(channel)
         if amps <= limit:
             cmd = chan + ':current ' + str(amps)
-            self._command(cmd)
+            self._command_(cmd)
         else:
             raise ValueError(chan + ' current not set. New current is higher than ' + chan + ' current limit')
 
@@ -932,3 +909,47 @@ class Web_Tc(device_type.MCC_Device):
             new_units = 'celsius'
         auxiliary.get_TempScale_unit(new_units)
         self._default_units = new_units
+
+
+# ======================================================================================================================
+# Picomotor controller DAQs
+#
+# ======================================================================================================================
+class Model8742(connection_type.SocketEthernetDevice):
+    """
+    Newport picomotor controller.
+    """
+    def __init__(
+            self,
+            ip4_address=None,
+            port=None,
+            number_of_channels=1
+    ):
+        """
+        Parameters
+        ----------
+        ip4_address : str
+        port : int
+        number_of_channels : int
+            number of physical motor channels
+
+        """
+        connection_type.SocketEthernetDevice.__init__(ip4_address=ip4_address, port=port)
+        self._number_of_channels = number_of_channels
+
+    def _query_(self, qry):
+        qry += '\r'
+        reply = self._query_(qry.encode('utf-8'))
+        return reply.decode('utf-8')
+
+    def _command_(self, cmd):
+        cmd += '\r'
+        out = self._command_(cmd.encode('utf-8'))
+        return out
+
+    @property  # TODO: Check if this works.
+    def idn(self):
+        return self._query_('*IDN?')
+
+
+    
