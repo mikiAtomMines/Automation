@@ -32,12 +32,14 @@ automatically attempt to establish a connection. If none is provided, a connecti
 connect() method.
 
 #### Properties
-    ip4_address
-    port
+- ip4_address
+- port
 
 #### Methods
-    connect()
-    disconnect()
+- _query(qry)
+- _command(cmd)
+- connect()
+- disconnect()
 
 ## Classes from device_type.py
 
@@ -93,7 +95,7 @@ are a property of the hardware and should remain constant unless the hardware is
 - set_channel_current_limit  
 - set_all_channels_voltage_limit  
 - set_all_channels_voltage_limit
-- zero_call_channels
+- zero_all_channels
 
 ### MCC_device
 
@@ -195,9 +197,9 @@ must be specified. Currently, the API functions have not been implemented so onl
 
 #### Methods
 
-- configure_pid
-- update_supply
-- live_plot
+- configure_pid()
+- update_supply()
+- live_plot(x_size)
         
 ## Classes from device_model.py
 
