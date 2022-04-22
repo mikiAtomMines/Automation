@@ -186,7 +186,7 @@ def simple_plot(file):
     set_temp_list = []
     voltage_list = []
 
-    for str_ in data:
+    for i in data:
         time_, actual_temp, set_temp, voltage = [float(a) for a in str.split()]
 
         time_list.append(time_)
@@ -197,5 +197,3 @@ def simple_plot(file):
     plt.plot(time_list, actual_temp_list)
 
     plt.show()
-
-

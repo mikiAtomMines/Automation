@@ -42,6 +42,7 @@ class GM3(serial.Serial):  # TODO: needs work.
         More parameters in documentation for serial.Serial class.
         """
 
+
     def query(self, command):
         global error_count
         """

@@ -12,7 +12,7 @@ import simple_pid as pid
 
 def main():
     ps = device_models.SPD3303X(ip4_address='10.176.42.121')
-    ps.ch1_state = 'on'
+    ps.ch1_state = 'off'
     ps.ch1_set_current = 1
     daq = device_models.Web_Tc()
     pid_func = pid.PID(Kp=3, Ki=0.1, Kd=0, setpoint=100, output_limits=(0, 30))
