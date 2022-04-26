@@ -192,8 +192,19 @@ class PowerSupply:
 
 # =====================================================================================================================
 
-class MCC_Device:  # TODO: add API functions
-    def __init__(self, board_number, ip4_address=None, port=50000, use_ip=True):
+class MCC_Device:
+    def __init__(
+            self,
+            # Connection stuff
+            board_number,
+            ip4_address=None,
+            port=50000,
+            use_ip=True,
+
+            # For Temperature DAQs:
+            default_units='celsius'
+
+    ):
         """
         Class for an MCC device supported by their Universal Library.
 
@@ -213,13 +224,17 @@ class MCC_Device:  # TODO: add API functions
         self._board_number = board_number
         self._ip4_address = ip4_address
         self._port = port
+        self._default_units = default_units
 
         if use_ip:
             self.connect(self._ip4_address, self._port)
 
+    # ----------------
+    # Connection and board info stuff
+    # ----------------
     def connect(self, ip4_address, port):
         ul.ignore_instacal()
-        dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=self._port, timeout=2000)
+        dscrptr = ul.get_net_device_descriptor(host=ip4_address, port=port, timeout=2000)
         ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
 
     def disconnect(self):
@@ -233,13 +248,35 @@ class MCC_Device:  # TODO: add API functions
     def board_number(self):
         return self._board_number
 
+    # @board_number.setter
+    # def board_number(self, new_number):
+    #     if not (0 <= new_number <= 99):
+    #         raise ValueError('ERROR: new board number must be a number between 0 and 99, inclusive.')
+    #
+    #     self._board_number = new_number
+
     @property
     def ip4_address(self):
         return self._ip4_address
 
+    @ip4_address.setter
+    def ip4_address(self, new_ip):
+        user_in = input('CAUTION: changing the IP address of the python object while the device is connected can '
+                        'cause issues. Press y and then Enter to continue. Press n and then Enter to not make any '
+                        'changes')
+        if user_in.lower() == 'y':
+            self._ip4_address = new_ip
+
     @property
     def port(self):
         return self._port
+
+    @port.setter
+    def port(self, new_port):
+        user_in = input('CAUTION: changing the port of python object while the device is connected can cause '
+                        'issues. Press y and then Enter to continue. Press n and then Enter to not make any changes')
+        if user_in.lower() == 'y':
+            self._port = new_port
 
     @property
     def model(self):
@@ -278,10 +315,7 @@ class MCC_Device:  # TODO: add API functions
     @property
     def number_temp_channels(self):
         """
-        Return
-        ------
-        int
-            number of channels
+        :return : int
         """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
@@ -292,6 +326,9 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def number_io_channels(self):
+        """
+        :return : int
+        """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -301,6 +338,9 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def number_ad_channels(self):
+        """
+        :return : int
+        """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -310,6 +350,9 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def number_da_channels(self):
+        """
+        :return : int
+        """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -319,6 +362,9 @@ class MCC_Device:  # TODO: add API functions
 
     @property
     def clock_frequency_MHz(self):
+        """
+        :return : int
+        """
         return ul.get_config(
             info_type=enums.InfoType.BOARDINFO,
             board_num=self._board_number,
@@ -326,21 +372,319 @@ class MCC_Device:  # TODO: add API functions
             config_item=enums.BoardInfo.CLOCK
         )
 
-    @board_number.setter
-    def board_number(self, new_number):
-        if not (0 <= new_number <= 99):
-            print('ERROR: new board number must be a number between 0 and 99, inclusive.')
-            sys.exit()
+    # -----------------
+    # Temperature DAQ's
+    # -----------------
 
-        self._board_number = new_number
+    def get_temp(self, channel_n=0, units=None, averaged=True):
+        """
+        Reads the analog signal out of a channel and returns the value in the desired units.
 
-    """
-    Plan for API functions:
+        Parameters
+        ----------
+        channel_n : int
+            the number of the channel from which to read the temperature. defaults to channel 0 if the channel number
+            is not specified.
+        units : string or None
+            the units in which the temperature is shown. Defaults to None which uses the default units set by the
+            instance. Possible values (not case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for calibrated voltage      volts, volt, voltage,  v
+            for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+            for default units           bool : None
+        averaged : bool
+            When selected, 10 samples are read from the specified channel and averaged. The average is the reading
+            returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
 
-    First get device Descriptor object using 
+        Returns
+        -------
+        float
+            Temperature or voltage value as a float in the specified units.
+        """
 
-    """
+        filter_on_off = enums.TInOptions.FILTER
+        if not averaged:
+            filter_on_off = enums.TInOptions.NOFILTER
 
+        if units is None:
+            units = self._default_units
+
+        out = ul.t_in(
+            board_num=self._board_number,
+            channel=channel_n,
+            scale=auxiliary.get_TempScale_unit(units.lower()),
+            options=filter_on_off
+        )
+
+        return out
+
+    def get_temp_all_channels(self, units=None, averaged=True):
+        """
+        Reads the analog signal out of all available channels. The read values are returned inside a list.
+
+        Parameters
+        ----------
+        units : string or None
+            the units in which the temperature is shown. Defaults to None which uses the default units set by the
+            default_units attribute. Possible values (not case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for calibrated voltage      volts, volt, voltage,  v
+            for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+            for default units           bool : None
+        averaged : bool
+            When selected, 10 samples are read from the specified channel and averaged. The average is the reading
+            returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
+
+        Returns
+        -------
+        list of float
+            List containing the temperature or voltage values as a float in the specified units. The index of a value
+            corresponds to its respective channel. If a channel is not available, its respective place in the list
+            will have None.
+        """
+
+        out = []
+        for channel in range(self.number_temp_channels):
+            try:
+                out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
+            except ul.ULError:
+                print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
+                out.append(None)
+                continue
+
+        return out
+
+    def get_temp_scan(self, low_channel=0, high_channel=7, units=None, averaged=True):
+        """
+        Reads the analog signal out of a range of channels delimited by the low_channel and the high_channel
+        (inclusive). The read values are returned inside a list.
+
+        Parameters
+        ----------
+        low_channel : int
+            the number of the channel from which to start the scan. Defaults to channel 0 if the channel number
+            is not specified.
+        high_channel : int
+            the number of the channel on which to stop the scan. Defaults to channel 7 if the channel number
+            is not specified. The range is inclusive, therefore the signal from this channel is included in the output
+        units : string or None
+            the units in which the temperature is shown. Defaults to None which uses the default units set by the
+            instance. Possible values (not case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for calibrated voltage      volts, volt, voltage,  v
+            for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+            for default units           bool : None
+        averaged : bool
+            When selected, 10 samples are read from the specified channel and averaged. The average is the reading
+            returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
+
+        Returns
+        -------
+        list of float
+            List containing the temperature or voltage values as a float in the specified units. The index of a value
+            corresponds to its respective channel. If a channel is not available, its respective place in the list
+            will have None.
+        """
+
+        out = []
+        for channel in range(low_channel, high_channel + 1):
+            try:
+                out.append(self.get_temp(channel_n=channel, units=units, averaged=averaged))
+            except ul.ULError:
+                print('ERROR: Could not read from channel ' + str(channel) + '. Appending None.')
+                out.append(None)
+                continue
+
+        return out
+
+    def get_thermocouple_type(self, channel):
+        """
+        :param int channel: MCC temp channel
+        :return str: TC type.
+        """
+        if not (0 <= channel <= self.number_temp_channels):
+            raise ValueError('channel', channel, 'not found. Check the number of temp channels in the device.')
+
+        tc_type_dict = {
+            1: 'J',
+            2: 'K',
+            3: 'T',
+            4: 'E',
+            5: 'R',
+            6: 'S',
+            7: 'B',
+            8: 'N'
+        }
+
+        tc_int = ul.get_config(
+            info_type=enums.InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=channel,
+            config_item=enums.BoardInfo.CHANTCTYPE
+        )
+
+        return tc_type_dict[tc_int]
+
+    def set_thermocuple_type(self, channel, new_tc_type):
+        """
+        :param int channel: MCC temp channel
+        :param str new_tc_type: new thermocouple type to set on the desired channel. Not cap sensitive
+        """
+        tc_type_dict = {
+            'J': 1,
+            'K': 2,
+            'T': 3,
+            'E': 4,
+            'R': 5,
+            'S': 6,
+            'B': 7,
+            'N': 8
+        }
+
+        if not (0 <= channel <= self.number_temp_channels):
+            raise ValueError('channel', channel, 'not found. Check the number of temp channels in the device.')
+        if new_tc_type not in tc_type_dict.keys():
+            raise ValueError('TC type ' + new_tc_type + ' not supported by this device.')
+
+        val = tc_type_dict[new_tc_type.upper()]
+
+        ul.set_config(
+            info_type=enums.InfoType.BOARDINFO,
+            board_num=self._board_number,
+            dev_num=channel,
+            config_item=enums.BoardInfo.CHANTCTYPE,
+            config_val=val
+        )
+
+    @property
+    def default_units(self):
+        return self._default_units
+
+    @default_units.setter
+    def default_units(self, new_units=None):
+        """
+        Set the default units as the new_units. First use get_TempScale_unit() to error check the new_units. If no
+        exception is raised, then the default units are set using new_units.
+
+        Parameters
+        ----------
+        new_units : string
+            the units in which the channel signal is shown. Valid inputs (not case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for calibrated voltage      volts, volt, voltage,  v
+            for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+        """
+        if new_units is None:
+            new_units = 'celsius'
+        auxiliary.get_TempScale_unit(new_units)
+        self._default_units = new_units
+
+    @property
+    def thermocouple_type_ch0(self):
+        return self.get_thermocouple_type(channel=0)
+
+    @thermocouple_type_ch0.setter
+    def thermocouple_type_ch0(self, new_tc_type):
+        self.set_thermocuple_type(channel=0, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch1(self):
+        return self.get_thermocouple_type(channel=1)
+
+    @thermocouple_type_ch1.setter
+    def thermocouple_type_ch1(self, new_tc_type):
+        self.set_thermocuple_type(channel=1, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch2(self):
+        return self.get_thermocouple_type(channel=2)
+
+    @thermocouple_type_ch2.setter
+    def thermocouple_type_ch2(self, new_tc_type):
+        self.set_thermocuple_type(channel=2, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch3(self):
+        return self.get_thermocouple_type(channel=3)
+
+    @thermocouple_type_ch3.setter
+    def thermocouple_type_ch3(self, new_tc_type):
+        self.set_thermocuple_type(channel=3, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch4(self):
+        return self.get_thermocouple_type(channel=4)
+
+    @thermocouple_type_ch4.setter
+    def thermocouple_type_ch4(self, new_tc_type):
+        self.set_thermocuple_type(channel=4, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch5(self):
+        return self.get_thermocouple_type(channel=5)
+
+    @thermocouple_type_ch5.setter
+    def thermocouple_type_ch5(self, new_tc_type):
+        self.set_thermocuple_type(channel=5, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch6(self):
+        return self.get_thermocouple_type(channel=6)
+
+    @thermocouple_type_ch6.setter
+    def thermocouple_type_ch6(self, new_tc_type):
+        self.set_thermocuple_type(channel=6, new_tc_type=new_tc_type)
+
+    @property
+    def thermocouple_type_ch7(self):
+        return self.get_thermocouple_type(channel=7)
+
+    @thermocouple_type_ch7.setter
+    def thermocouple_type_ch7(self, new_tc_type):
+        self.set_thermocuple_type(channel=7, new_tc_type=new_tc_type)
+
+    @property
+    def temp_ch0(self):
+        return self.get_temp(channel_n=0)
+
+    @property
+    def temp_ch1(self):
+        return self.get_temp(channel_n=1)
+
+    @property
+    def temp_ch2(self):
+        return self.get_temp(channel_n=2)
+
+    @property
+    def temp_ch3(self):
+        return self.get_temp(channel_n=3)
+
+    @property
+    def temp_ch4(self):
+        return self.get_temp(channel_n=4)
+
+    @property
+    def temp_ch5(self):
+        return self.get_temp(channel_n=5)
+
+    @property
+    def temp_ch6(self):
+        return self.get_temp(channel_n=6)
+
+    @property
+    def temp_ch7(self):
+        return self.get_temp(channel_n=7)
+
+    def get_bit(self, channel):
+        pass
 
 # =====================================================================================================================
 class Heater:
