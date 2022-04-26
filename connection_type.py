@@ -83,8 +83,9 @@ class SocketEthernetDevice:
 
     @ip4_address.setter
     def ip4_address(self, new_ip):
-        user_in = input('CAUTION: changing the IP address of device while connected can cause issues. Press y and '
-                        'then Enter to continue. Press n and then Enter to not make any changes')
+        user_in = input('CAUTION: changing the IP address of the python object while the device is connected can '
+                        'cause issues. Press y and then Enter to continue. Press n and then Enter to not make any '
+                        'changes')
         if user_in.lower() == 'y':
             self._ip4_address = new_ip
 
@@ -94,8 +95,8 @@ class SocketEthernetDevice:
 
     @port.setter
     def port(self, new_port):
-        user_in = input('CAUTION: changing the port of device while connected can cause issues. Press y and then Enter '
-                        'to continue. Press n and then Enter to not make any changes')
+        user_in = input('CAUTION: changing the port of python object while the device is connected can cause '
+                        'issues. Press y and then Enter to continue. Press n and then Enter to not make any changes')
         if user_in.lower() == 'y':
             self._port = new_port
 
