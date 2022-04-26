@@ -81,16 +81,16 @@ class SocketEthernetDevice:
     def ip4_address(self):
         return self._ip4_address
 
-    @property
-    def port(self):
-        return self._port
-
     @ip4_address.setter
     def ip4_address(self, new_ip):
         user_in = input('CAUTION: changing the IP address of device while connected can cause issues. Press y and '
                         'then Enter to continue. Press n and then Enter to not make any changes')
         if user_in.lower() == 'y':
             self._ip4_address = new_ip
+
+    @property
+    def port(self):
+        return self._port
 
     @port.setter
     def port(self, new_port):
