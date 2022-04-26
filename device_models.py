@@ -903,11 +903,8 @@ class Web_Tc(MCC_Device):
         return self.get_temp(channel_n=7)
 
 
-# ======================================================================================================================
-# Temperature DAQs
-# ======================================================================================================================
 class E_Tc(MCC_Device):
-    def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius', use_ip=True):
+    def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius', use_ip=True):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
 

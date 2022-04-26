@@ -190,16 +190,20 @@ class PowerSupply:
             self.set_channel_current_limit(channel=chan, amps=max_c)
 
 
+# =====================================================================================================================
+
 class MCC_Device:  # TODO: add API functions
-    def __init__(self, board_number=None, ip4_address=None, port=50000):
+    def __init__(self, board_number, ip4_address=None, port=50000, use_ip=True):
         """
         Class for an MCC device supported by their Universal Library.
 
         Parameters
         ----------
         board_number : int
-            All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
-            match the board number of its associated device. Possible values from 0 to 99.
+            All MCC devices must have a board number assigned to them either with instacal or with
+            ul.create_daq_descriptor. If using instacal, board_number must match the board number of its associated
+            device. If using IP address, board_number is the number to assign the device and must not be already in
+            use. Can be any int from 0 to 99.
         ip4_address : str
             IPv4 address of the associated MCC device
         port : int
@@ -209,14 +213,17 @@ class MCC_Device:  # TODO: add API functions
         self._board_number = board_number
         self._ip4_address = ip4_address
         self._port = port
-        # self._model = self.model
-        # self._mac_address = self.mac_address
-        # self._unique_id = self.unique_id
-        # self._serial_number = self.serial_number
-        # self._number_temp_channels = self.number_temp_channels
-        # self._number_io_cahnnels = self.number_io_channels
-        # self._number_ad_channels = self.number_ad_channels
-        # self._number_da_channels = self.number_da_channels
+
+        if use_ip:
+            self.connect(self._ip4_address, self._port)
+
+    def connect(self, ip4_address, port):
+        ul.ignore_instacal()
+        dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=self._port, timeout=2000)
+        ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
+
+    def disconnect(self):
+        ul.release_daq_device(self._board_number)
 
     @property
     def idn(self):
@@ -334,8 +341,24 @@ class MCC_Device:  # TODO: add API functions
 
     """
 
-# TODO: add heater object with physical parmeters as safety, like max temp, max current, max voltage. USe this object
-#  in the heater class.
+
+# =====================================================================================================================
+class Heater:
+    def __init__(self, idn=None, MAX_temp=None, MAX_volts=None, MAX_current=None):
+        """
+        Parameters
+        ----------
+        
+        MAX_temp : float, None
+            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
+            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
+            allows. If set to None, the limit is infinity.
+
+        """
+        self.idn = idn
+        self.MAX_temp = MAX_temp
+        self.MAX_volts = MAX_volts
+        self.MAX_current = MAX_current
 
 
 class HeaterAssembly:
@@ -348,8 +371,7 @@ class HeaterAssembly:
             pid_function=None,
             set_temperature=None,
             temp_units=None,
-            MAX_set_temp=None,
-            MIN_set_temp=None,
+            heater=None,
             configure_on_startup=False,
 
     ):
@@ -377,30 +399,22 @@ class HeaterAssembly:
             for Fahrenheit              fahrenheit,            f
             for Kelvin                  kelvin,                k
             for default units           None
-        MAX_set_temp : float, None
-            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
-            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
-            allows. If set to None, the limit is infinity.
-        MIN_set_temp : float, None
-            The minimum possible value for set temp. Analogous to MAX_temp.
+        heater : Heater
+            heater type. Should contain the MAX temperature, MAX current, and MAX volts based on the hardware.
+        
         configure_on_startup : bool
             Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
             True if the pid object has not been manually configured.
         """
-        if MIN_set_temp is None:
-            MIN_set_temp = 0
-        if MAX_set_temp is None:
-            MAX_set_temp = 0
 
         self._power_supply = power_supply
         self._supply_channel = supply_channel
         self._temperature_daq = temperature_daq
         self._daq_channel = daq_channel
+        self._pid_function = pid_function
         self._set_temperature = set_temperature
         self._temp_units = temp_units
-        self._pid_function = pid_function
-        self._MAX_set_temp = MAX_set_temp
-        self._MIN_set_temp = MIN_set_temp
+        self._heater = heater
         self._configure_pid_on_startup = configure_on_startup
 
         self._pid_function.setpoint = self._set_temperature
@@ -448,7 +462,7 @@ class HeaterAssembly:
 
     @property
     def MAX_set_temp(self):
-        return self._MAX_set_temp
+        return self.heater.MAX_temp
 
     @property
     def MIN_set_temp(self):
@@ -485,7 +499,7 @@ class HeaterAssembly:
 
     @set_temperature.setter
     def set_temperature(self, new_temp):
-        if self._MAX_set_temp < new_temp < self._MIN_set_temp:
+        if self._heater.MAX_temp < new_temp:
             raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check the MAX and MIN set '
                                                                    'temperature limits')
         self._set_temperature = new_temp
@@ -513,9 +527,10 @@ class HeaterAssembly:
         """
 
         pid = self._pid_function
-
-        # pid.output_limits((self._MIN_set_temp, self._MAX_set_temp))
-        # pid.setpoint = self._set_temperature
+        out_min = 0
+        out_max = min(self._heater.MAX_volts, self._power_supply.get_voltage_limit(self._supply_channel))
+        pid.output_limits =(out_min, out_max)
+        pid.setpoint = self._set_temperature
 
         try:
             pid.Kp = args[0]
@@ -545,7 +560,7 @@ class HeaterAssembly:
     def live_plot(self, x_size=10):
         """
         plots current temp and ps_volts
-        :param x_size:
+        :param x_size: number of data points per frame
         """
         temp = [0.0]*x_size
         ps_v = [0.0]*x_size
