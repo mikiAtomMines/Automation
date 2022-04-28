@@ -611,7 +611,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
 # Temperature DAQs
 # ======================================================================================================================
 class Web_Tc(MCC_Device):
-    def __init__(self, board_number, ip4_address=None, port=54211, use_ip=True, default_units='celsius'):
+    def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
 
@@ -638,11 +638,12 @@ class Web_Tc(MCC_Device):
             for uncalibrated voltage    raw, none, noscale     r
         """
 
-        super().__init__(board_number=board_number, ip4_address=ip4_address, port=port, use_ip=use_ip,
+        super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
                          default_units=default_units)
 
+
 class E_Tc(MCC_Device):
-    def __init__(self, board_number, ip4_address=None, port=54211, use_ip=True, default_units='celsius'):
+    def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
 
@@ -669,7 +670,7 @@ class E_Tc(MCC_Device):
             for uncalibrated voltage    raw, none, noscale     r
         """
 
-        super().__init__(board_number=board_number, ip4_address=ip4_address, port=port, use_ip=use_ip,
+        super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
                          default_units=default_units)
 
 
@@ -683,7 +684,7 @@ class Model8742(SocketEthernetDevice):
     def __init__(
             self,
             ip4_address=None,
-            port=None,
+            port=50000,
             number_of_channels=1
     ):
         """
@@ -695,17 +696,17 @@ class Model8742(SocketEthernetDevice):
             number of physical motor channels
 
         """
-        SocketEthernetDevice.__init__(ip4_address=ip4_address, port=port)
+        SocketEthernetDevice.__init__(self, ip4_address=ip4_address, port=port)
         self._number_of_channels = number_of_channels
 
     def _query_(self, qry):
         qry += '\r'
-        reply = self._query_(qry.encode('utf-8'))
+        reply = self._query(qry.encode('utf-8'))
         return reply.decode('utf-8')
 
     def _command_(self, cmd):
         cmd += '\r'
-        out = self._command_(cmd.encode('utf-8'))
+        out = self._command(cmd.encode('utf-8'))
         return out
 
     @property  # TODO: Check if this works.
