@@ -190,16 +190,14 @@ class PowerSupply:
             self.set_channel_current_limit(channel=chan, amps=max_c)
 
 
-# =====================================================================================================================
-
+# ======================================================================================================================
 class MCC_Device:
     def __init__(
             self,
             # Connection stuff
             board_number,
             ip4_address=None,
-            port=50000,
-            use_ip=True,
+            port=None,
 
             # For Temperature DAQs:
             default_units='celsius'
@@ -225,20 +223,33 @@ class MCC_Device:
         self._ip4_address = ip4_address
         self._port = port
         self._default_units = default_units
+        self._is_connected = False
 
-        if use_ip:
-            self.connect(self._ip4_address, self._port)
+        if self._ip4_address is not None:
+            ul.ignore_instacal()
+            dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=self._port, timeout=2000)
+            ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
+            self._is_connected = True
 
     # ----------------
     # Connection and board info stuff
     # ----------------
-    def connect(self, ip4_address, port):
+    def connect(self, ip=None, port=54211):
+        if self._ip4_address is None and ip is None:
+            raise TypeError("ip address is None. Set the attribute ip_address to the device's IPv4 address, "
+                            "or input the IPv4 address as an argument and try again.")
         ul.ignore_instacal()
-        dscrptr = ul.get_net_device_descriptor(host=ip4_address, port=port, timeout=2000)
+        try:
+            dscrptr = ul.get_net_device_descriptor(host=ip, port=port, timeout=2000)
+        except AttributeError:
+            dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=port, timeout=20000)
+
         ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
+        self._is_connected = True
 
     def disconnect(self):
         ul.release_daq_device(self._board_number)
+        self._is_connected = False
 
     @property
     def idn(self):
@@ -248,12 +259,12 @@ class MCC_Device:
     def board_number(self):
         return self._board_number
 
-    # @board_number.setter
-    # def board_number(self, new_number):
-    #     if not (0 <= new_number <= 99):
-    #         raise ValueError('ERROR: new board number must be a number between 0 and 99, inclusive.')
-    #
-    #     self._board_number = new_number
+    @board_number.setter
+    def board_number(self, new_num):
+        if not self._is_connected:
+            self._board_number = new_num
+        else:
+            raise AttributeError('ERROR: board_number cannot be changed while connection is on.')
 
     @property
     def ip4_address(self):
@@ -261,11 +272,10 @@ class MCC_Device:
 
     @ip4_address.setter
     def ip4_address(self, new_ip):
-        user_in = input('CAUTION: changing the IP address of the python object while the device is connected can '
-                        'cause issues. Press y and then Enter to continue. Press n and then Enter to not make any '
-                        'changes')
-        if user_in.lower() == 'y':
+        if not self._is_connected:
             self._ip4_address = new_ip
+        else:
+            raise AttributeError('ERROR: ip4_address cannot be changed while connection is on.')
 
     @property
     def port(self):
@@ -273,10 +283,10 @@ class MCC_Device:
 
     @port.setter
     def port(self, new_port):
-        user_in = input('CAUTION: changing the port of python object while the device is connected can cause '
-                        'issues. Press y and then Enter to continue. Press n and then Enter to not make any changes')
-        if user_in.lower() == 'y':
+        if not self._is_connected:
             self._port = new_port
+        else:
+            raise AttributeError('ERROR: port cannot be changed while connection is on.')
 
     @property
     def model(self):
@@ -685,6 +695,7 @@ class MCC_Device:
 
     def get_bit(self, channel):
         pass
+
 
 # =====================================================================================================================
 class Heater:
