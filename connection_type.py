@@ -15,7 +15,7 @@ class SocketEthernetDevice:
     def __init__(
             self,
             ip4_address=None,
-            port=50000,
+            port=None,
     ):
 
         """
@@ -28,6 +28,7 @@ class SocketEthernetDevice:
         self._ip4_address = ip4_address
         self._port = port
         self._socket = None
+        self._is_connected = False
 
         if ip4_address is not None:
             self.connect()
@@ -83,11 +84,10 @@ class SocketEthernetDevice:
 
     @ip4_address.setter
     def ip4_address(self, new_ip):
-        user_in = input('CAUTION: changing the IP address of the python object while the device is connected can '
-                        'cause issues. Press y and then Enter to continue. Press n and then Enter to not make any '
-                        'changes')
-        if user_in.lower() == 'y':
+        if not self._is_connected:
             self._ip4_address = new_ip
+        else:
+            raise AttributeError('ERROR: ip4_address cannot be changed while conenction is on.')
 
     @property
     def port(self):
@@ -95,10 +95,10 @@ class SocketEthernetDevice:
 
     @port.setter
     def port(self, new_port):
-        user_in = input('CAUTION: changing the port of python object while the device is connected can cause '
-                        'issues. Press y and then Enter to continue. Press n and then Enter to not make any changes')
-        if user_in.lower() == 'y':
+        if not self._is_connected:
             self._port = new_port
+        else:
+            raise AttributeError('ERROR: port cannot be changed while connection is on.')
 
     def connect(self):
         try:
@@ -108,6 +108,8 @@ class SocketEthernetDevice:
             raise OSError('ERROR: Could not connect to ethernet device. Please Check IPv4 address and try again. ')
 
         self._socket = socket_object
+        self._is_connected = True
 
     def disconnect(self):
         self._socket.close()
+        self._is_connected = False
