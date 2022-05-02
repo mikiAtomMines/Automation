@@ -673,6 +673,51 @@ class E_Tc(MCC_Device):
         super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
                          default_units=default_units)
 
+    # -------------------
+    # Auxiliary I/O ports
+    # -------------------
+    def config_io_channel(self, chan, direction):
+        if not (0 <= chan <= 7):
+            raise ValueError('ERROR: bit_num ' + str(chan) + ' not allowed. Must be between 0 and 7, inclusive.'
+                             )
+        direction_dict = {
+            'in': 2,
+            'i': 2,
+            'out': 1,
+            'o': 1
+        }
+
+        ul.d_config_bit(
+            board_num=self._board_number,
+            port_type=enums.DigitalPortType.AUXPORT,
+            bit_num=chan,
+            direction=direction_dict[direction])
+
+    def get_bit(self, chan):
+        return ul.d_bit_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan)
+
+    def set_bit(self, chan, out):
+        ul.d_bit_out(self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan, bit_value=out)
+
+    def config_io_byte(self, direction):
+        direction_dict = {
+            'in': 2,
+            'i': 2,
+            'out': 1,
+            'o': 1
+        }
+
+        ul.d_config_port(
+            board_num=self._board_number,
+            port_type=enums.DigitalPortType.AUXPORT,
+            direction=direction_dict[direction])
+
+    def get_byte(self):
+        return ul.d_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT)
+
+    def set_byte(self, val):
+        ul.d_out(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, data_value=val)
+
 
 # ======================================================================================================================
 # Picomotor controller
@@ -684,7 +729,7 @@ class Model8742(SocketEthernetDevice):
     def __init__(
             self,
             ip4_address=None,
-            port=50000,
+            port=23,
             number_of_channels=1
     ):
         """
@@ -692,11 +737,15 @@ class Model8742(SocketEthernetDevice):
         ----------
         ip4_address : str
         port : int
+            Model8742 uses Telnet therefore need to use port 23.
         number_of_channels : int
             number of physical motor channels
 
         """
         SocketEthernetDevice.__init__(self, ip4_address=ip4_address, port=port)
+        if self._ip4_address is not None:
+            self._socket.recv(4096)
+
         self._number_of_channels = number_of_channels
 
     def _query_(self, qry):
@@ -704,14 +753,77 @@ class Model8742(SocketEthernetDevice):
         reply = self._query(qry.encode('utf-8'))
         return reply.decode('utf-8')
 
-    def _command_(self, cmd):
+    def _command_(self, cmd=None):
+        """
+        :param str cmd:
+        :return:
+        """
+
         cmd += '\r'
         out = self._command(cmd.encode('utf-8'))
         return out
 
-    @property  # TODO: Check if this works.
+    def hard_stop(self):
+        self._command_('AB')
+
+    def set_coordinate(self, chan, new_coordinate):
+        """
+        :param int chan:
+        :param int new_coordinate: measured in steps
+        """
+        self._command_(str(chan) + 'DH' + str(new_coordinate))
+
+    def set_origin(self, chan):
+        self.set_coordinate(chan=chan, new_coordinate=0)
+
+    def set_acceleration(self, chan, acc):
+        self._command_(str(chan) + 'AC' + str(acc))
+
+    def get_acceleration(self, chan):
+        return self._query_(str(chan) + 'AC?')
+
+    def move_indefinetely(self, chan, direction):
+        """
+        Moves indefinetely. Need to use hard_stop or other stopping command to stop the motion.
+        :param int chan:
+        :param str direction: possible values for positive direction: +, pos, or positive. For negative direction: -,
+        neg, or negative.
+        """
+        direct_dict = {
+            '+': '+',
+            'pos': '+',
+            'positivre': '+',
+            '-': '-',
+            'neg': '-',
+            'negative': '-'
+        }
+
+        self._command_(str(chan) + 'MV' + str(direct_dict[direction]))
+
+    def set_set_position(self, chan, position):
+        """
+        :param int chan:
+        :param int position: measured in steps with respect to the home position  # TODO: check home position or origin
+        :return:
+        """
+        self._command_(str(chan) + 'PA' + str(position))
+
+    def get_set_position(self, chan):
+        return self._query_(str(chan) + 'PA?')
+
+    def set_displacement(self, chan, displace):
+        """
+        :param int chan:
+        :param displace: measured in steps. With respect to the position just before starting to move. # TODO: check
+        :return:
+        """
+        self._command_(str(chan) + 'PR' + str(displace))
+
+    def set_motor_type(self, chan, motor_type):
+        print('need to finish this function')
+        pass
+
+    @property
     def idn(self):
         return self._query_('*IDN?')
-
-
     
