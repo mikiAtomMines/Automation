@@ -232,7 +232,7 @@ class MCC_Device:
             self._is_connected = True
 
     # ----------------
-    # Connection and board info stuff
+    # Connection and board info
     # ----------------
     def connect(self, ip=None, port=54211):
         if self._ip4_address is None and ip is None:
@@ -692,9 +692,6 @@ class MCC_Device:
     @property
     def temp_ch7(self):
         return self.get_temp(channel_n=7)
-
-    def get_bit(self, channel):
-        pass
 
 
 # =====================================================================================================================
