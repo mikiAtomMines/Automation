@@ -356,3 +356,53 @@ Will implement I/O configuration methods in the future.
 - get_temp(channel_n, units, averaged)
 - get_temp_all_channels(units, averaged)
 - get_temp_scan(low_channel, high_channel, units, averaged)
+
+
+### Model8742
+    Model8742(ip4_address=None, port=23, number_of_channels=4)
+        """
+        Parameters
+        ----------
+        ip4_address : str
+        port : int
+            Model8742 uses Telnet therefore need to use port 23.
+        number_of_channels : int
+            number of physical motor channels
+
+        """
+
+#### Methods
+- reboot_controller()
+- save_settings()
+- load_settings()
+- _reset_factory_settings(0)
+- motion_done()
+- get_instant_position(chan)
+- get_set_position(chan)
+- get_velocity(chan)
+- get_acceleration(chan)
+- hard_stop_all()
+- soft_stop(chan)
+- set_origin(chan)
+- set_set_position(chan, position)
+- displace(chan, dis)
+- move_indefinetely(chan)
+- set_velocity(chan, vel)
+- set_acceleration(chan, acc)
+
+#### Properties
+- idn **(no setter)**
+- mac_address **(no setter)**
+- hostname **(no setter)**
+- position_ch1 **(no setter)**
+- position_ch2 **(no setter)**
+- position_ch3 **(no setter)**
+- position_ch4 **(no setter)**
+- set_position_ch1 
+- set_position_ch2
+- set_position_ch3
+- set_position_ch4
+- velocity_ch1
+- velocity_ch2
+- velocity_ch3
+- velocity_ch4
