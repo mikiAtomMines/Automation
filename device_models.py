@@ -761,26 +761,27 @@ class Model8742(SocketEthernetDevice):
 
         cmd += '\r'
         out = self._command(cmd.encode('utf-8'))
+        time.sleep(1)
         return out
 
-    def hard_stop(self):
+    def hard_stop_all(self):
         self._command_('AB')
 
-    def set_coordinate(self, chan, new_coordinate):
+    def soft_stop(self, chan=''):
+        self._command_(str(chan) + 'ST')
+
+    def set_origin(self, chan):
         """
         :param int chan:
         :param int new_coordinate: measured in steps
         """
-        self._command_(str(chan) + 'DH' + str(new_coordinate))
-
-    def set_origin(self, chan):
-        self.set_coordinate(chan=chan, new_coordinate=0)
+        self._command_(str(chan) + 'DH' + '0')
 
     def set_acceleration(self, chan, acc):
         self._command_(str(chan) + 'AC' + str(acc))
 
     def get_acceleration(self, chan):
-        return self._query_(str(chan) + 'AC?')
+        return int(self._query_(str(chan) + 'AC?'))
 
     def move_indefinetely(self, chan, direction):
         """
@@ -789,6 +790,9 @@ class Model8742(SocketEthernetDevice):
         :param str direction: possible values for positive direction: +, pos, or positive. For negative direction: -,
         neg, or negative.
         """
+        while not self.motion_done(chan=chan):
+            pass
+
         direct_dict = {
             '+': '+',
             'pos': '+',
@@ -807,23 +811,91 @@ class Model8742(SocketEthernetDevice):
         :return:
         """
         self._command_(str(chan) + 'PA' + str(position))
+        while not self.motion_done(chan=chan):
+            pass
 
     def get_set_position(self, chan):
-        return self._query_(str(chan) + 'PA?')
+        return int(self._query_(str(chan) + 'PA?'))
 
-    def set_displacement(self, chan, displace):
+    def get_instant_position(self, chan):
+        return int(self._query_(str(chan) + 'TP?'))
+
+    def set_velocity(self, chan, vel):
         """
         :param int chan:
-        :param displace: measured in steps. With respect to the position just before starting to move. # TODO: check
+        :param int vel:
+        """
+        self._command_(str(chan) + 'VA' + str(vel))
+
+    def get_velocity(self, chan):
+        return int(self._query_(str(chan) + 'VA?'))
+
+    def displace(self, chan, dis):
+        """
+        :param int chan:
+        :param dis: measured in steps. With respect to the position just before starting to move. # TODO: check
         :return:
         """
-        self._command_(str(chan) + 'PR' + str(displace))
+        self._command_(str(chan) + 'PR' + str(dis))
+        while not self.motion_done(chan=chan):
+            pass
 
-    def set_motor_type(self, chan, motor_type):
-        print('need to finish this function')
-        pass
+    def motion_done(self, chan):
+        return bool(int(self._query_(str(chan) + 'MD?')))
+
+    def reboot_controller(self):
+        """
+        Upon restart the controller reloads parameters (e.g., velocity and acceleration) last saved in non-volatile
+        memory and sets Home (DH) position to 0.
+        """
+        self._command_('RS')
+
+    def save_settings(self):
+        """
+        Settigns to be saved:
+        1. Hostname (see HOSTNAME command)
+        2. IP Mode (see IPMODE command)
+        3. IP Address (see IPADDRESS command)
+        4. Subnet mask address (see NETMASK command)
+        5. Gateway address (see GATEWAY command)
+        6. Configuration register (see ZZ command)
+        7. Motor type (see QM command)
+        8. Desired Velocity (see VA command)
+        9. Desired Acceleration (see AC command)
+        """
+        self._command_('SM')
+
+    def load_settings(self):
+        self._command_('*RCL1')
+
+    def _reset_factory_settings(self):
+        """
+        Settigns to be reset:
+        1. Hostname (see HOSTNAME command)
+        2. IP Mode (see IPMODE command)
+        3. IP Address (see IPADDRESS command)
+        4. Subnet mask address (see NETMASK command)
+        5. Gateway address (see GATEWAY command)
+        6. Configuration register (see ZZ command)
+        7. Motor type (see QM command)
+        8. Desired Velocity (see VA command)
+        9. Desired Acceleration (see AC command)
+        """
+        self._command_('*RCL0')
 
     @property
     def idn(self):
         return self._query_('*IDN?')
+
+    @property
+    def mac_address(self):
+        return self._query_('MACADDR?')
+
+    @property
+    def hostname(self):
+        return self._query_('HOSTNAME?')
+
+    # @property
+    # def (self):
+    #     return
     
