@@ -730,7 +730,7 @@ class Model8742(SocketEthernetDevice):
             self,
             ip4_address=None,
             port=23,
-            number_of_channels=1
+            number_of_channels=4
     ):
         """
         Parameters
@@ -761,87 +761,7 @@ class Model8742(SocketEthernetDevice):
 
         cmd += '\r'
         out = self._command(cmd.encode('utf-8'))
-        time.sleep(1)
         return out
-
-    def hard_stop_all(self):
-        self._command_('AB')
-
-    def soft_stop(self, chan=''):
-        self._command_(str(chan) + 'ST')
-
-    def set_origin(self, chan):
-        """
-        :param int chan:
-        :param int new_coordinate: measured in steps
-        """
-        self._command_(str(chan) + 'DH' + '0')
-
-    def set_acceleration(self, chan, acc):
-        self._command_(str(chan) + 'AC' + str(acc))
-
-    def get_acceleration(self, chan):
-        return int(self._query_(str(chan) + 'AC?'))
-
-    def move_indefinetely(self, chan, direction):
-        """
-        Moves indefinetely. Need to use hard_stop or other stopping command to stop the motion.
-        :param int chan:
-        :param str direction: possible values for positive direction: +, pos, or positive. For negative direction: -,
-        neg, or negative.
-        """
-        while not self.motion_done(chan=chan):
-            pass
-
-        direct_dict = {
-            '+': '+',
-            'pos': '+',
-            'positivre': '+',
-            '-': '-',
-            'neg': '-',
-            'negative': '-'
-        }
-
-        self._command_(str(chan) + 'MV' + str(direct_dict[direction]))
-
-    def set_set_position(self, chan, position):
-        """
-        :param int chan:
-        :param int position: measured in steps with respect to the home position  # TODO: check home position or origin
-        :return:
-        """
-        self._command_(str(chan) + 'PA' + str(position))
-        while not self.motion_done(chan=chan):
-            pass
-
-    def get_set_position(self, chan):
-        return int(self._query_(str(chan) + 'PA?'))
-
-    def get_instant_position(self, chan):
-        return int(self._query_(str(chan) + 'TP?'))
-
-    def set_velocity(self, chan, vel):
-        """
-        :param int chan:
-        :param int vel:
-        """
-        self._command_(str(chan) + 'VA' + str(vel))
-
-    def get_velocity(self, chan):
-        return int(self._query_(str(chan) + 'VA?'))
-
-    def displace(self, chan, dis):
-        """
-        :param int chan:
-        :param dis: measured in steps. With respect to the position just before starting to move. # TODO: check
-        :return:
-        """
-        self._command_(str(chan) + 'PR' + str(dis))
-        while not self.motion_done(chan=chan):
-            pass
-
-    def motion_done(self, chan):
-        return bool(int(self._query_(str(chan) + 'MD?')))
 
     def reboot_controller(self):
         """
@@ -883,6 +803,123 @@ class Model8742(SocketEthernetDevice):
         """
         self._command_('*RCL0')
 
+    def motion_done(self, chan):
+        """
+        Returns True if the picomotor is not moving. Returns False if the picomotor is currently moving.
+        :param int chan:
+        :return bool:
+        """
+        return bool(int(self._query_(str(chan) + 'MD?')))
+
+    def get_instant_position(self, chan):
+        """
+        get the instantenous position with respect to the origin (0-step coordinate) in steps. Can be called in the
+        middle of the picomotor moving.
+        :param int chan:
+        :return int: number of steps from the origin.
+        """
+        return int(self._query_(str(chan) + 'TP?'))
+
+    def get_set_position(self, chan):
+        """
+        get the position at which the picomotor is set to move to. If the picomotor is currently not moving,
+        this position is the same as the instantenous position.
+        :param chan:
+        :return:
+        """
+        return int(self._query_(str(chan) + 'PA?'))
+
+    def get_velocity(self, chan):
+        """
+        get the velocity at which the picomotor will move for any displacement command. Measured in steps per second.
+        :param chan:
+        :return int: steps per second.
+        """
+        return int(self._query_(str(chan) + 'VA?'))
+
+    def get_acceleration(self, chan):
+        """
+        get the acceleration at which the picomotor will stop and accelerate from rest. Measured in steps per second
+        per second.
+        :param int chan:
+        :return int: steps per second per second.
+        """
+        return int(self._query_(str(chan) + 'AC?'))
+
+    def hard_stop_all(self):
+        """
+        stop all movement if the picomotor as fast as it can stop. Does not take into account the acceleration
+        parameter.
+        """
+        self._command_('AB')
+
+    def soft_stop(self, chan=''):
+        """
+        decelerate the selected channel until it comes to a stop at the acceleration specified by the acceleration
+        parameter. If no channel is selected, the controller will automatically choose the channel that is currently
+        moving.
+        :param int chan:
+        """
+        self._command_(str(chan) + 'ST')
+
+    def set_origin(self, chan):
+        """
+        sets the current physical position as the position with the 0-steps coordinate.
+        :param int chan:
+        """
+        self._command_(str(chan) + 'DH' + '0')
+
+    def set_set_position(self, chan, position):
+        """
+        :param int chan:
+        :param int position: measured in steps with respect to the home position  # TODO: check home position or origin
+        :return:
+        """
+        self._command_(str(chan) + 'PA' + str(position))
+        while not self.motion_done(chan=chan):
+            pass
+
+    def displace(self, chan, dis):
+        """
+        :param int chan:
+        :param dis: measured in steps. With respect to the position just before starting to move. # TODO: check
+        :return:
+        """
+        self._command_(str(chan) + 'PR' + str(dis))
+        while not self.motion_done(chan=chan):
+            pass
+
+    def move_indefinetely(self, chan, direction):
+        """
+        Moves indefinetely. Need to use hard_stop or other stopping command to stop the motion.
+        :param int chan:
+        :param str direction: possible values for positive direction: +, pos, or positive. For negative direction: -,
+        neg, or negative.
+        """
+        while not self.motion_done(chan=chan):
+            pass
+
+        direct_dict = {
+            '+': '+',
+            'pos': '+',
+            'positivre': '+',
+            '-': '-',
+            'neg': '-',
+            'negative': '-'
+        }
+
+        self._command_(str(chan) + 'MV' + str(direct_dict[direction]))
+
+    def set_velocity(self, chan, vel):
+        """
+        :param int chan:
+        :param int vel:
+        """
+        self._command_(str(chan) + 'VA' + str(vel))
+
+    def set_acceleration(self, chan, acc):
+        self._command_(str(chan) + 'AC' + str(acc))
+
     @property
     def idn(self):
         return self._query_('*IDN?')
@@ -894,6 +931,86 @@ class Model8742(SocketEthernetDevice):
     @property
     def hostname(self):
         return self._query_('HOSTNAME?')
+
+    @property
+    def position_ch1(self):
+        return self.get_instant_position(chan=1)
+
+    @property
+    def position_ch2(self):
+        return self.get_instant_position(chan=2)
+
+    @property
+    def position_ch3(self):
+        return self.get_instant_position(chan=3)
+
+    @property
+    def position_ch4(self):
+        return self.get_instant_position(chan=4)
+
+    @property
+    def set_position_ch1(self):
+        return self.get_set_position(chan=1)
+
+    @set_position_ch1.setter
+    def set_position_ch1(self, new_pos):
+        self.set_set_position(chan=1, position=new_pos)
+
+    @property
+    def set_position_ch2(self):
+        return self.get_set_position(chan=2)
+
+    @set_position_ch2.setter
+    def set_position_ch2(self, new_pos):
+        self.set_set_position(chan=2, position=new_pos)
+
+    @property
+    def set_position_ch3(self):
+        return self.get_set_position(chan=3)
+
+    @set_position_ch3.setter
+    def set_position_ch3(self, new_pos):
+        self.set_set_position(chan=3, position=new_pos)
+
+    @property
+    def set_position_ch4(self):
+        return self.get_set_position(chan=4)
+
+    @set_position_ch4.setter
+    def set_position_ch4(self, new_pos):
+        self.set_set_position(chan=4, position=new_pos)
+
+    @property
+    def velocity_ch1(self):
+        return self.get_velocity(chan=1)
+
+    @velocity_ch1.setter
+    def velocity_ch1(self, new_vel):
+        self.set_velocity(chan=1, vel=new_vel)
+
+    @property
+    def velocity_ch2(self):
+        return self.get_velocity(chan=2)
+
+    @velocity_ch2.setter
+    def velocity_ch2(self, new_vel):
+        self.set_velocity(chan=2, vel=new_vel)
+
+    @property
+    def velocity_ch3(self):
+        return self.get_velocity(chan=3)
+
+    @velocity_ch3.setter
+    def velocity_ch3(self, new_vel):
+        self.set_velocity(chan=3, vel=new_vel)
+
+    @property
+    def velocity_ch4(self):
+        return self.get_velocity(chan=4)
+
+    @velocity_ch4.setter
+    def velocity_ch4(self, new_vel):
+        self.set_velocity(chan=4, vel=new_vel)
 
     # @property
     # def (self):
