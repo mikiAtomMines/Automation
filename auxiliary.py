@@ -200,6 +200,55 @@ def testing_SPD3303X(power_supply):
 #     time.sleep(2)
 
 
+def testing_model8742(controller):
+    """
+    :param device_models.Model8742 controller:
+    :return:
+    """
+    print(controller.idn)
+    controller.displace(chan=1, dis=1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.displace(chan=1, dis=1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    # controller.set_origin(chan=1)
+    # print('set_origin here')
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.displace(chan=1, dis=-1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.displace(chan=1, dis=-1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.set_set_position(chan=1, position=0)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.displace(chan=1, dis=-2000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    # controller.set_origin(chan=1)
+    # print('instant', controller.get_instant_position(chan=1))
+    # print('set    ', controller.get_set_position(chan=1))
+
+    print()
+    print('testing velocity')
+    print()
+    controller.set_velocity(chan=1, vel=200)
+    controller.soft_stop(chan=1)
+    controller.set_set_position(chan=1, position=1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.set_set_position(chan=1, position=-1000)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.set_set_position(chan=1, position=0)
+    print('instant', controller.get_instant_position(chan=1))
+    print('set    ', controller.get_set_position(chan=1))
+    controller.set_velocity(chan=1, vel=1000),
+
+
 def simple_plot(file):
     file = open(file, 'r')
     header_size = 5
