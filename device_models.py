@@ -1020,6 +1020,43 @@ class Model8742(SocketEthernetDevice):
 # ======================================================================================================================
 # RGA
 # ======================================================================================================================
-class SRS100():
-    def __init__(self):
-        s = serial.Serial(baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1)
+class SRS100:
+    def __init__(
+            self,
+            port
+    ):
+        s = serial.Serial(port=port, baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=2)
+        self._port = port
+        self._serial_port = s
+
+    def _query_(self, qry):
+        """
+        :param str qry:
+        :return str:
+        """
+        qry += '\r'
+        self._serial_port.write(data=qry.encode('utf-8'))
+        return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8')
+
+    def flush_buffer(self):
+        return self._query_('IN0')
+
+    # Ionizer
+    # -------
+    def set_ionizer_electron_energy(self, e_volts):
+        return self._query_('EE' + str(e_volts))
+
+    def set_ionizer_ion_energy(self, e_volts):
+        return self._query_('IE' + str(e_volts))
+
+    def set_ionizer_focus_voltage(self, e_volts):
+        return self._query_('VF' + str(e_volts))
+
+    def set_ionizer_filament(self, m_amps):
+        retunr
+
+
+    @property
+    def idn(self):
+        return self._query_('ID?')
+
