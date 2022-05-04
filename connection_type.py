@@ -10,6 +10,8 @@ import socket
 import time
 import sys
 
+import serial
+
 
 class SocketEthernetDevice:
     def __init__(
@@ -113,3 +115,49 @@ class SocketEthernetDevice:
     def disconnect(self):
         self._socket.close()
         self._is_connected = False
+
+#
+# class SerialConnection:
+#     def __int__(
+#             self,
+#             baudrate=None,
+#             bytesize=None,
+#             parity=None,
+#             stopbits=0,
+#             read_timeout=None,
+#             write_timeout=None,
+#     ):
+#         """
+#
+#         Parameters
+#         ----------
+#         baudrate : int
+#         bytesize : int
+#             number of data bits.
+#         parity : str
+#             defines the parity of the communication. Possible values: serial.PARITY_NONE or 'N', serial.PARITY_EVEN
+#             or 'E', serial.PARITY_ODD or 'O', and others.
+#         stopbits : int
+#             number of stop bits to be used in the communication.
+#         read_timeout : float
+#             read timeout in seconds. If set to None, will wait forever or until the number of requested bytes are
+#             received.
+#         write_timeout : float
+#             write timeout in seconds. Analogous to read_timeout. Is blocking by default.
+#         """
+#
+#         self._baudrate = baudrate
+#         self._bytesize = bytesize
+#         self._parity = parity
+#         self._stopbits = stopbits
+#         self._read_timeout = read_timeout
+#         self._write_timeout = write_timeout
+#         self._serial_com = serial.Serial(
+#             baudrate=self._baudrate,
+#             bytesize=self._bytesize,
+#             parity=self._parity,
+#             stopbits=self._stopbits,
+#             timeout=self._read_timeout,
+#             write_timeout=self._write_timeout
+#         )
+#
