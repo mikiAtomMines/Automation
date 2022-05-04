@@ -42,6 +42,17 @@ def main():
     # spd = device_models.SPD3303X(ip4_address='10.176.42.121')
     # auxiliary.testing_SPD3303X(spd)
 
+    rga = device_models.SRS100(port='COM7')
+    print(rga.idn)
+    print(rga.flush_buffer())
+    print(rga._query_('EC?'))
+    print(rga._query_('EF?'))
+    print('0\n\r')
+    print(rga._query_('EM?'))
+    print(rga._query_('EQ?'))
+    print(rga._query_('ED?'))
+    print(rga._query_('EP?'))
+    print('0\n\r')
     pass
 
 
