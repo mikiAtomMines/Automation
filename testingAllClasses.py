@@ -36,8 +36,14 @@ def main():
     # daq.set_byte(val=0)
     # print(daq.get_byte())
 
-    pico = device_models.Model8742(ip4_address='10.176.42.123')
-    auxiliary.testing_model8742(pico)
+    # pico = device_models.Model8742(ip4_address='10.176.42.123')
+    # auxiliary.testing_model8742(pico)
+
+    # spd = device_models.SPD3303X(ip4_address='10.176.42.121')
+    # auxiliary.testing_SPD3303X(spd)
+
+    pass
+
 
 if __name__ == '__main__':
     main()
