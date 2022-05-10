@@ -1029,6 +1029,7 @@ class SRS100:
         self._port = port
         self._serial_port = s
         self._filament_state = False
+        self._CDEM_state = False
 
     def _query_(self, qry):
         """
@@ -1067,13 +1068,50 @@ class SRS100:
             self._filament_state = False
             return self._query_('FL0.00')
 
+    def set_ionizer_filament_current(self, mAmps):
+        if mAmps < 0.02:
+            self._filament_state = False
+        return self._query_('FL' + str(mAmps))
+
     def degas(self, minutes):
         out = self._query_('DG' + str(minutes))
         time.sleep(minutes * 60)
         return out
 
-    def set_scan_speed(self, nf_1_7):
+    # Detector
+    # --------
+    def calibrate_detector(self):
+        return self._query_('CL')
 
+    def zero_detector(self):
+        """
+        use this after changing the scan speed, changing detector type (either Faraday Cage or Electron Multiplier),
+        or calibrating the detector using 'CL'
+        :return: STATUS byte
+        """
+        return self._query_('CA')
+
+    def set_detector_scan_speed(self, speed):
+        """
+        set scan speed using the Noise Floor function.
+        :param int speed: noise floor parameter, also a measure of speed. Accepted integers are between 0 and 7.
+        Increasing speed also increases noise.
+        :return:
+        """
+        return self._query_('NF' + str(speed))
+
+    def set_detector_CDEM_state(self, state):
+        if state.lower() == 'on':
+            self._CDEM_state = True
+            return self._query_('HV*')
+        elif state.lower() == 'off':
+            self._CDEM_state = False
+            return self._query_('HV0')
+
+    def set_detector_CDEM_voltage(self, volts):
+        if volts < 1:
+            self._CDEM_state = False
+        return self._query_('HV' + str(volts))
 
     @property
     def idn(self):
