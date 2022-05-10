@@ -1028,6 +1028,7 @@ class SRS100:
         s = serial.Serial(port=port, baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=2)
         self._port = port
         self._serial_port = s
+        self._filament_state = False
 
     def _query_(self, qry):
         """
@@ -1038,7 +1039,13 @@ class SRS100:
         self._serial_port.write(data=qry.encode('utf-8'))
         return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8')
 
-    def flush_buffer(self):
+    def initialize(self):
+        print(self.idn)
+        print('Flushing communication buffers')
+        status = self.flush_buffers()
+        return status
+
+    def flush_buffers(self):
         return self._query_('IN0')
 
     # Ionizer
@@ -1052,11 +1059,31 @@ class SRS100:
     def set_ionizer_focus_voltage(self, e_volts):
         return self._query_('VF' + str(e_volts))
 
-    def set_ionizer_filament(self, m_amps):
-        retunr
+    def set_ionizer_filament_state(self, state):
+        if state.lower() == 'on':
+            self._filament_state = True
+            return self._query_('FL*')
+        elif state.lower() == 'off':
+            self._filament_state = False
+            return self._query_('FL0.00')
+
+    def degas(self, minutes):
+        out = self._query_('DG' + str(minutes))
+        time.sleep(minutes * 60)
+        return out
+
+    def set_scan_speed(self, nf_1_7):
 
 
     @property
     def idn(self):
         return self._query_('ID?')
+
+    @property
+    def filament_state(self):
+        return self._filament_state
+
+    @filament_state.setter
+    def filament_state(self, state):
+        self.set_ionizer_filament_state(state)
 
