@@ -42,17 +42,44 @@ def main():
     # spd = device_models.SPD3303X(ip4_address='10.176.42.121')
     # auxiliary.testing_SPD3303X(spd)
 
+
     rga = device_models.SRS100(port='COM7')
+
+    rga.flush_buffers()
     print(rga.idn)
-    print(rga.flush_buffer())
-    print(rga._query_('EC?'))
-    print(rga._query_('EF?'))
-    print('0\n\r')
-    print(rga._query_('EM?'))
-    print(rga._query_('EQ?'))
-    print(rga._query_('ED?'))
-    print(rga._query_('EP?'))
-    print('0\n\r')
+    rga.flush_buffers()
+
+    # print(rga._query_('EC?'))
+    # print(rga._query_('EF?'))
+    # print('0\n\r')
+    # print(rga._query_('EM?'))
+    # print(rga._query_('EQ?'))
+    # print(rga._query_('ED?'))
+    # print(rga._query_('EP?'))
+    # print('0\n\r')
+
+    # print('setting RGA filament on')
+    # print(rga.set_ionizer_filament_state(state='on'))
+    # print('RGA filament is on')
+    # print('filament current:')
+    # print(rga.get_ionizer_filament_current())
+    # time.sleep(5)
+    # print()
+    #
+    # print('setting RGA filament off')
+    # print(rga.set_ionizer_filament_state(state='off'))
+    # print('RGA filament is off')
+    # print('filament current:')
+    # print(rga.get_ionizer_filament_current())
+    # print(rga.get_status())
+
+    print(rga._command_(cmd='FL'))
+    print(rga.status_byte)
+
+
+
+
+
     pass
 
 
