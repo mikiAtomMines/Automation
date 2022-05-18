@@ -1023,10 +1023,19 @@ class Model8742(SocketEthernetDevice):
 class SRS100:
     def __init__(
             self,
-            port
+            port,
+            read_timeout=10
     ):
-        s = serial.Serial(port=port, baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=10)
+        s = serial.Serial(
+            port=port,
+            baudrate=28800,
+            bytesize=8,
+            parity=serial.PARITY_NONE,
+            stopbits=1,
+            timeout=read_timeout
+        )
         self._port = port
+        self._read_timeout = read_timeout
         self._serial_port = s
         self._filament_state = False
         self._cdem_state = False
@@ -1040,11 +1049,19 @@ class SRS100:
         self._serial_port.write(data=qry.encode('utf-8'))
         return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8').strip()
 
+    def _command_noresponse_(self, cmd):
+        cmd += '\r'
+        self._serial_port.write(data=cmd.encode('utf-8'))
+        status = self.get_status_byte()
+        self.get_error_message_all(status=status)
+        return status
+
     def _command_(self, cmd):
         """
         :param str cmd:
         :return int: returns status byte as a decimal integer.
         """
+
         status = int(self._query_(cmd))
         self.get_error_message_all(status=status)
         return status
@@ -1054,8 +1071,7 @@ class SRS100:
     def initialize(self):
         print(self.idn)
         print('Flushing communication buffers')
-        status = self.flush_buffers()
-        return status
+        return self.flush_buffers()
 
     def flush_buffers(self):
         return self._command_('IN0')
@@ -1066,7 +1082,7 @@ class SRS100:
         final_msg = ''
         for i in range(8):
             if byte & int(2 ** i):
-                final_msg += dict[i]
+                final_msg += '- ' + dict[i]
                 final_msg += '\n'
         return final_msg
 
@@ -1147,7 +1163,7 @@ class SRS100:
     def get_error_message_communications(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_communications()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'Bad command received',
             1: 'Bad parameter received',
             2: 'Command-too-long',
@@ -1157,13 +1173,12 @@ class SRS100:
             6: 'Parameter conflict',
             7: 'bit not used'
         }
-
         return self._create_error_msg(error_byte, errors_dict)
 
     def get_error_message_filament(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_filament()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'Single filament operation',
             1: 'bit not used',
             2: 'bit not used',
@@ -1178,7 +1193,7 @@ class SRS100:
     def get_error_message_electron_multiplier(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_electron_multiplier()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'bit not used',
             1: 'bit not used',
             2: 'bit not used',
@@ -1193,7 +1208,7 @@ class SRS100:
     def get_error_message_mass_filter(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_mass_filter()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'bit not used',
             1: 'bit not used',
             2: 'bit not used',
@@ -1208,7 +1223,7 @@ class SRS100:
     def get_error_message_electrometer(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_electrometer()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'bit not used',
             1: 'Op-amp input offset voltage out of range',
             2: 'bit not used',
@@ -1223,7 +1238,7 @@ class SRS100:
     def get_error_message_supply(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_supply()
-        errors_dict = {
+        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
             0: 'bit not used',
             1: 'bit not used',
             2: 'bit not used',
@@ -1241,33 +1256,41 @@ class SRS100:
         if status == 0:
             return
         else:
-            msg_lst = (
-                'communications',
-                'filament',
-                None,
-                'electron_multiplier',
-                'mass_filter',
-                'electrometer',
-                'supply',
-                None
-            )
+            msg_lst = {  # key: bit numer or index. Value: error message if the bit is True.
+                0: 'communications',
+                1: 'filament',
+                2: None,
+                3: 'electron_multiplier',
+                4: 'mass_filter',
+                5: 'electrometer',
+                6: 'supply',
+                7: None
+            }
+
+            error_msg_all = '\n' \
+                            '####################\n' \
+                            '      ERROR\n' \
+                            '####################\n'
             for i in range(8):
-                if status & int(2**i):
-                    print('ERROR in:', msg_lst[i])
-                    error_details = '    '
+                if i == 2 or i == 7:
+                    pass
+                elif status & int(2**i):
+                    error_msg_all += 'ERROR in:' + str(msg_lst[i]) + '\n'
                     if i == 0:
-                        error_details += self.get_error_message_communications()
+                        error_msg_all += self.get_error_message_communications()
                     elif i == 1:
-                        error_details += self.get_error_message_filament()
+                        error_msg_all += self.get_error_message_filament()
                     elif i == 3:
-                        error_details += self.get_error_message_electron_multiplier()
+                        error_msg_all += self.get_error_message_electron_multiplier()
                     elif i == 4:
-                        error_details += self.get_error_message_mass_filter()
+                        error_msg_all += self.get_error_message_mass_filter()
                     elif i == 5:
-                        error_details += self.get_error_message_electrometer()
+                        error_msg_all += self.get_error_message_electrometer()
                     elif i == 6:
-                        error_details += self.get_error_message_supply()
-                    print(error_details)
+                        error_msg_all += self.get_error_message_supply()
+
+            print(error_msg_all)
+            return error_msg_all
 
     # Ionizer
     # -------
@@ -1287,20 +1310,29 @@ class SRS100:
         elif state.lower() == 'off':
             self._filament_state = False
             return self._command_('FL0')
+        else:
+            raise ValueError('ERROR: possible states: on or off, not case-sensitive')
+
+    def get_ionizer_filament_state(self):
+        return self._filament_state
 
     def set_ionizer_filament_current(self, miliamps):
-        if miliamps < 0.02:
+        if miliamps == 0:
             self._filament_state = False
+            status = self._command_('FL' + str(miliamps))
         else:
-            self._filament_state = True
-        return self._command_('FL' + str(miliamps))
+            status = self._command_('FL' + str(miliamps))
+            if status == 0:
+                self._filament_state = True
+        return status
 
     def get_ionizer_filament_current(self):
         return self._query_('FL?')
 
-    def degas(self, minutes):
+    def degas_ionizer_filament(self, minutes):
+        self._serial_port.timeout = minutes*60 + 5
         out = self._command_('DG' + str(minutes))
-        time.sleep(minutes * 60)
+        self._serial_port.timeout = self._read_timeout
         return out
 
     # Detector
@@ -1327,7 +1359,10 @@ class SRS100:
         Increasing speed also increases noise.
         :return:
         """
-        return self._command_('NF' + str(speed))
+        return self._command_noresponse_('NF' + str(speed))
+
+    def get_detector_scan_speed(self):
+        return self._query_('NF?')
 
     def set_detector_cdem_state(self, state):
         if state.lower() == 'on':
