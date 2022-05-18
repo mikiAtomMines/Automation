@@ -8,9 +8,21 @@ import time
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
-from mcculw import ul
-from mcculw import enums
 import auxiliary
+
+try:
+    import mcculw  # Python MCC library for windows
+    from mcculw import ul
+    from mcculw import enums
+except ModuleNotFoundError:
+    pass
+
+try:
+    import uldaq  # Python MCC library for Linux
+    from uldaq import DaqDevice
+    from uldaq import AiDevice
+except ModuleNotFoundError:
+    pass
 
 # TODO: Add proper error handling. This includes receiving error from power supply.
 # TODO: Finish adding comments
@@ -660,6 +672,97 @@ class MCC_Device:
     @thermocouple_type_ch7.setter
     def thermocouple_type_ch7(self, new_tc_type):
         self.set_thermocuple_type(channel=7, new_tc_type=new_tc_type)
+
+    @property
+    def temp_ch0(self):
+        return self.get_temp(channel_n=0)
+
+    @property
+    def temp_ch1(self):
+        return self.get_temp(channel_n=1)
+
+    @property
+    def temp_ch2(self):
+        return self.get_temp(channel_n=2)
+
+    @property
+    def temp_ch3(self):
+        return self.get_temp(channel_n=3)
+
+    @property
+    def temp_ch4(self):
+        return self.get_temp(channel_n=4)
+
+    @property
+    def temp_ch5(self):
+        return self.get_temp(channel_n=5)
+
+    @property
+    def temp_ch6(self):
+        return self.get_temp(channel_n=6)
+
+    @property
+    def temp_ch7(self):
+        return self.get_temp(channel_n=7)
+
+
+class MCC_Device_Linux(DaqDevice):
+    def __init__(
+            self,
+            ip4_address,
+            port=50000,
+            default_units='celsius'
+    ):
+        """
+        Class for an MCC Device. Use only on Linux machines.
+
+        """
+        d = uldaq.get_net_daq_device_descriptor(ip4_address, port, ifc_name=None, timeout=2)
+        super().__init__(d)
+        self._default_units = default_units
+
+        self.connect()
+
+    def get_temp(self, channel_n=0, units=None):
+        if units is None:
+            units = self._default_units
+
+        return self.get_ai_device().t_in(channel=channel_n, scale=auxiliary.get_TempScale_unit(units.lower()))
+
+    def get_temp_scan(self, low_channel=0, high_channel=7, units=None):
+        if units is None:
+            units = self._default_units
+
+        return self.get_ai_device().t_in_list(low_chan=low_channel, high_chan=high_channel,
+                                              scale=auxiliary.get_TempScale_unit(units.lower))
+
+    def get_thermocouple_type(self, channel):
+        return self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
+
+    def set_thermocouple_type(self, channel, new_tc_type):
+        tc_type_dict = {
+            'J': 1,
+            'K': 2,
+            'T': 3,
+            'E': 4,
+            'R': 5,
+            'S': 6,
+            'B': 7,
+            'N': 8
+        }
+
+        val = tc_type_dict[new_tc_type.upper()]
+
+        self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
+
+
+    @property
+    def idn(self):
+        return self.get_info().get_product_id()
+
+    @property
+    def ip4_address(self):
+        return self.get_config().get_ip_address()
 
     @property
     def temp_ch0(self):

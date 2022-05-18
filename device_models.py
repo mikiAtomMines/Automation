@@ -12,9 +12,11 @@ from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
 from device_type import MCC_Device
 
-from mcculw import ul
-from mcculw import enums
-
+try:
+    from mcculw import ul
+    from mcculw import enums
+except ValueError:
+    pass
 
 # ======================================================================================================================
 # Gaussmeters
