@@ -904,7 +904,7 @@ class Model8742(SocketEthernetDevice):
         direct_dict = {
             '+': '+',
             'pos': '+',
-            'positivre': '+',
+            'positive': '+',
             '-': '-',
             'neg': '-',
             'negative': '-'
@@ -1027,11 +1027,11 @@ class SRS100:
             self,
             port
     ):
-        s = serial.Serial(port=port, baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=2)
+        s = serial.Serial(port=port, baudrate=28800, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=10)
         self._port = port
         self._serial_port = s
         self._filament_state = False
-        self._CDEM_state = False
+        self._cdem_state = False
 
     def _query_(self, qry):
         """
@@ -1040,8 +1040,19 @@ class SRS100:
         """
         qry += '\r'
         self._serial_port.write(data=qry.encode('utf-8'))
-        return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8')
+        return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8').strip()
 
+    def _command_(self, cmd):
+        """
+        :param str cmd:
+        :return int: returns status byte as a decimal integer.
+        """
+        status = int(self._query_(cmd))
+        self.get_error_message_all(status=status)
+        return status
+
+    # General
+    # -------
     def initialize(self):
         print(self.idn)
         print('Flushing communication buffers')
@@ -1049,41 +1060,259 @@ class SRS100:
         return status
 
     def flush_buffers(self):
-        return self._query_('IN0')
+        return self._command_('IN0')
+
+    # Error handling
+    # --------------
+    def _create_error_msg(self, byte, dict):
+        final_msg = ''
+        for i in range(8):
+            if byte & int(2 ** i):
+                final_msg += dict[i]
+                final_msg += '\n'
+        return final_msg
+
+    def get_status_byte(self):
+        """
+        a byte as a decimal int that tells the error types that have occurred or that have not been checked.To
+        interpret it, it needs to be turned into an 8-bit binary number first. Possible error types: RS232_ERR,
+        FIL_ERR, CEM_ERR, QMF_ERR, DET_ERR, and PS_ERR. Use to following table to determine which error types have
+        occurred and what methods to call to see the specific error:
+        ----------------------------------------------------------------------------------------------------------------
+          bit index  |       internal check       |  Error type  |  query  |  name for class methods
+        ----------------------------------------------------------------------------------------------------------------
+              7      | not used                   |  n/a         |  n/a    |  n/a
+              6      | 24V External power supply  |  PS_ERR      |  EP?    |  supply
+              5      | Electrometer / detector    |  DET_ERR     |  ED?    |  electrometer
+              4      | Quadrupole mass filter     |  QMF_ERR     |  EQ?    |  mass_filter
+              3      | Electron multiplier        |  CEM_ERR     |  EM?    |  electron_multiplier
+              2      | not used                   |  n/a         |  n/a    |  n/a
+              1      | Filament                   |  FIL_ERR     |  EF?    |  filament
+              0      | Communications             |  RS232_ERR   |  EC?    |  communications
+        ----------------------------------------------------------------------------------------------------------------
+
+        To get an individual error byte for a single error type, use get_error_byte_{name}
+        To get all individual error bytes for each error type, use get_error_bytes.
+        To get individual error messages per error type, use get_error_message_{name}
+
+        :return int byte: status byte as a decimal int. The position or index of the bit indicates the type of error
+        it represents. If the bit is 1, it indicates that its type of error has occurred.
+        """
+        return int(self._query_('ER?'))
+
+    def get_error_byte_all(self, status=None):
+        """
+        get the error byte as a decimal int for each error type: RS232_ERR, FIL_ERR, CEM_ERR, QMF_ERR,
+        DET_ERR, and PS_ERR.
+        :param int status: the status byte returned by most commands of the RGA, or requested by get_status().
+        :return tuple of ints:
+        """
+        if status is None:
+            status = self.get_status_byte()
+        errors_dict = {
+            0: 'EC?',  # Communications, RS232_ERR
+            1: 'EF?',  # Filament, FIL_ERR
+            2: None,   # not used
+            3: 'EM?',  # Electron Multiplier, CEM_ERR
+            4: 'EQ?',  # Quadrupole Mass Filter, QMF_ERR
+            5: 'ED?',  # Electrometer, DET_ERR
+            6: 'EP?',  # 24V External Power Supply, PS_ERR
+            7: None    # not used
+        }
+        errors = []
+        for i in range(8):
+            if status & int(2**i):
+                errors.append(int(self._query_(errors_dict[i])))
+            else:
+                errors.append(0)
+
+        return tuple(errors)
+
+    def get_error_byte_communications(self):
+        return int(self._query_('EC?'))
+
+    def get_error_byte_filament(self):
+        return int(self._query_('EF?'))
+
+    def get_error_byte_electron_multiplier(self):
+        return int(self._query_('EM?'))
+
+    def get_error_byte_mass_filter(self):
+        return int(self._query_('EQ?'))
+
+    def get_error_byte_electrometer(self):
+        return int(self._query_('ED?'))
+
+    def get_error_byte_supply(self):
+        return int(self._query_('EP?'))
+
+    def get_error_message_communications(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_communications()
+        errors_dict = {
+            0: 'Bad command received',
+            1: 'Bad parameter received',
+            2: 'Command-too-long',
+            3: 'OVERWROTE in receiving',
+            4: 'Transmit buffer overwrite',
+            5: 'Jumper protection violation',
+            6: 'Parameter conflict',
+            7: 'bit not used'
+        }
+
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_filament(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_filament()
+        errors_dict = {
+            0: 'Single filament operation',
+            1: 'bit not used',
+            2: 'bit not used',
+            3: 'bit not used',
+            4: 'bit not used',
+            5: 'Vacuum chamber pressure too high',
+            6: 'unable to set the requested emission current',
+            7: 'no filament detected'
+        }
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_electron_multiplier(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_electron_multiplier()
+        errors_dict = {
+            0: 'bit not used',
+            1: 'bit not used',
+            2: 'bit not used',
+            3: 'bit not used',
+            4: 'bit not used',
+            5: 'bit not used',
+            6: 'bit not used',
+            7: 'No electron multiplier option installed'
+        }
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_mass_filter(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_mass_filter()
+        errors_dict = {
+            0: 'bit not used',
+            1: 'bit not used',
+            2: 'bit not used',
+            3: 'bit not used',
+            4: 'Power supply in current limited mode',
+            5: 'bit not used',
+            6: 'Primary current exceeds 2.0 A',
+            7: 'RF_CT exceeds (V_ext - 2V) at M_MAX'
+        }
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_electrometer(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_electrometer()
+        errors_dict = {
+            0: 'bit not used',
+            1: 'Op-amp input offset voltage out of range',
+            2: 'bit not used',
+            3: 'COMPENSATE fails to read -5nA input current',
+            4: 'COMPENSATE fails to read +5nA input current',
+            5: 'DETECT fails to read -5nA input current',
+            6: 'DETECT fails to read +5nA input current',
+            7: 'ADC16 test failure'
+        }
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_supply(self, error_byte=None):
+        if error_byte is None:
+            error_byte = self.get_error_byte_supply()
+        errors_dict = {
+            0: 'bit not used',
+            1: 'bit not used',
+            2: 'bit not used',
+            3: 'bit not used',
+            4: 'bit not used',
+            5: 'bit not used',
+            6: 'External 20V power supply error: Voltage > 26V',
+            7: 'External 20V power supply error: Voltage < 22V'
+        }
+        return self._create_error_msg(error_byte, errors_dict)
+
+    def get_error_message_all(self, status=None):
+        if status is None:
+            status = int(self._query_('ER?'))
+        if status == 0:
+            return
+        else:
+            msg_lst = (
+                'communications',
+                'filament',
+                None,
+                'electron_multiplier',
+                'mass_filter',
+                'electrometer',
+                'supply',
+                None
+            )
+            for i in range(8):
+                if status & int(2**i):
+                    print('ERROR in:', msg_lst[i])
+                    error_details = '    '
+                    if i == 0:
+                        error_details += self.get_error_message_communications()
+                    elif i == 1:
+                        error_details += self.get_error_message_filament()
+                    elif i == 3:
+                        error_details += self.get_error_message_electron_multiplier()
+                    elif i == 4:
+                        error_details += self.get_error_message_mass_filter()
+                    elif i == 5:
+                        error_details += self.get_error_message_electrometer()
+                    elif i == 6:
+                        error_details += self.get_error_message_supply()
+                    print(error_details)
 
     # Ionizer
     # -------
     def set_ionizer_electron_energy(self, e_volts):
-        return self._query_('EE' + str(e_volts))
+        return self._command_('EE' + str(e_volts))
 
     def set_ionizer_ion_energy(self, e_volts):
-        return self._query_('IE' + str(e_volts))
+        return self._command_('IE' + str(e_volts))
 
     def set_ionizer_focus_voltage(self, e_volts):
-        return self._query_('VF' + str(e_volts))
+        return self._command_('VF' + str(e_volts))
 
     def set_ionizer_filament_state(self, state):
         if state.lower() == 'on':
             self._filament_state = True
-            return self._query_('FL*')
+            return self._command_('FL*')
         elif state.lower() == 'off':
             self._filament_state = False
-            return self._query_('FL0.00')
+            return self._command_('FL0')
 
-    def set_ionizer_filament_current(self, mAmps):
-        if mAmps < 0.02:
+    def set_ionizer_filament_current(self, miliamps):
+        if miliamps < 0.02:
             self._filament_state = False
-        return self._query_('FL' + str(mAmps))
+        else:
+            self._filament_state = True
+        return self._command_('FL' + str(miliamps))
+
+    def get_ionizer_filament_current(self):
+        return self._query_('FL?')
 
     def degas(self, minutes):
-        out = self._query_('DG' + str(minutes))
+        out = self._command_('DG' + str(minutes))
         time.sleep(minutes * 60)
         return out
 
     # Detector
     # --------
     def calibrate_detector(self):
-        return self._query_('CL')
+        """
+        manual recommends doing this every couple months.
+        :return:
+        """
+        return self._command_('CL')
 
     def zero_detector(self):
         """
@@ -1091,7 +1320,7 @@ class SRS100:
         or calibrating the detector using 'CL'
         :return: STATUS byte
         """
-        return self._query_('CA')
+        return self._command_('CA')
 
     def set_detector_scan_speed(self, speed):
         """
@@ -1100,24 +1329,28 @@ class SRS100:
         Increasing speed also increases noise.
         :return:
         """
-        return self._query_('NF' + str(speed))
+        return self._command_('NF' + str(speed))
 
-    def set_detector_CDEM_state(self, state):
+    def set_detector_cdem_state(self, state):
         if state.lower() == 'on':
-            self._CDEM_state = True
-            return self._query_('HV*')
+            self._cdem_state = True
+            return self._command_('HV*')
         elif state.lower() == 'off':
-            self._CDEM_state = False
-            return self._query_('HV0')
+            self._cdem_state = False
+            return self._command_('HV0')
 
-    def set_detector_CDEM_voltage(self, volts):
+    def set_detector_cdem_voltage(self, volts):
         if volts < 1:
-            self._CDEM_state = False
-        return self._query_('HV' + str(volts))
+            self._cdem_state = False
+        return self._command_('HV' + str(volts))
 
     @property
     def idn(self):
         return self._query_('ID?')
+
+    @property
+    def status_byte(self):
+        return self.get_status_byte()
 
     @property
     def filament_state(self):
@@ -1126,4 +1359,14 @@ class SRS100:
     @filament_state.setter
     def filament_state(self, state):
         self.set_ionizer_filament_state(state)
+
+    @property
+    def filament_current(self):
+        return self.get_ionizer_filament_current()
+
+    @filament_current.setter
+    def filament_current(self, miliamps):
+        self.set_ionizer_filament_current(miliamps=miliamps)
+
+
 
