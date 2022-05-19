@@ -24,6 +24,8 @@ try:
 except ModuleNotFoundError:
     pass
 
+import simple_pid
+
 # TODO: Add proper error handling. This includes receiving error from power supply.
 # TODO: Finish adding comments
 
@@ -706,100 +708,100 @@ class MCC_Device:
         return self.get_temp(channel_n=7)
 
 
-class MCC_Device_Linux(DaqDevice):
-    def __init__(
-            self,
-            ip4_address,
-            port=50000,
-            default_units='celsius'
-    ):
-        """
-        Class for an MCC Device. Use only on Linux machines.
-
-        """
-        d = uldaq.get_net_daq_device_descriptor(ip4_address, port, ifc_name=None, timeout=2)
-        super().__init__(d)
-        self._default_units = default_units
-
-        self.connect()
-
-    def get_temp(self, channel_n=0, units=None):
-        if units is None:
-            units = self._default_units
-
-        return self.get_ai_device().t_in(channel=channel_n, scale=auxiliary.get_TempScale_unit(units.lower()))
-
-    def get_temp_scan(self, low_channel=0, high_channel=7, units=None):
-        if units is None:
-            units = self._default_units
-
-        return self.get_ai_device().t_in_list(low_chan=low_channel, high_chan=high_channel,
-                                              scale=auxiliary.get_TempScale_unit(units.lower))
-
-    def get_thermocouple_type(self, channel):
-        return self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
-
-    def set_thermocouple_type(self, channel, new_tc_type):
-        tc_type_dict = {
-            'J': 1,
-            'K': 2,
-            'T': 3,
-            'E': 4,
-            'R': 5,
-            'S': 6,
-            'B': 7,
-            'N': 8
-        }
-
-        val = tc_type_dict[new_tc_type.upper()]
-
-        self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
-
-
-    @property
-    def idn(self):
-        return self.get_info().get_product_id()
-
-    @property
-    def ip4_address(self):
-        return self.get_config().get_ip_address()
-
-    @property
-    def temp_ch0(self):
-        return self.get_temp(channel_n=0)
-
-    @property
-    def temp_ch1(self):
-        return self.get_temp(channel_n=1)
-
-    @property
-    def temp_ch2(self):
-        return self.get_temp(channel_n=2)
-
-    @property
-    def temp_ch3(self):
-        return self.get_temp(channel_n=3)
-
-    @property
-    def temp_ch4(self):
-        return self.get_temp(channel_n=4)
-
-    @property
-    def temp_ch5(self):
-        return self.get_temp(channel_n=5)
-
-    @property
-    def temp_ch6(self):
-        return self.get_temp(channel_n=6)
-
-    @property
-    def temp_ch7(self):
-        return self.get_temp(channel_n=7)
+# class MCC_Device_Linux(DaqDevice):
+#     def __init__(
+#             self,
+#             ip4_address,
+#             port=50000,
+#             default_units='celsius'
+#     ):
+#         """
+#         Class for an MCC Device. Use only on Linux machines.
+#
+#         """
+#         d = uldaq.get_net_daq_device_descriptor(ip4_address, port, ifc_name=None, timeout=2)
+#         super().__init__(d)
+#         self._default_units = default_units
+#
+#         self.connect()
+#
+#     def get_temp(self, channel_n=0, units=None):
+#         if units is None:
+#             units = self._default_units
+#
+#         return self.get_ai_device().t_in(channel=channel_n, scale=auxiliary.get_TempScale_unit(units.lower()))
+#
+#     def get_temp_scan(self, low_channel=0, high_channel=7, units=None):
+#         if units is None:
+#             units = self._default_units
+#
+#         return self.get_ai_device().t_in_list(low_chan=low_channel, high_chan=high_channel,
+#                                               scale=auxiliary.get_TempScale_unit(units.lower))
+#
+#     def get_thermocouple_type(self, channel):
+#         return self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
+#
+#     def set_thermocouple_type(self, channel, new_tc_type):
+#         tc_type_dict = {
+#             'J': 1,
+#             'K': 2,
+#             'T': 3,
+#             'E': 4,
+#             'R': 5,
+#             'S': 6,
+#             'B': 7,
+#             'N': 8
+#         }
+#
+#         val = tc_type_dict[new_tc_type.upper()]
+#
+#         self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
+#
+#
+#     @property
+#     def idn(self):
+#         return self.get_info().get_product_id()
+#
+#     @property
+#     def ip4_address(self):
+#         return self.get_config().get_ip_address()
+#
+#     @property
+#     def temp_ch0(self):
+#         return self.get_temp(channel_n=0)
+#
+#     @property
+#     def temp_ch1(self):
+#         return self.get_temp(channel_n=1)
+#
+#     @property
+#     def temp_ch2(self):
+#         return self.get_temp(channel_n=2)
+#
+#     @property
+#     def temp_ch3(self):
+#         return self.get_temp(channel_n=3)
+#
+#     @property
+#     def temp_ch4(self):
+#         return self.get_temp(channel_n=4)
+#
+#     @property
+#     def temp_ch5(self):
+#         return self.get_temp(channel_n=5)
+#
+#     @property
+#     def temp_ch6(self):
+#         return self.get_temp(channel_n=6)
+#
+#     @property
+#     def temp_ch7(self):
+#         return self.get_temp(channel_n=7)
 
 
 # =====================================================================================================================
 class Heater:
-    def __init__(self, idn=None, MAX_temp=None, MAX_volts=None, MAX_current=None):
+    def __init__(self, idn=None, MAX_temp=999, MAX_volts=999, MAX_current=999, resistance=20):
         """
         Parameters
         ----------
@@ -814,36 +816,34 @@ class Heater:
         self.MAX_temp = MAX_temp
         self.MAX_volts = MAX_volts
         self.MAX_current = MAX_current
+        self.resistance = resistance
 
 
-class HeaterAssembly:
+class Oven:
     def __init__(
             self,
-            power_supply=None,
-            supply_channel=None,
-            temperature_daq=None,
-            daq_channel=None,
-            pid_function=None,
-            set_temperature=None,
-            temp_units=None,
+            ip4_address,
+            power_supply_and_channel,
+            temperature_daq_and_channel,
+            pid_controller,
+            set_temperature=0,
+            temp_units='celsius',
             heater=None,
             configure_on_startup=False,
-
     ):
         """
+        Pid controller device based on the beaglebone black rev C. The controller connects through a socket TCP/IP
+        connection. Essentially a heater assembly.
+
         A heater assembly composed of a heater, a temperature measuring device, and a power supply.
 
         Parameters
         ----------
-        power_supply : device_models.PowerSupply
+        power_supply_and_channel : device_models.PowerSupply
             The power supply model that is being used for controlling the electrical power going into the heater.
-        supply_channel : int
-            The physical power supply channel connected to the heater for controlling the electrical power.
-        temperature_daq : device_models.MCC_device
+        temperature_daq_and_channel : device_models.MCC_device
             The temperature DAQ device that is being used for reading the temperature of the heater.
-        daq_channel : int
-            The physical DAQ channel used for taking temperature readings of the heater.
-        pid_function : simple_pid.PID
+        pid_controller : simple_pid.PID()
             The PID function used to regulate the heater's temperature to the set point.
         set_temperature : float
             The desired set temperature in the same units as the temperature readings from the temperature DAQ.
@@ -862,17 +862,15 @@ class HeaterAssembly:
             True if the pid object has not been manually configured.
         """
 
-        self._power_supply = power_supply
-        self._supply_channel = supply_channel
-        self._temperature_daq = temperature_daq
-        self._daq_channel = daq_channel
-        self._pid_function = pid_function
+        self._ip4_address = ip4_address
+        self._power_supply = power_supply_and_channel
+        self._temperature_daq = temperature_daq_and_channel
+        self._simple_pid = pid_controller
         self._set_temperature = set_temperature
         self._temp_units = temp_units
         self._heater = heater
         self._configure_pid_on_startup = configure_on_startup
-
-        self._pid_function.setpoint = self._set_temperature
+        self._simple_pid.setpoint = self._set_temperature
         if self._configure_pid_on_startup:
             self.configure_pid()
 
@@ -958,7 +956,7 @@ class HeaterAssembly:
             raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check the MAX and MIN set '
                                                                    'temperature limits')
         self._set_temperature = new_temp
-        self._pid_function.setpoint = new_temp
+        self._simple_pid.setpoint = new_temp
 
     @temp_units.setter
     def temp_units(self, new_units):
@@ -981,7 +979,7 @@ class HeaterAssembly:
 
         """
 
-        pid = self._pid_function
+        pid = simple_pid.PID()
         out_min = 0
         out_max = min(self._heater.MAX_volts, self._power_supply.get_voltage_limit(self._supply_channel))
         pid.output_limits =(out_min, out_max)
@@ -1006,7 +1004,7 @@ class HeaterAssembly:
         """
         current_temp = self.current_temperature
         print(current_temp)
-        new_ps_voltage = self._pid_function(current_temp)
+        new_ps_voltage = self._simple_pid(current_temp)
         # print(new_ps_voltage)
         self._power_supply.set_set_voltage(channel=self._supply_channel, volts=new_ps_voltage)
 
@@ -1044,3 +1042,4 @@ class HeaterAssembly:
 
         ani = anim.FuncAnimation(fig, animate, interval=2000)
         plt.show()
+
