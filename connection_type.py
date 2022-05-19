@@ -102,10 +102,15 @@ class SocketEthernetDevice:
         else:
             raise AttributeError('ERROR: port cannot be changed while connection is on.')
 
-    def connect(self):
+    def connect(self, ip=None, port=None):
+        if ip is None:
+            ip = self._ip4_address
+        if port is None:
+            port = self._port
+
         try:
             socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket_object.connect((self._ip4_address, self._port))
+            socket_object.connect((ip, port))
         except OSError:
             raise OSError('ERROR: Could not connect to ethernet device. Please Check IPv4 address and try again. ')
 
