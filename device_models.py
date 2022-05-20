@@ -11,11 +11,16 @@ import auxiliary
 from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
 from device_type import MCC_Device
+try:
+    from device_type import MCC_Device
+    from device_type import MCC_Device_Linux
+except ModuleNotFoundError:
+    pass
 
 try:
     from mcculw import ul
     from mcculw import enums
-except ValueError:
+except ModuleNotFoundError:
     pass
 
 # ======================================================================================================================
@@ -643,83 +648,92 @@ class Web_Tc(MCC_Device):
         super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
                          default_units=default_units)
 
+try:
+    class E_Tc(MCC_Device):
+        def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
+            """
+            Class for a Web_Tc device from MCC. Might make a master class for temperature daq
 
-class E_Tc(MCC_Device):
-    def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
-        """
-        Class for a Web_Tc device from MCC. Might make a master class for temperature daq
+            Parameters
+            ----------
+            ip4_address : string
+                The current IPv4 address of the device. Can be found through instacal. For the Web_TC, the ip4_address is
+                unused because the API functions that use it are not supported by this device.
+            port : int
+                The port number to be used. MCC recommends to use 54211. Port 80 is reserved for the web browser
+                application. For the Web_TC, the port number is unused because the API functions that use it are not
+                supported by this device.
+            board_number : int
+                All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
+                match the board number of its associated device. Possible values from 0 to 99.
+            default_units : string
+                the units in which the temperature is shown, unless specified otherwise in the method. Possible values
+                (not
+                case-sensitive):
+                for Celsius                 celsius,               c
+                for Fahrenheit              fahrenheit,            f
+                for Kelvin                  kelvin,                k
+                for calibrated voltage      volts, volt, voltage,  v
+                for uncalibrated voltage    raw, none, noscale     r
+            """
 
-        Parameters
-        ----------
-        ip4_address : string
-            The current IPv4 address of the device. Can be found through instacal. For the Web_TC, the ip4_address is
-            unused because the API functions that use it are not supported by this device.
-        port : int
-            The port number to be used. MCC recommends to use 54211. Port 80 is reserved for the web browser
-            application. For the Web_TC, the port number is unused because the API functions that use it are not
-            supported by this device.
-        board_number : int
-            All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
-            match the board number of its associated device. Possible values from 0 to 99.
-        default_units : string
-            the units in which the temperature is shown, unless specified otherwise in the method. Possible values
-            (not
-            case-sensitive):
-            for Celsius                 celsius,               c
-            for Fahrenheit              fahrenheit,            f
-            for Kelvin                  kelvin,                k
-            for calibrated voltage      volts, volt, voltage,  v
-            for uncalibrated voltage    raw, none, noscale     r
-        """
+            super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
+                             default_units=default_units)
 
-        super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
-                         default_units=default_units)
+        # -------------------
+        # Auxiliary I/O ports
+        # -------------------
+        def config_io_channel(self, chan, direction):
+            if not (0 <= chan <= 7):
+                raise ValueError('ERROR: bit_num ' + str(chan) + ' not allowed. Must be between 0 and 7, inclusive.'
+                                 )
+            direction_dict = {
+                'in': 2,
+                'i': 2,
+                'out': 1,
+                'o': 1
+            }
 
-    # -------------------
-    # Auxiliary I/O ports
-    # -------------------
-    def config_io_channel(self, chan, direction):
-        if not (0 <= chan <= 7):
-            raise ValueError('ERROR: bit_num ' + str(chan) + ' not allowed. Must be between 0 and 7, inclusive.'
-                             )
-        direction_dict = {
-            'in': 2,
-            'i': 2,
-            'out': 1,
-            'o': 1
-        }
+            ul.d_config_bit(
+                board_num=self._board_number,
+                port_type=enums.DigitalPortType.AUXPORT,
+                bit_num=chan,
+                direction=direction_dict[direction])
 
-        ul.d_config_bit(
-            board_num=self._board_number,
-            port_type=enums.DigitalPortType.AUXPORT,
-            bit_num=chan,
-            direction=direction_dict[direction])
+        def get_bit(self, chan):
+            return ul.d_bit_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan)
 
-    def get_bit(self, chan):
-        return ul.d_bit_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan)
+        def set_bit(self, chan, out):
+            ul.d_bit_out(self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan, bit_value=out)
 
-    def set_bit(self, chan, out):
-        ul.d_bit_out(self._board_number, port_type=enums.DigitalPortType.AUXPORT, bit_num=chan, bit_value=out)
+        def config_io_byte(self, direction):
+            direction_dict = {
+                'in': 2,
+                'i': 2,
+                'out': 1,
+                'o': 1
+            }
 
-    def config_io_byte(self, direction):
-        direction_dict = {
-            'in': 2,
-            'i': 2,
-            'out': 1,
-            'o': 1
-        }
+            ul.d_config_port(
+                board_num=self._board_number,
+                port_type=enums.DigitalPortType.AUXPORT,
+                direction=direction_dict[direction])
 
-        ul.d_config_port(
-            board_num=self._board_number,
-            port_type=enums.DigitalPortType.AUXPORT,
-            direction=direction_dict[direction])
+        def get_byte(self):
+            return ul.d_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT)
 
-    def get_byte(self):
-        return ul.d_in(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT)
+        def set_byte(self, val):
+            ul.d_out(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, data_value=val)
 
-    def set_byte(self, val):
-        ul.d_out(board_num=self._board_number, port_type=enums.DigitalPortType.AUXPORT, data_value=val)
+except ImportError:
+    pass
 
+try:
+    class E_Tc_Linux(MCC_Device_Linux):
+        def __init__(self, ip4_address, port=54211, default_units='celsius'):
+            super().__init__(ip4_address, port, default_units)
+except ImportError:
+    pass
 
 # ======================================================================================================================
 # Picomotor controller
