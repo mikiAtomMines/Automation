@@ -4,6 +4,7 @@ import struct
 import time
 from device_models import SPD3303X
 from device_type import MCC_Device_Linux
+from device_type import Oven
 import numpy as np
 import simple_pid
 
