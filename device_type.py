@@ -732,7 +732,7 @@ try:
 
             self.connect()
 
-        def get_TempScale_unit(units):
+        def get_TempScale_unit(self, units):
             units_dict = {
                 'celsius': 1,
                 'fahrenheit': 2,
