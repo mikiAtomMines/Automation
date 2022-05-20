@@ -6,8 +6,10 @@ Created on Thursday, April 7, 2022
 import time
 import sys
 import matplotlib.pyplot as plt
-from mcculw import enums
-
+try:
+    from mcculw import enums
+except ModuleNotFoundError:
+    pass
 
 error_count = 0
 
