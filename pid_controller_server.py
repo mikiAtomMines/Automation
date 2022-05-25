@@ -157,7 +157,7 @@ def main():
     # Devices
     # -------
     ps = SPD3303X('10.176.42.121')
-    daq = E_Tc_Linux('10.176.42.200')
+    daq = E_Tc('10.176.42.200')
     h = Heater(MAX_temp=100, MAX_volts = 30, MAX_current = 0.5)
 
     assembly = HeaterAssembly((ps, 1), (daq, 0), h)
