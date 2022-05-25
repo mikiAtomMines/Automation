@@ -10,11 +10,10 @@ import time
 import auxiliary
 from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
-from device_type import MCC_Device
 try:
     from device_type import MCC_Device
     from device_type import MCC_Device_Linux
-except ModuleNotFoundError:
+except (ImportError, NameError):
     pass
 
 try:
@@ -395,14 +394,14 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         qry = 'measure:current? ' + 'CH' + str(channel)
         return float(self._query_(qry))
 
-    def get_voltage_limit(self, channel):
+    def get_channel_voltage_limit(self, channel):
         """
         :param channel: int
         """
         self.check_channel_syntax(channel)
         return self._channel_voltage_limits[channel - 1]
 
-    def get_current_limit(self, channel):
+    def get_channel_current_limit(self, channel):
         """
         :param channel: int
         """
@@ -415,8 +414,14 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
     def set_channel_state(self, channel, state):
         """
         :param channel: int
-        :param state: str valid inputs (not case sensitive): on, off.
+        :param str or int state: str valid inputs (not case sensitive): on, off. Also 1 for on or 0 for off
         """
+        if type(state) is int or type(state) is float:
+            if int(state) == 1:
+                state = 'ON'
+            elif int(state) == 0:
+                state = 'OFF'
+
         self.check_channel_syntax(channel)
         cmd = 'Output CH' + str(channel) + ',' + state.upper()
         self._command_(cmd)
@@ -429,7 +434,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         self.check_channel_syntax(channel)
         volts = round(volts, 3)
 
-        limit = self.get_voltage_limit(channel)
+        limit = self.get_channel_voltage_limit(channel)
         chan = 'CH' + str(channel)
         if volts <= limit:
             cmd = chan + ':voltage ' + str(volts)
@@ -445,7 +450,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         self.check_channel_syntax(channel)
         amps = round(amps, 3)
 
-        limit = self.get_current_limit(channel)
+        limit = self.get_channel_current_limit(channel)
         chan = 'CH' + str(channel)
         if amps <= limit:
             cmd = chan + ':current ' + str(amps)
@@ -732,7 +737,7 @@ try:
     class E_Tc_Linux(MCC_Device_Linux):
         def __init__(self, ip4_address, port=54211, default_units='celsius'):
             super().__init__(ip4_address, port, default_units)
-except ImportError:
+except (ImportError, NameError):
     pass
 
 # ======================================================================================================================
