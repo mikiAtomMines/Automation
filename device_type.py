@@ -85,12 +85,35 @@ class PowerSupply:
                              self.number_of_channels, 'channels.')
 
     @property
+    def idn(self):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Return : str
+        ------
+            identification string
+        """
+        return None
+
+    @property
     def MAX_voltage_limit(self):
         return self._MAX_voltage_limit
+
+    @MAX_voltage_limit.setter
+    def MAX_voltage_limit(self, new_MAX_voltage):
+        print('CAUTION: The MAX voltage limit should always match the hardware limitation of the power supply.')
+        print('Setting MAX voltage limit to', new_MAX_voltage)
+        self._MAX_voltage_limit = new_MAX_voltage
 
     @property
     def MAX_current_limit(self):
         return self._MAX_current_limit
+
+    @MAX_current_limit.setter
+    def MAX_current_limit(self, new_MAX_current):
+        print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
+        print('Setting MAX voltage limit to', new_MAX_current)
+        self._MAX_voltage_limit = new_MAX_current
 
     @property
     def channel_voltage_limits(self):
@@ -118,17 +141,33 @@ class PowerSupply:
         print('Setting number of channels to', n)
         self._number_of_channels = n
 
-    @MAX_voltage_limit.setter
-    def MAX_voltage_limit(self, new_MAX_voltage):
-        print('CAUTION: The MAX voltage limit should always match the hardware limitation of the power supply.')
-        print('Setting MAX voltage limit to', new_MAX_voltage)
-        self._MAX_voltage_limit = new_MAX_voltage
+    def get_set_voltage(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
 
-    @MAX_current_limit.setter
-    def MAX_current_limit(self, new_MAX_current):
-        print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
-        print('Setting MAX voltage limit to', new_MAX_current)
-        self._MAX_voltage_limit = new_MAX_current
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set voltage
+
+        Return : float
+        ------
+        """
+        pass
+
+    def get_actual_voltage(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set voltage
+
+        Return : float
+        ------
+        """
+        pass
 
     def set_set_voltage(self, channel, volts):
         """
@@ -140,6 +179,62 @@ class PowerSupply:
             The desired channel to set the set voltage
         volts : float
             The desired new value for the set voltage in volts.
+        """
+        pass
+
+    def get_set_current(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Return : float
+        ------
+        """
+        pass
+
+    def get_actual_current(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Return : float
+        ------
+        """
+        pass
+
+    def get_channel_voltage_limit(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Return : float
+        ------
+        """
+        pass
+
+    def get_channel_current_limit(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Return : float
+        ------
         """
         pass
 
@@ -192,7 +287,7 @@ class PowerSupply:
 
     def zero_all_channels(self):
         """
-        Sets the set voltage and set current of all chanles to 0. Then sets all voltage and current channel limits
+        Sets the set voltage and set current of all channels to 0. Then sets all voltage and current channel limits
         to the maximum allowed limits for full range of operation.
         """
         max_v = self.MAX_voltage_limit
@@ -407,8 +502,8 @@ try:
             Parameters
             ----------
             channel_n : int
-                the number of the channel from which to read the temperature. defaults to channel 0 if the channel number
-                is not specified.
+                the number of the channel from which to read the temperature. defaults to channel 0 if the channel
+                number is not specified.
             units : string or None
                 the units in which the temperature is shown. Defaults to None which uses the default units set by the
                 instance. Possible values (not case-sensitive):
@@ -466,9 +561,9 @@ try:
             Returns
             -------
             list of float
-                List containing the temperature or voltage values as a float in the specified units. The index of a value
-                corresponds to its respective channel. If a channel is not available, its respective place in the list
-                will have None.
+                List containing the temperature or voltage values as a float in the specified units. The index of a
+                value corresponds to its respective channel. If a channel is not available, its respective place in
+                the list will have None.
             """
             if units is None:
                 units = self._default_units
@@ -496,7 +591,8 @@ try:
                 is not specified.
             high_channel : int
                 the number of the channel on which to stop the scan. Defaults to channel 7 if the channel number
-                is not specified. The range is inclusive, therefore the signal from this channel is included in the output
+                is not specified. The range is inclusive, therefore the signal from this channel is included in the
+                output
             units : string or None
                 the units in which the temperature is shown. Defaults to None which uses the default units set by the
                 instance. Possible values (not case-sensitive):
@@ -513,9 +609,9 @@ try:
             Returns
             -------
             list of float
-                List containing the temperature or voltage values as a float in the specified units. The index of a value
-                corresponds to its respective channel. If a channel is not available, its respective place in the list
-                will have None.
+                List containing the temperature or voltage values as a float in the specified units. The index of a
+                value corresponds to its respective channel. If a channel is not available, its respective place in
+                the list will have None.
             """
             if units is None:
                 units = self._default_units
@@ -735,13 +831,20 @@ try:
         def get_TempScale_unit(self, units):
             units_dict = {
                 'celsius': 1,
+                'c': 1,
                 'fahrenheit': 2,
+                'f': 2,
                 'kelvin': 3,
+                'k': 3,
                 'volts': 4,
-                'raw': 5
+                'v': 4,
+                'raw': 5,
+                'r': 5
             }
-
-            return units_dict[units.lower()]
+            try:
+                return units_dict[units.lower()]
+            except KeyError:
+                raise ValueError('ERROR: units ' + str(units) + ' not supported.')
 
         def get_temp(self, channel_n=0, units=None):
             if units is None:
@@ -754,7 +857,7 @@ try:
                 units = self._default_units
 
             return self.get_ai_device().t_in_list(low_chan=low_channel, high_chan=high_channel,
-                                                  scale=self.get_TempScale_unit(units.lower))
+                                                  scale=self.get_TempScale_unit(units.lower()))
 
         def get_thermocouple_type(self, channel):
             return self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
@@ -771,10 +874,11 @@ try:
                 'N': 8
             }
 
-            val = tc_type_dict[new_tc_type.upper()]
-
+            try:
+                val = tc_type_dict[new_tc_type.upper()]
+            except KeyError:
+                raise ValueError('ERROR: TC Type ' + str(new_tc_type) + ' not supported')
             self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
-
 
         @property
         def idn(self):
@@ -785,8 +889,17 @@ try:
             return self.get_config().get_ip_address()
 
         @property
-        def number_of_temp_channels(self):
+        def number_temp_channels(self):
             return self.get_ai_device().get_info().get_num_chans()
+
+        @property
+        def default_units(self):
+            return self._default_units
+
+        @default_units.setter
+        def default_units(self, new_units):
+            self.get_TempScale_unit(new_units)
+            self._default_units = new_units
 
         @property
         def temp_ch0(self):
@@ -842,11 +955,9 @@ class Heater:
         self.resistance = resistance
 
 
-class Oven:
+class HeaterAssembly:
     def __init__(
             self,
-            ip4_address,
-            port,
             supply_and_channel,
             daq_and_channel,
             heater=None,
@@ -882,16 +993,16 @@ class Oven:
             True if the pid object has not been manually configured.
         """
 
-        self._ip4_address = ip4_address
-        self._port = port
         self._supply_and_channel = supply_and_channel
-        self.daq_and_channel = daq_and_channel
+        self._daq_and_channel = daq_and_channel
+        self._pid = self.configure_pid()
         self._heater = heater
-
         if heater is None:
             self._heater = Heater()
-
-        self._pid = self.configure_pid()
+        self._MAX_voltage_limit = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage_limit)
+        self._MAX_current_limit = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current_limit)
+        self._MAX_temp_limit = self._heater.MAX_temp
+        self._regulating = False
 
     def configure_pid(self):  # TODO: Finish. Currently not working
         """
@@ -907,7 +1018,7 @@ class Oven:
 
         pid.setpoint = 0
         pid.sample_time = 2
-        out_max = min(self._heater.MAX_volts, ps.get_voltage_limit(ch))
+        out_max = min(self._heater.MAX_volts, ps.get_channel_voltage_limit(ch))
         pid.output_limits = (0, out_max)
 
         return pid
@@ -919,59 +1030,188 @@ class Oven:
         ps.set_channel_current_limit(ch, self._heater.MAX_current)
         ps.set_set_current(ch, self._heater.MAX_current)
         ps.set_set_voltage(ch, 0)
+        ps.set_channel_state(ch, 'on')
 
     # -----------------------------------------------------------------------------
     # Properties
     # -----------------------------------------------------------------------------
+
+    # Power supply
+    # ------------
     @property
     def power_supply(self):
         out = 'IDN: ' + self._supply_and_channel[0].idn + '\n' \
               + 'IP4 Address: ' + self._supply_and_channel[0].ip4_address
-
         return out
+
+    @property
+    def supply_set_voltage(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_set_voltage(ch)
+
+    @supply_set_voltage.setter
+    def supply_set_voltage(self, new_volt):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_set_voltage(ch, new_volt)
+
+    @property
+    def supply_set_current(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_set_current(ch)
+
+    @supply_set_current.setter
+    def supply_set_current(self, new_curr):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_set_current(ch, new_curr)
+
+    @property
+    def supply_actual_voltage(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_actual_voltage(ch)
+
+    @property
+    def supply_actual_current(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_actual_current(ch)
+
+    @property
+    def supply_voltage_limit(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_channel_voltage_limit(ch)
+
+    @supply_voltage_limit.setter
+    def supply_voltage_limit(self, new_lim):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_channel_voltage_limit(ch, new_lim)
+
+    @property
+    def supply_current_limit(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_channel_current_limit(ch)
+
+    @supply_current_limit.setter
+    def supply_current_limit(self, new_lim):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_channel_current_limit(ch, new_lim)
+
+    @property
+    def supply_channel_state(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_channel_state(ch)
+
+    @supply_channel_state.setter
+    def supply_channel_state(self, new_state):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_channel_state(ch, new_state)
 
     @property
     def supply_channel(self):
         return self._supply_and_channel[1]
 
     @supply_channel.setter
-    def supply_channel(self, new_chan):
-        if 1 <= new_chan <= self._supply_and_channel[0].number_of_channels:
-            self._supply_and_channel[1] = new_chan
-        else:
-            print('ERROR: channel not found')
-            sys.exit()
+    def supply_channel(self, new_ch):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        if new_ch <= ps.number_of_channels and new_ch != ch:
+            ps.zero_all_channels()
+            self._supply_and_channel[1] = new_ch
 
     @property
+    def MAX_voltage_limit(self):
+        return self._MAX_voltage_limit
+
+    @property
+    def MAX_current_limit(self):
+        return self._MAX_current_limit
+
+    # Temp DAQ
+    # --------
+    @property
     def daq(self):
-        out = 'IDN: ' + self.daq_and_channel.idn + '\n' \
-              + 'IP4 Address: ' + self.daq_and_channel[0].ip4_address
+        out = 'IDN: ' + self._daq_and_channel.idn + '\n' \
+              + 'IP4 Address: ' + self._daq_and_channel[0].ip4_address
         return out
 
     @property
+    def temp(self):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        return dq.get_temp(ch)
+
+    @property
     def daq_channel(self):
-        return self.daq_and_channel[1]
+        return self._daq_and_channel[1]
 
     @daq_channel.setter
     def daq_channel(self, new_chan):  # TODO: add syntax checking for mcc device
-        if 0 <= new_chan < self.daq_and_channel[0].number_temp_channels:
-            self.daq_and_channel[1] = new_chan
+        if 0 <= new_chan < self._daq_and_channel[0].number_temp_channels:
+            self._daq_and_channel[1] = new_chan
         else:
             print('ERROR: channel not found')
             sys.exit()
 
     @property
+    def thermocouple_type(self):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        return dq.get_thermocouple_type(ch)
+
+    @thermocouple_type.setter
+    def thermocouple_type(self, new_tc):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        dq.set_thermocouple_type(ch, new_tc)
+
+    @property
     def temp_units(self):
-        return self.daq_and_channel[0].default_units
+        return self._daq_and_channel[0].default_units
 
     @temp_units.setter
     def temp_units(self, new_units):
-        self.daq_and_channel[0].default_units = new_units  # this also checks if input is valid
+        self._daq_and_channel[0].default_units = new_units  # this also checks if input is valid
 
-    @property  # TODO: finish later
+    # PID settings
+    # ------------
+    @property
     def pid_function(self):
         return f'kp={self._pid.Kp} ki={self._pid.Ki} kd={self._pid.Kd} setpoint={self._pid.setpoint} sampletime=' \
                f'{self._pid.sample_time}'
+
+    @property
+    def pid_kp(self):
+        return self._pid.Kp
+
+    @pid_kp.setter
+    def pid_kp(self, new_kp):
+        self._pid.Kp = new_kp
+
+    @property
+    def pid_ki(self):
+        return self._pid.Ki
+
+    @pid_ki.setter
+    def pid_ki(self, new_ki):
+        self._pid.Ki = new_ki
+
+    @property
+    def pid_kd(self):
+        return self._pid.Kd
+
+    @pid_kd.setter
+    def pid_kd(self, new_kd):
+        self._pid.Kd = new_kd
 
     @property
     def set_temperature(self):
@@ -979,9 +1219,8 @@ class Oven:
 
     @set_temperature.setter
     def set_temperature(self, new_temp):
-        if self._heater.MAX_temp < new_temp:
-            raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check the MAX and MIN set '
-                                                                   'temperature limits')
+        if self._MAX_temp_limit < new_temp:
+            raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check temperature limits')
         self._pid.setpoint = new_temp
 
     @property
@@ -993,12 +1232,18 @@ class Oven:
         self._pid.sample_time = new_st
 
     @property
-    def MAX_set_temp(self):
-        return self._heater.MAX_temp
+    def pid_regulating(self):
+        return self._regulating
+
+    @pid_regulating.setter
+    def pid_regulating(self, regulate):
+        if not (type(regulate) is int) or not (type(regulate) is float):
+            raise TypeError('ERROR: ' + str(regulate) + ' not valid input')
+        self._regulating = bool(regulate)
 
     @property
-    def current_temp(self):
-        return self.daq_and_channel[0].get_temp(channel_n=self.daq_and_channel[1])
+    def MAX_set_temp(self):
+        return self._MAX_temp_limit
 
     # -----------------------------------------------------------------------------
     # methods
@@ -1010,7 +1255,7 @@ class Oven:
         """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        new_ps_voltage = self._pid(self.current_temp)
+        new_ps_voltage = self._pid(self.temp)
         ps.set_set_voltage(channel=ch, volts=new_ps_voltage)
 
         return new_ps_voltage
@@ -1030,7 +1275,7 @@ class Oven:
             ps_volt = self.update_supply()
 
             temp.pop(0)
-            temp.append(self.current_temperature)
+            temp.append(self.temp)
 
             time_.pop(0)
             time_.append(i)
