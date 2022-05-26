@@ -1,20 +1,34 @@
 import socket
-import fcntl
-import struct
+from sys import platform
 import time
+
 from device_models import SPD3303X
-from device_models import E_Tc_Linux
 from device_type import HeaterAssembly
 from device_type import Heater
-import numpy as np
-import simple_pid
+try:
+    from device_models import E_Tc
+except (ModuleNotFoundError, ImportError):
+    pass
+try:
+    from device_models import E_Tc_Linux
+except (ModuleNotFoundError, ImportError):
+    pass
+try:
+    import fcntl
+    import struct
+except (ModuleNotFoundError, ImportError):
+    pass
 
 
-def get_ip_address(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(
-        fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(ifname[:15], 'utf-8')))[20:24])
-
+def get_host_ip(ifname):
+    if ifname == 'loopback':
+        return '127.0.0.1'
+    elif platform == 'linux' or platform == 'linux2':
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(
+            fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(ifname[:15], 'utf-8')))[20:24])
+    else:
+        return socket.gethostbyname(socket.gethostname())
 
 def process_command(cmd, asm):
     """
@@ -48,9 +62,7 @@ def process_command(cmd, asm):
         asm.supply_set_voltage = 0
         asm.supply_set_current = 0
     elif f == 'PS:REDY':
-        asm.supply_set_voltage = 0
-        asm.supply_set_current = asm.supply_current_limit
-        asm.supply_channel_state = 'ON'
+        asm.configure_power_supply()
     elif f == 'PS:VOLT':
         if s == '?':
             return asm.supply_actual_voltage
@@ -144,32 +156,34 @@ def process_command(cmd, asm):
     elif f == 'PD:REGT':
         if s == '?':
             return asm.pid_regulating
+        elif int(s) == 1:
+            asm.configure_power_supply()
+            asm.pid_regulating = int(s)
         else:
             asm.pid_regulating = int(s)
+    else:
+        return 'ERROR: bad command' + str(cmd)
     return
 
 def main():
-    ip4_address = get_ip_address('eth0')
 
-    HOST = ip4_address
+    HOST = get_host_ip('loopback')
     PORT = 65432
 
     # Devices
     # -------
     ps = SPD3303X('10.176.42.121')
-    daq = E_Tc('10.176.42.200')
-    h = Heater(MAX_temp=100, MAX_volts = 30, MAX_current = 0.5)
+    h = Heater(MAX_temp=100, MAX_volts=30, MAX_current = 0.5)
+    try:
+        daq = E_Tc(0, '10.176.42.200')
+    except NameError:
+        pass
+    try:
+        daq = E_Tc_Linux('10.176.42.200')
+    except NameError:
+        pass
 
     assembly = HeaterAssembly((ps, 1), (daq, 0), h)
-    assembly.configure_power_supply()
-    assembly.set_temperature = 60
-    assembly.sample_time = 2
-
-
-    # Buttons
-    # -------
-    regulate = False
-
 
     # Connection
     # ----------
@@ -183,21 +197,27 @@ def main():
             conn.setblocking(False)
             print(f"Connected by {addr}")
 
+            t0 = time.time()
             while True:
                 if assembly.pid_regulating:
-                    assembly.update_supply()
-                    print(assembly.temp)
-                    time.sleep(0.5)
+                    if time.time() - t0 >= assembly.sample_time:
+                        assembly.update_supply()
+                        print(assembly.temp)
+                        t0 = time.time()
                 else:
-                    assembly.supply_set_voltage(0)
+                    assembly.supply_set_voltage = 0
                 try:
                     data = conn.recv(1024).decode('utf-8')
                     if not data:
                          print(f"Disconnected by {addr}")
                          break
+                    out = process_command(data, assembly)
 
-                    process_command(data, assembly)
+                    if out is not None:
+                        conn.sendall((str(out) + '\r').encode('utf-8'))
 
                 except BlockingIOError:
                     pass
 
+
+main()
