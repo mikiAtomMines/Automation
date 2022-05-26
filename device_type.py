@@ -886,7 +886,7 @@ try:
 
         @property
         def ip4_address(self):
-            return self.get_config().get_ip_address()
+            return self.get_config().get_host_ip()
 
         @property
         def number_temp_channels(self):
@@ -995,16 +995,16 @@ class HeaterAssembly:
 
         self._supply_and_channel = supply_and_channel
         self._daq_and_channel = daq_and_channel
-        self._pid = self.configure_pid()
         self._heater = heater
-        if heater is None:
+        if self._heater is None:
             self._heater = Heater()
+        self._pid = self.configure_pid()
         self._MAX_voltage_limit = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage_limit)
         self._MAX_current_limit = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current_limit)
         self._MAX_temp_limit = self._heater.MAX_temp
         self._regulating = False
 
-    def configure_pid(self):  # TODO: Finish. Currently not working
+    def configure_pid(self):
         """
         Sets the output limits, sample time, set point, and the Kp, Ki, and Kd of the PID object.
         """
@@ -1237,7 +1237,7 @@ class HeaterAssembly:
 
     @pid_regulating.setter
     def pid_regulating(self, regulate):
-        if not (type(regulate) is int) or not (type(regulate) is float):
+        if not (type(regulate) is int) and not (type(regulate) is float):
             raise TypeError('ERROR: ' + str(regulate) + ' not valid input')
         self._regulating = bool(regulate)
 
