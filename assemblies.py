@@ -341,10 +341,10 @@ class HeaterAssembly:
         return self._regulating
 
     @pid_regulating.setter
-    def pid_regulating(self, regulate):
-        if not (type(regulate) is int) and not (type(regulate) is float):
-            raise TypeError('ERROR: ' + str(regulate) + ' not valid input')
-        self._regulating = bool(regulate)
+    def pid_regulating(self, reg):
+        if not(type(reg) is int) and not(type(reg) is float) and not(type(reg) is bool):
+            raise TypeError('ERROR: ' + str(reg) + ' not valid input')
+        self._regulating = bool(reg)
 
     @property
     def MAX_set_temp(self):
@@ -358,8 +358,6 @@ class HeaterAssembly:
         Calculates the new power supply voltage using the PID function based on the current temperature from the
         temperature daq channel. It then sets the power supply channel voltage to this new voltage.
         """
-        self.ready_assembly()
-
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         new_ps_voltage = self._pid(round(self.temp, 2))
