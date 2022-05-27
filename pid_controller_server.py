@@ -170,6 +170,10 @@ def process_command(cmd, asm_dict):
         return asm.reset_assembly()
     elif f == 'AM:REDY':
         return asm.ready_assembly()
+    elif f == 'AM:MAXV':
+        return asm.MAX_voltage_limit
+    elif f == 'AM:MAXA':
+        return asm.MAX_current_limit
     else:
         return 'ERROR: bad command' + str(cmd)
     return
