@@ -3,7 +3,7 @@ from sys import platform
 import time
 
 from device_models import SPD3303X
-from device_type import HeaterAssembly
+from assemblies import HeaterAssembly
 from device_type import Heater
 try:
     from device_models import E_Tc
@@ -56,13 +56,13 @@ def process_command(cmd, asm_dict):
     elif f == 'PS:RSET':
         asm.configure_power_supply()
     elif f == 'PS:STOP':
-        asm.supply_channel_state = 'OFF'
+        asm.supply_channel_state = False
         asm.supply_set_voltage = 0
         asm.supply_set_current = 0
     elif f == 'PS:REDY':
         asm.supply_set_voltage = 0
         asm.supply_set_current = asm.supply_current_limit
-        asm.supply_channel_state = 'ON'
+        asm.supply_channel_state = True
     elif f == 'PS:VOLT':
         if s == '?':
             return asm.supply_actual_voltage
@@ -97,7 +97,7 @@ def process_command(cmd, asm_dict):
         if s == '?':
             return int(asm.supply_channel_state)
         else:
-            asm.supply_channel_state = int(s)
+            asm.supply_channel_state = bool(int(s))
     elif f == 'PS:CHAN':
         if s == '?':
             return asm.supply_channel
@@ -166,14 +166,16 @@ def process_command(cmd, asm_dict):
     return
 
 
-def update_heaters(asm_dict, timer_dict):
+def update_heaters(asm_dict, t0_dict):
     for key, asm in asm_dict.items():
-        if asm.pid_regulating and time.time() - timer_dict[key] >= asm.sample_time:
-            asm.update_supply()
-            timer_dict[key] = time.time()
-        elif not asm.pid_regulating:
-            asm.supply_set_voltage = 0
-
+        if time.time() - t0_dict[key] >= asm.sample_time:
+            if asm.pid_regulating:
+                asm.update_supply()
+                t0_dict[key] = time.time()
+                print(asm.temp)
+            else:
+                asm.supply_set_voltage = 0
+    return t0_dict
 
 def main():
     HOST = get_host_ip('loopback')
@@ -198,39 +200,48 @@ def main():
 
     # Connection
     # ----------
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        print('Bound to', HOST, PORT)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((HOST, PORT))
+    print('Bound to', HOST, PORT)
+
+    while True:
+        t0_dict1 = {}
+        for key in asm_dict.keys():
+            t0_dict1[key] = time.time()
         while True:
-            s.listen()
-            print('listening')
-            conn, addr = s.accept()
-            with conn:
-                conn.setblocking(False)
-                print(f"Connected by {addr}")
+            s.settimeout(1)
+            try:
+                print('listening')
+                s.listen()
+                conn, addr = s.accept()
+                break
+            except socket.timeout:
+                t0_dict1 = update_heaters(asm_dict, t0_dict1)
 
-                timer_dict = {}
-                for key in asm_dict.keys():
-                    timer_dict[key] = time.time()
+        conn.setblocking(False)
+        print(f"Connected by {addr}")
+        with conn:
+            t0_dict2 = {}
+            for key in asm_dict.keys():
+                t0_dict2[key] = time.time()
+            while True:
+                update_heaters(asm_dict, t0_dict2)
 
-                while True:
-                    update_heaters(asm_dict, timer_dict)
+                try:
+                    data = conn.recv(1024).decode('utf-8').upper()
+                    if not data:
+                         print(f"Disconnected by {addr}")
+                         break
+                    out = process_command(data, asm_dict)
 
-                    try:
-                        data = conn.recv(1024).decode('utf-8').upper()
-                        if not data:
-                             print(f"Disconnected by {addr}")
-                             break
-                        out = process_command(data, asm_dict)
+                    if out is not None:
+                        conn.sendall((str(out) + '\r').encode('utf-8'))
 
-                        if out is not None:
-                            conn.sendall((str(out) + '\r').encode('utf-8'))
-
-                    except BlockingIOError:
-                        pass
-                    except ConnectionResetError:
-                        print(f"Disconnected by {addr}")
-                        break
+                except BlockingIOError:
+                    pass
+                except ConnectionResetError:
+                    print(f"Disconnected by {addr}")
+                    break
 
 
 main()
