@@ -50,39 +50,84 @@ class HeaterAssembly:
         self._heater = heater
         if self._heater is None:
             self._heater = Heater()
-        self._pid = self.configure_pid()
+        self._pid = self._get_default_pid()
         self._MAX_voltage_limit = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage_limit)
         self._MAX_current_limit = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current_limit)
         self._MAX_temp_limit = self._heater.MAX_temp
         self._regulating = False
 
-    def configure_pid(self):
+    def _get_default_pid(self):
         """
         Sets the output limits, sample time, set point, and the Kp, Ki, and Kd of the PID object.
         """
         pid = simple_pid.PID()
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
+        out_max = min(self._heater.MAX_volts, ps.get_channel_voltage_limit(ch))
 
         pid.Kp = 1
         pid.Ki = 0.03
         pid.Kd = 0
-
         pid.setpoint = 0
         pid.sample_time = 2
-        out_max = min(self._heater.MAX_volts, ps.get_channel_voltage_limit(ch))
         pid.output_limits = (0, out_max)
 
         return pid
 
-    def configure_power_supply(self):
+    def reset_pid(self):
+        self._pid = self._get_default_pid()
+
+    def reset_pid_limits(self):
+        pid = self._pid
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_channel_voltage_limit(ch, self._heater.MAX_volts)
-        ps.set_channel_current_limit(ch, self._heater.MAX_current)
-        ps.set_set_current(ch, self._heater.MAX_current)
+        out_max = min(self.MAX_voltage_limit, ps.get_channel_voltage_limit(ch))
+
+        pid.output_limits = (0, out_max)
+
+    def stop_supply(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_channel_state(ch, False)
         ps.set_set_voltage(ch, 0)
+        ps.set_set_current(ch, 0)
+
+    def reset_power_supply(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_channel_state(ch, False)
+        ps.set_set_voltage(ch, 0)
+        ps.set_set_current(ch, 0)
+        ps.set_channel_voltage_limit(ch, ps.MAX_voltage_limit)
+        ps.set_channel_current_limit(ch, ps.MAX_current_limit)
+
+    def ready_power_supply(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        ps.set_set_voltage(ch, 0)
+        ps.set_set_current(ch, 0)
+        if ps.get_channel_voltage_limit(ch) > self.MAX_voltage_limit:
+            ps.set_channel_voltage_limit(ch, self.MAX_voltage_limit)
+        if ps.get_channel_current_limit(ch) > self.MAX_current_limit:
+            ps.set_channel_voltage_limit(ch, self.MAX_current_limit)
+        ps.set_set_current = ps.get_channel_current_limit(ch)
         ps.set_channel_state(ch, True)
+
+    def reset_assembly(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        self.reset_power_supply()
+        ps.set_channel_voltage_limit(ch, self.MAX_voltage_limit)
+        ps.set_channel_current_limit(ch, self.MAX_current_limit)
+        self.reset_pid()
+
+    def ready_assembly(self):
+        self.ready_power_supply()
+        self.reset_pid_limits()
+
+    def stop(self):
+        self.stop_supply()
+        self._pid.setpoint = 0
 
     # -----------------------------------------------------------------------------
     # Properties
@@ -179,6 +224,14 @@ class HeaterAssembly:
         if new_ch <= ps.number_of_channels and new_ch != ch:
             ps.zero_all_channels()
             self._supply_and_channel[1] = new_ch
+
+    @property
+    def supply_MAX_voltage(self):
+        return self._supply_and_channel[0].MAX_voltage_limit
+
+    @property
+    def supply_MAX_current(self):
+        return self._supply_and_channel[0].MAX_current_limit
 
     @property
     def MAX_voltage_limit(self):
@@ -305,6 +358,8 @@ class HeaterAssembly:
         Calculates the new power supply voltage using the PID function based on the current temperature from the
         temperature daq channel. It then sets the power supply channel voltage to this new voltage.
         """
+        self.ready_assembly()
+
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         new_ps_voltage = self._pid(round(self.temp, 2))
@@ -467,6 +522,12 @@ class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
     def get_pid_idn(self, asm_key):
         return self._query_(asm_key, 'PD:IDN')
 
+    def reset_pid(self, asm_key):
+        return self._command_(asm_key, 'PD:RSET')
+
+    def reset_pid_limits(self, asm_key):
+        return self._command_(asm_key, 'PD:RLIM')
+
     def get_pid_kpro(self, asm_key):
         return self._query_(asm_key, 'PD:KPRO ?')
 
@@ -502,3 +563,13 @@ class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
 
     def set_pid_regulating(self, asm_key, regt):
         return self._command_(asm_key, 'PD:REGT', int(regt))
+
+    #Assembly
+    def stop(self, asm_key):
+        return self._command_(asm_key, 'AM:STOP')
+
+    def reset_assembly(self, asm_key):
+        return self._command_(asm_key, 'AM:RSET')
+
+    def ready_assembly(self, asm_key):
+        return self._command_(asm_key, 'AM:REDY')

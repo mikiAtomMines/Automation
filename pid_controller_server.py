@@ -20,7 +20,7 @@ except (ModuleNotFoundError, ImportError):
     pass
 
 
-def get_host_ip(ifname):
+def get_host_ip(ifname='eth0'):
     if ifname == 'loopback':
         return '127.0.0.1'
     elif platform == 'linux' or platform == 'linux2':
@@ -29,6 +29,7 @@ def get_host_ip(ifname):
             fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(ifname[:15], 'utf-8')))[20:24])
     else:
         return socket.gethostbyname(socket.gethostname())
+
 
 def process_command(cmd, asm_dict):
     """
@@ -54,15 +55,11 @@ def process_command(cmd, asm_dict):
     if f == 'PS:IDN':
         return asm.power_supply
     elif f == 'PS:RSET':
-        asm.configure_power_supply()
+        asm.reset_power_supply()
     elif f == 'PS:STOP':
-        asm.supply_channel_state = False
-        asm.supply_set_voltage = 0
-        asm.supply_set_current = 0
+        asm.stop_supply()
     elif f == 'PS:REDY':
-        asm.supply_set_voltage = 0
-        asm.supply_set_current = asm.supply_current_limit
-        asm.supply_channel_state = True
+        asm.ready_power_supply()
     elif f == 'PS:VOLT':
         if s == '?':
             return asm.supply_actual_voltage
@@ -128,6 +125,10 @@ def process_command(cmd, asm_dict):
     # PID settings
     elif f == 'PD:IDN':
         return asm.pid_function
+    elif f == 'PD:RSET':
+        return asm.reset_pid()
+    elif f == 'PD:RLIM':
+        return asm.reset_pid_limits()
     elif f == 'PD:KPRO':
         if s == '?':
             return asm.pid_kp
@@ -161,6 +162,14 @@ def process_command(cmd, asm_dict):
             asm.pid_regulating = int(s)
         else:
             asm.pid_regulating = int(s)
+
+    #Assembly
+    elif f == 'AM:STOP':
+        return asm.stop()
+    elif f == 'AM:RSET':
+        return asm.reset_assembly()
+    elif f == 'AM:REDY':
+        return asm.ready_assembly()
     else:
         return 'ERROR: bad command' + str(cmd)
     return
