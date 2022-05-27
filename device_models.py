@@ -336,8 +336,8 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         return out
 
     def reset_channels(self):
-        self.ch1_state = 'OFF'
-        self.ch2_state = 'OFF'
+        self.set_channel_state(1, False)
+        self.set_channel_state(2, False)
         self.zero_all_channels()
         print('Both channels turned off and set to 0. Channel limits are reset to MAX.')
 
@@ -414,16 +414,15 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
     def set_channel_state(self, channel, state):
         """
         :param channel: int
-        :param str or int state: str valid inputs (not case sensitive): on, off. Also 1 for on or 0 for off
+        :param bool or int state: True for on, False for off
         """
-        if type(state) is int or type(state) is float:
-            if int(state) == 1:
-                state = 'ON'
-            elif int(state) == 0:
-                state = 'OFF'
+        state = bool(state)
+        if state:
+            state_str = 'ON'
+        else:
+            state_str = 'OFF'
 
-        self.check_channel_syntax(channel)
-        cmd = 'Output CH' + str(channel) + ',' + state.upper()
+        cmd = 'Output CH' + str(channel) + ',' + state_str
         self._command_(cmd)
 
     def set_set_voltage(self, channel, volts):
@@ -518,23 +517,29 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
 
     @property
     def ch1_state(self):
+        """
+        :return bool: True for on, False for off.
+        """
         return self.get_channel_state(1)
 
     @ch1_state.setter
     def ch1_state(self, state):
         """
-        :param state: str valid inputs (not case sensitive): on, off.
+        :param bool state: True for on, False for off.
         """
         self.set_channel_state(1, state)
 
     @property
     def ch2_state(self):
+        """
+        :return bool: True for on, False for off.
+        """
         return self.get_channel_state(2)
 
     @ch2_state.setter
     def ch2_state(self, state):
         """
-        :param state: str valid inputs (not case sensitive): on, off.
+        :param bool state: True for on, False for off.
         """
         self.set_channel_state(2, state)
 
