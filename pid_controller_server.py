@@ -36,8 +36,8 @@ def process_command(cmd, asm_dict):
     takes a string cmd and executes the respective function.
 
     :param str cmd: command from made-up communication protocol. See ReadMe for more details.
-    :param HeaterAssembly asm: heater assembly object that contains the power supply, temperature daq, and simple_pid
-    objects to interact with their physical counterparts to control the oven
+    :param dict of HeaterAssembly asm_dict: dictionary of heater assembly objects that contain the power supply,
+    temperature daq, and simple_pid objects to interact with their physical counterparts to control the oven
     :return str or float or None: return query request. If it's a command, return None.
     """
     try:
@@ -158,12 +158,12 @@ def process_command(cmd, asm_dict):
         if s == '?':
             return asm.pid_regulating
         elif int(s) == 1:
-            asm.configure_power_supply()
-            asm.pid_regulating = int(s)
-        else:
-            asm.pid_regulating = int(s)
+            asm.ready_assembly()
+            asm.pid_regulating = bool(int(s))
+        elif int(s) == 0:
+            asm.pid_regulating = bool(int(s))
 
-    #Assembly
+    # Assembly
     elif f == 'AM:STOP':
         return asm.stop()
     elif f == 'AM:RSET':
@@ -186,6 +186,7 @@ def update_heaters(asm_dict, t0_dict):
                 asm.supply_set_voltage = 0
     return t0_dict
 
+
 def main():
     HOST = get_host_ip('loopback')
     PORT = 65432
@@ -193,13 +194,14 @@ def main():
     # Devices
     # -------
     ps = SPD3303X('10.176.42.121')
-    h = Heater(MAX_temp=100, MAX_volts=30, MAX_current = 0.5)
+    h = Heater(MAX_temp=100, MAX_volts=30, MAX_current=0.5)
+    daq_ip = '10.176.42.200'
     try:
-        daq = E_Tc(0, '10.176.42.200')
+        daq = E_Tc(0, daq_ip)
     except NameError:
         pass
     try:
-        daq = E_Tc_Linux('10.176.42.200')
+        daq = E_Tc_Linux(daq_ip)
     except NameError:
         pass
 
@@ -239,8 +241,8 @@ def main():
                 try:
                     data = conn.recv(1024).decode('utf-8').upper()
                     if not data:
-                         print(f"Disconnected by {addr}")
-                         break
+                        print(f"Disconnected by {addr}")
+                        break
                     out = process_command(data, asm_dict)
 
                     if out is not None:
