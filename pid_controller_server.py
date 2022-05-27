@@ -30,7 +30,7 @@ def get_host_ip(ifname):
     else:
         return socket.gethostbyname(socket.gethostname())
 
-def process_command(cmd, asm):
+def process_command(cmd, asm_dict):
     """
     takes a string cmd and executes the respective function.
 
@@ -39,30 +39,30 @@ def process_command(cmd, asm):
     objects to interact with their physical counterparts to control the oven
     :return str or float or None: return query request. If it's a command, return None.
     """
-    if cmd[-1] != '\r':
-        raise ValueError('ERROR: command ' + str(cmd) + ' not valid.')  # TODO: consider chaning all raise commands
-                                                                        # to return -1 or smt like that.
     try:
-        f, s = cmd.split()
+        asm_key, f, s = cmd.split()
     except ValueError:
-        f = cmd.split()[0]
+        asm_key, f = cmd.split()
+
+    try:
+        asm = asm_dict[asm_key]
+    except KeyError:
+        return 'ERROR: HeaterAssmebly name ' + asm_key + ' not valid'
 
     # Power supply commands
     # ---------------------
     if f == 'PS:IDN':
         return asm.power_supply
     elif f == 'PS:RSET':
-        asm.supply_set_voltage = 0
-        asm.supply_set_current = 0
-        asm.supply_voltage_limit = asm.MAX_voltage_limit
-        asm.supply_current_limit = asm.MAX_current_limit
-        asm.supply_channel_state = 'ON'
+        asm.configure_power_supply()
     elif f == 'PS:STOP':
         asm.supply_channel_state = 'OFF'
         asm.supply_set_voltage = 0
         asm.supply_set_current = 0
     elif f == 'PS:REDY':
-        asm.configure_power_supply()
+        asm.supply_set_voltage = 0
+        asm.supply_set_current = asm.supply_current_limit
+        asm.supply_channel_state = 'ON'
     elif f == 'PS:VOLT':
         if s == '?':
             return asm.supply_actual_voltage
@@ -165,8 +165,17 @@ def process_command(cmd, asm):
         return 'ERROR: bad command' + str(cmd)
     return
 
-def main():
 
+def update_heaters(asm_dict, timer_dict):
+    for key, asm in asm_dict.items():
+        if asm.pid_regulating and time.time() - timer_dict[key] >= asm.sample_time:
+            asm.update_supply()
+            timer_dict[key] = time.time()
+        elif not asm.pid_regulating:
+            asm.supply_set_voltage = 0
+
+
+def main():
     HOST = get_host_ip('loopback')
     PORT = 65432
 
@@ -183,41 +192,45 @@ def main():
     except NameError:
         pass
 
-    assembly = HeaterAssembly((ps, 1), (daq, 0), h)
+    asm1 = HeaterAssembly((ps, 1), (daq, 0), h)
+
+    asm_dict = {'ASM1': asm1}
 
     # Connection
     # ----------
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         print('Bound to', HOST, PORT)
-        print('listening')
-        s.listen()
-        conn, addr = s.accept()
-        with conn:
-            conn.setblocking(False)
-            print(f"Connected by {addr}")
+        while True:
+            s.listen()
+            print('listening')
+            conn, addr = s.accept()
+            with conn:
+                conn.setblocking(False)
+                print(f"Connected by {addr}")
 
-            t0 = time.time()
-            while True:
-                if assembly.pid_regulating:
-                    if time.time() - t0 >= assembly.sample_time:
-                        assembly.update_supply()
-                        print(assembly.temp)
-                        t0 = time.time()
-                else:
-                    assembly.supply_set_voltage = 0
-                try:
-                    data = conn.recv(1024).decode('utf-8')
-                    if not data:
-                         print(f"Disconnected by {addr}")
-                         break
-                    out = process_command(data, assembly)
+                timer_dict = {}
+                for key in asm_dict.keys():
+                    timer_dict[key] = time.time()
 
-                    if out is not None:
-                        conn.sendall((str(out) + '\r').encode('utf-8'))
+                while True:
+                    update_heaters(asm_dict, timer_dict)
 
-                except BlockingIOError:
-                    pass
+                    try:
+                        data = conn.recv(1024).decode('utf-8').upper()
+                        if not data:
+                             print(f"Disconnected by {addr}")
+                             break
+                        out = process_command(data, asm_dict)
+
+                        if out is not None:
+                            conn.sendall((str(out) + '\r').encode('utf-8'))
+
+                    except BlockingIOError:
+                        pass
+                    except ConnectionResetError:
+                        print(f"Disconnected by {addr}")
+                        break
 
 
 main()
