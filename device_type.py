@@ -9,6 +9,7 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import auxiliary
+from connection_type import SocketEthernetDevice
 
 try:
     import mcculw  # Python MCC library for windows
@@ -708,6 +709,7 @@ try:
             """
             if new_units is None:
                 new_units = 'celsius'
+            new_units = new_units.lower()
             auxiliary.get_TempScale_unit(new_units)
             self._default_units = new_units
 
@@ -1140,7 +1142,7 @@ class HeaterAssembly:
     # --------
     @property
     def daq(self):
-        out = 'IDN: ' + self._daq_and_channel.idn + '\n' \
+        out = 'IDN: ' + self._daq_and_channel[0].idn + '\n' \
               + 'IP4 Address: ' + self._daq_and_channel[0].ip4_address
         return out
 
@@ -1292,3 +1294,161 @@ class HeaterAssembly:
 
         ani = anim.FuncAnimation(fig, animate, interval=2000)
         plt.show()
+
+
+class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
+    def __init__(self, heater_keys, ip4_address, port=65432, ):
+        super().__init__(ip4_address, port)
+
+        self._heater_keys = heater_keys
+
+    def _query_(self, asm_key, msg):
+        if type(asm_key) is int:
+            try:
+                asm_key = self._heater_keys[asm_key]
+            except IndexError:
+                return 'ERROR: index ' + str(asm_key) + ' not valid.'
+
+        qry = asm_key + ' ' + msg + '\r'
+        return self._query(qry.encode('utf-8')).decode('utf-8')
+
+    def _command_(self, asm_key, msg, param=''):
+        if type(asm_key) is int:
+            try:
+                asm_key = self._heater_keys[asm_key]
+            except IndexError:
+                return 'ERROR: index ' + str(asm_key) + ' not valid.'
+
+        cmd = asm_key + ' ' + msg + ' ' + str(param) + '\r'
+        self._command(cmd.encode('utf-8'))
+
+    # Power supply
+    # ------------
+    def get_supply_idn(self, asm_key):
+        return self._query_(asm_key, 'PS:IDN')
+
+    def reset_supply(self, asm_key):
+        return self._command_(asm_key, 'PS:RSET')
+
+    def stop_supply(self, asm_key):
+        return self._command_(asm_key, 'PS:STOP')
+
+    def stop_all_supplies(self):
+        for asm_key in self._heater_keys:
+            self._command_(asm_key, 'PS:STOP')
+
+    def ready_supply(self, asm_key):
+        return self._command_(asm_key, 'PS:REDY')
+
+    def ready_all_supplies(self):
+        for asm_key in self._heater_keys:
+            self._command_(asm_key, 'PS:REDY')
+
+    def get_supply_actual_voltage(self, asm_key):
+        return self._query_(asm_key, 'PS:VOLT ?')
+
+    def get_supply_set_voltage(self, asm_key):
+        return self._query_(asm_key, 'PS:VSET ?')
+
+    def set_supply_set_voltage(self, asm_key, volts):
+        return self._command_(asm_key, 'PS:VSET', volts)
+
+    def get_supply_actual_current(self, asm_key):
+        return self._query_(asm_key, 'PS:AMPS ?')
+
+    def get_supply_set_current(self, asm_key):
+        return self._query_(asm_key, 'PS:ASET ?')
+
+    def set_supply_set_current(self, asm_key, amps):
+        return self._command_(asm_key, 'PS:ASET', amps)
+
+    def get_supply_limit_voltage(self, asm_key):
+        return self._query_(asm_key, 'PS:VLIM ?')
+
+    def set_supply_limit_voltage(self, asm_key, volts):
+        return self._command_(asm_key, 'PS:VLIM', volts)
+
+    def get_supply_limit_current(self, asm_key):
+        return self._query_(asm_key, 'PS:ALIM ?')
+
+    def set_supply_limit_current(self, asm_key, amps):
+        return self._command_(asm_key, 'PS:ALIM', amps)
+
+    def get_supply_channel_state(self, asm_key):
+        return self._query_(asm_key, 'PS:CHIO ?')
+
+    def set_supply_channel_state(self, asm_key, state):
+        return self._command_(asm_key, 'PS:CHIO', int(state))
+
+    def get_supply_channel(self, asm_key):
+        return self._query_(asm_key, 'PS:CHAN ?')
+
+    def set_supply_channel(self, asm_key, new_chan):
+        return self._command_(asm_key, 'PS:CHAN', new_chan)
+
+    # DAQ
+    # ---
+    def get_daq_idn(self, asm_key):
+        return self._query_(asm_key, 'DQ:IDN')
+
+    def get_daq_temp(self, asm_key):
+        return self._query_(asm_key, 'DQ:TEMP ?')
+
+    def get_daq_channel(self, asm_key):
+        return self._query_(asm_key, 'DQ:CHAN ?')
+
+    def set_daq_channel(self, asm_key, new_chan):
+        return self._command_(asm_key, 'DQ:CHAN', new_chan)
+
+    def get_daq_tc_type(self, asm_key):
+        return self._query_(asm_key, 'DQ:TCTY ?')
+
+    def set_daq_tc_type(self, asm_key, tc_type):
+        return self._command_(asm_key, 'DQ:TCTY', tc_type)
+
+    def get_daq_units(self, asm_key):
+        return self._query_(asm_key, 'DQ:UNIT ?')
+
+    def set_daq_units(self, asm_key, units):
+        return self._command_(asm_key, 'DQ:UNIT', units)
+
+    # PID Settings
+    # ------------
+    def get_pid_idn(self, asm_key):
+        return self._query_(asm_key, 'PD:IDN')
+
+    def get_pid_kpro(self, asm_key):
+        return self._query_(asm_key, 'PD:KPRO ?')
+
+    def set_pid_kpro(self, asm_key, new_k):
+        return self._command_(asm_key, 'PD:KPRO', new_k)
+
+    def get_pid_kint(self, asm_key):
+        return self._query_(asm_key, 'PD:KINT ?')
+
+    def set_pid_kint(self, asm_key, new_k):
+        return self._command_(asm_key, 'PD:KINT', new_k)
+
+    def get_pid_kder(self, asm_key):
+        return self._query_(asm_key, 'PD:KDER ?')
+
+    def set_pid_kder(self, asm_key, new_k):
+        return self._command_(asm_key, 'PD:KDER', new_k)
+
+    def get_pid_setpoint(self, asm_key):
+        return self._query_(asm_key, 'PD:SETP ?')
+
+    def set_pid_setpoint(self, asm_key, new_temp):
+        return self._command_(asm_key, 'PD:SETP', new_temp)
+
+    def get_pid_sample_time(self, asm_key):
+        return self._query_(asm_key, 'PD:SAMP ?')
+
+    def set_pid_sample_time(self, asm_key, new_t):
+        return self._command_(asm_key, 'PD:SAMP', new_t)
+
+    def get_pid_regulating(self, asm_key):
+        return self._query_(asm_key, 'PD:REGT ?')
+
+    def set_pid_regulating(self, asm_key, regt):
+        return self._command_(asm_key, 'PD:REGT', int(regt))
