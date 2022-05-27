@@ -109,8 +109,8 @@ class HeaterAssembly:
         if ps.get_channel_voltage_limit(ch) > self.MAX_voltage_limit:
             ps.set_channel_voltage_limit(ch, self.MAX_voltage_limit)
         if ps.get_channel_current_limit(ch) > self.MAX_current_limit:
-            ps.set_channel_voltage_limit(ch, self.MAX_current_limit)
-        ps.set_set_current = ps.get_channel_current_limit(ch)
+            ps.set_channel_current_limit(ch, self.MAX_current_limit)
+        ps.set_set_current(ch, ps.get_channel_current_limit(ch))
         ps.set_channel_state(ch, True)
 
     def reset_assembly(self):
@@ -563,6 +563,12 @@ class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
         return self._command_(asm_key, 'PD:REGT', int(regt))
 
     #Assembly
+    def get_assembly_MAX_voltage(self, asm_key):
+        return self._query_(asm_key, 'AM:MAXV')
+
+    def get_assembly_MAX_current(self, asm_key):
+        return self._query_(asm_key, 'AM:MAXA')
+
     def stop(self, asm_key):
         return self._command_(asm_key, 'AM:STOP')
 
