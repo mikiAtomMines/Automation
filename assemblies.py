@@ -403,12 +403,10 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
     def __init__(self,ip4_address, port=65432, ):
         super().__init__(ip4_address, port)
 
-        self._heater_keys = self.get_assemblies_keys()
-
     def _query_(self, asm_key, msg):
         if type(asm_key) is int:
             try:
-                asm_key = self._heater_keys[asm_key]
+                asm_key = self.get_assemblies_keys()[asm_key]
             except IndexError:
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
@@ -418,7 +416,7 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
     def _command_(self, asm_key, msg, param=''):
         if type(asm_key) is int:
             try:
-                asm_key = self._heater_keys[asm_key]
+                asm_key = self.get_assemblies_keys()[asm_key]
             except IndexError:
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
@@ -445,14 +443,14 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
         return self._command_(asm_key, 'PS:STOP')
 
     def stop_all_supplies(self):
-        for asm_key in self._heater_keys:
+        for asm_key in self.get_assemblies_keys():
             self._command_(asm_key, 'PS:STOP')
 
     def ready_supply(self, asm_key):
         return self._command_(asm_key, 'PS:REDY')
 
     def ready_all_supplies(self):
-        for asm_key in self._heater_keys:
+        for asm_key in self.get_assemblies_keys():
             self._command_(asm_key, 'PS:REDY')
 
     def get_supply_actual_voltage(self, asm_key):
