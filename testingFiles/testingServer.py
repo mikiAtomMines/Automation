@@ -2,8 +2,8 @@ import socket
 import fcntl
 import struct
 import time
-from device_models import SPD3303X
-from device_type import MCC_Device_Linux
+from device_models import Spd3303x
+from device_type import MccDeviceLinux
 import numpy as np
 import simple_pid
 
@@ -22,11 +22,11 @@ PORT = 65432
 
 # Devices
 # -------                                                                                                           
-ps = SPD3303X('10.176.42.121')
+ps = Spd3303x('10.176.42.121')
 ps.set_set_current(1, 0.5)
 ps.set_channel_state(1, 'on')
 
-daq = MCC_Device_Linux('10.176.42.200')
+daq = MccDeviceLinux('10.176.42.200')
 pid = simple_pid.PID()
 pid.setpoint = 60
 pid.output_limits = (0, 30)

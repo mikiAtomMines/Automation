@@ -14,7 +14,7 @@ from mcculw.enums import InterfaceType
 
 
 def main():
-    # daq = device_models.E_Tc(ip4_address='10.176.42.200', board_number=0)
+    daq = device_models.ETcWindows(ip4_address='10.176.42.200', board_number=0)
     # print(daq.temp_ch0)
     # print(daq.number_temp_channels)
     # print(daq.number_da_channels)
@@ -39,15 +39,15 @@ def main():
     # pico = device_models.Model8742(ip4_address='10.176.42.123')
     # auxiliary.testing_model8742(pico)
 
-    # spd = device_models.SPD3303X(ip4_address='10.176.42.121')
+    spd = device_models.Spd3303x(ip4_address='10.176.42.121')
     # auxiliary.testing_SPD3303X(spd)
 
 
-    rga = device_models.SRS100(port='COM7')
-
-    rga.flush_buffers()
-    print(rga.idn)
-    rga.flush_buffers()
+    # rga = device_models.SRS100(port='COM7')
+    #
+    # rga.flush_buffers()
+    # print(rga.idn)
+    # rga.flush_buffers()
 
     # print(rga._query_('EC?'))
     # print(rga._query_('EF?'))
@@ -73,8 +73,24 @@ def main():
     # print(rga.get_ionizer_filament_current())
     # print(rga.get_status())
 
-    print(rga._command_(cmd='FL'))
-    print(rga.status_byte)
+    # print(rga._command_(cmd='FL'))
+    # print(rga.status_byte)
+
+    pid_ = pid.PID()
+    pid_.setpoint = 50
+    pid_.output_limits = (0, 30)
+    pid_.tunings = (1, 0.05, 0)
+
+    spd.set_set_current(1, 0.5)
+    spd.set_channel_state(1, 'on')
+
+    while True:
+        temp = daq.temp_ch0
+        new_volt = pid_(temp)
+        spd.set_set_voltage(1, new_volt)
+        print(round(temp, 2))
+
+        time.sleep(0.5)
 
 
 
