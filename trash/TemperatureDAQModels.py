@@ -7,7 +7,7 @@ Created on Tuesday, April 5, 2022
 import sys
 import time
 
-from device_type import MCC_Device
+from device_type import MccDeviceWindows
 from mcculw import ul
 from mcculw.enums import TempScale
 from mcculw.enums import TInOptions
@@ -74,7 +74,7 @@ def get_TempScale_unit(units):
         sys.exit()
 
 
-class Web_Tc(MCC_Device):  # TODO: Add properties for reading temp of channels
+class Web_Tc(MccDeviceWindows):  # TODO: Add properties for reading temp of channels
     def __init__(self, ip4_address=None, port=54211, board_number=0, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
