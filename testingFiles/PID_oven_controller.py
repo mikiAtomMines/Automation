@@ -13,7 +13,7 @@ import numpy as np
 
 # TODO: Make a PID_controller class that has power supplies and web_tc as attributes.
 def test_TC():
-    web_tc = device_models.Web_Tc()
+    web_tc = device_models.WebTc()
     data = []
 
     file = open('data.txt', 'w')
@@ -37,8 +37,8 @@ class PID_controller(pid.PID):
 def test_pid_with_ps():
     a = pid.PID()
 
-    web_tc = device_models.Web_Tc(board_number=0)
-    supply = device_models.SPD3303X(ip4_address='10.176.42.121', port=5025, reset_on_startup=True)
+    web_tc = device_models.WebTc(board_number=0)
+    supply = device_models.Spd3303x(ip4_address='10.176.42.121', port=5025, reset_on_startup=True)
     supply.set_all_channels_current_limit(0.25)
     supply.set_all_channels_voltage_limit(25)
     supply.ch1_state = 'on'
