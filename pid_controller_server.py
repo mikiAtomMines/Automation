@@ -274,17 +274,14 @@ def server_loop(asm_dict):
     keys_raw = list(asm_dict)
     for key in keys_raw:  # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
+
     HOST = get_host_ip(True)
     PORT = 65432
-
-    # Connection
-    # ----------
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((HOST, PORT))
     print('Bound to', HOST, PORT)
 
     while True:
-
         t0_dict1 = {}
         for key in asm_dict.keys():
             t0_dict1[key] = time.time()
