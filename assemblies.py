@@ -399,11 +399,11 @@ class HeaterAssembly:
         plt.show()
 
 
-class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
-    def __init__(self, heater_keys, ip4_address, port=65432, ):
+class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
+    def __init__(self,ip4_address, port=65432, ):
         super().__init__(ip4_address, port)
 
-        self._heater_keys = heater_keys
+        self._heater_keys = self.get_assemblies_keys()
 
     def _query_(self, asm_key, msg):
         if type(asm_key) is int:
@@ -424,6 +424,14 @@ class PidHeater(SocketEthernetDevice):  # TODO: Error handling for commands.
 
         cmd = asm_key + ' ' + msg + ' ' + str(param) + '\r'
         self._command(cmd.encode('utf-8'))
+
+    # Oven
+    def get_assemblies_keys(self):
+        """
+
+        :return list of str: keys of all the heater assemblies used by the oven.
+        """
+        return self._query_('OVEN', 'OV:KEYS').split()
 
     # Power supply
     # ------------
