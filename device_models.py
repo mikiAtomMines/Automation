@@ -11,8 +11,8 @@ import auxiliary
 from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
 try:
-    from device_type import MCC_Device
-    from device_type import MCC_Device_Linux
+    from device_type import MccDeviceWindows
+    from device_type import MccDeviceLinux
 except (ImportError, NameError):
     pass
 
@@ -247,7 +247,7 @@ class GM3(serial.Serial):  # TODO: needs work.
 # ======================================================================================================================
 # Power Supplies
 # ======================================================================================================================
-class SPD3303X(SocketEthernetDevice, PowerSupply):
+class Spd3303x(SocketEthernetDevice, PowerSupply):
     """
     An ethernet-controlled power supply. Querys and commands based on manual for Siglent SPD3303X power supply.
     All voltages and currents are in Volts and Amps unless specified otherwise.
@@ -627,7 +627,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
 # ======================================================================================================================
 # Temperature DAQs
 # ======================================================================================================================
-class Web_Tc(MCC_Device):
+class WebTc(MccDeviceWindows):
     def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
         """
         Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -660,7 +660,7 @@ class Web_Tc(MCC_Device):
 
 
 try:
-    class E_Tc(MCC_Device):
+    class ETcWindows(MccDeviceWindows):
         def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
             """
             Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -740,7 +740,7 @@ except ImportError:
     pass
 
 try:
-    class E_Tc_Linux(MCC_Device_Linux):
+    class ETcLinux(MccDeviceLinux):
         def __init__(self, ip4_address, port=54211, default_units='celsius'):
             super().__init__(ip4_address, port, default_units)
 except (ImportError, NameError):
@@ -1048,7 +1048,7 @@ class Model8742(SocketEthernetDevice):
 # ======================================================================================================================
 # RGA
 # ======================================================================================================================
-class SRS100:
+class Srs100:
     def __init__(
             self,
             port,

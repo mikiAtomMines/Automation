@@ -5,6 +5,7 @@ Created on Thursday, April 7, 2022
 
 
 import auxiliary
+from sys import platform
 
 try:
     import mcculw  # Python MCC library for windows
@@ -296,8 +297,8 @@ class PowerSupply:
 
 
 # ======================================================================================================================
-try:
-    class MCC_Device:
+if platform == 'win32':
+    class MccDeviceWindows:
         def __init__(
                 self,
                 # Connection stuff
@@ -803,12 +804,10 @@ try:
         @property
         def temp_ch7(self):
             return self.get_temp(channel_n=7)
-except NameError:
-    pass
 
 
-try:
-    class MCC_Device_Linux(DaqDevice):
+if platform == 'linux' or platform == 'linux2':
+    class MccDeviceLinux(DaqDevice):
         def __init__(
                 self,
                 ip4_address,
@@ -929,8 +928,7 @@ try:
         @property
         def temp_ch7(self):
             return self.get_temp(channel_n=7)
-except NameError:
-    pass
+
 
 # =====================================================================================================================
 class Heater:
