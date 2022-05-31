@@ -658,6 +658,7 @@ class Web_Tc(MCC_Device):
         super().__init__(board_number=board_number, ip4_address=ip4_address, port=port,
                          default_units=default_units)
 
+
 try:
     class E_Tc(MCC_Device):
         def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
@@ -744,6 +745,7 @@ try:
             super().__init__(ip4_address, port, default_units)
 except (ImportError, NameError):
     pass
+
 
 # ======================================================================================================================
 # Picomotor controller
@@ -1428,4 +1430,6 @@ class SRS100:
         self.set_ionizer_filament_current(miliamps=miliamps)
 
 
-
+# Eliptec motor
+class ELL14K:
+    pass

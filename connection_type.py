@@ -3,28 +3,27 @@ Created on Thursday, April 7, 2022
 @author: Sebastian Miki-Silva
 """
 
-# TODO: Add proper error handling. This includes receiving error from power supply.
-# TODO: Finish adding comments
 
 import socket
 import time
-import sys
-
-import serial
 
 
 class SocketEthernetDevice:
     def __init__(
             self,
-            ip4_address=None,
-            port=None,
+            ip4_address,
+            port,
     ):
 
         """
         An ethernet-controlled device.
 
-        :param ip4_address: The IPv4 address of the device.
-        :param port: The port number used to connect the device. Can be any number between 49152 and 65536.
+        Parameters
+        ----------
+        ip4_address : str
+            The IPv4 address of the device.
+        port : int
+            The port number used to connect the device. Can be any number between 49152 and 65536.
         """
 
         self._ip4_address = ip4_address
@@ -32,8 +31,7 @@ class SocketEthernetDevice:
         self._socket = None
         self._is_connected = False
 
-        if ip4_address is not None:
-            self.connect()
+        self.connect()
 
     def _query(self, query):
         """
@@ -42,18 +40,24 @@ class SocketEthernetDevice:
         Parameters
         ----------
         query : bytes
-            Python bytes containing the query command. Dependent on each individual device.
+            The message to send through the socket connection.
+
         Returns
         -------
         bytes
-            Returns the reply of the ethernet device as bytes.
+            Returns the raw reply of the ethernet device as bytes.
+
+        Raises
+        ------
+        OSError
+            If there is an error with the socket object, raise OSError. Might be fixed by using self.connect()
         """
 
         try:
             self._socket.sendall(query)
             reply = self._socket.recv(4096)
         except OSError:
-            raise OSError('ERROR: Socket not found. Query not sent. Try using the connect() method first.')
+            raise OSError('ERROR: Query not sent. Try using the connect() method first.')
 
         time.sleep(0.3)
         return reply
@@ -66,6 +70,7 @@ class SocketEthernetDevice:
         ----------
         cmd : bytes
             Python btyes containing the command. Dependent on each individual device.
+
         Returns
         -------
         None
@@ -84,40 +89,54 @@ class SocketEthernetDevice:
     def ip4_address(self):
         return self._ip4_address
 
-    @ip4_address.setter
-    def ip4_address(self, new_ip):
-        if not self._is_connected:
-            self._ip4_address = new_ip
-        else:
-            raise AttributeError('ERROR: ip4_address cannot be changed while conenction is on.')
+    # @ip4_address.setter
+    # def ip4_address(self, new_ip):
+    #     if not self._is_connected:
+    #         self._ip4_address = new_ip
+    #     else:
+    #         raise AttributeError('ERROR: ip4_address cannot be changed while conenction is on.')
 
     @property
     def port(self):
         return self._port
 
-    @port.setter
-    def port(self, new_port):
-        if not self._is_connected:
-            self._port = new_port
-        else:
-            raise AttributeError('ERROR: port cannot be changed while connection is on.')
+    # @port.setter
+    # def port(self, new_port):
+    #     if not self._is_connected:
+    #         self._port = new_port
+    #     else:
+    #         raise AttributeError('ERROR: port cannot be changed while connection is on.')
 
-    def connect(self, ip=None, port=None):
-        if ip is None:
-            ip = self._ip4_address
-        if port is None:
-            port = self._port
+    def connect(self):
+        """
+        Establish socket connection to the ip address of the current SocketEthernetDevice. Attempt to connect 10
+        times before raising an error.
 
-        try:
-            socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket_object.connect((ip, port))
-        except OSError:
-            raise OSError('ERROR: Could not connect to ethernet device. Please Check IPv4 address and try again. ')
+        Returns
+        -------
+        None
+            If succesful, returns None
 
-        self._socket = socket_object
-        self._is_connected = True
+        Raises
+        ------
+        OSError
+            If 10 attempts to connect fail, raise OSError.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        for i in range(10):
+            try:
+                sock.connect((self._ip4_address, self._port))
+                self._socket = sock
+                self._is_connected = True
+                return
+            except OSError:
+                continue
+        raise OSError('ERROR: Could not connect to' + str(self._ip4_address))
 
     def disconnect(self):
+        """
+        Close socket connection.
+        """
         self._socket.close()
         self._is_connected = False
 

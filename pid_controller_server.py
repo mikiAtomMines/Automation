@@ -92,7 +92,7 @@ def process_command(cmd, asm_dict):
             asm.supply_current_limit = float(s)
     elif f == 'PS:CHIO':
         if s == '?':
-            return int(asm.supply_channel_state)
+            return asm.supply_channel_state
         else:
             asm.supply_channel_state = bool(int(s))
     elif f == 'PS:CHAN':
