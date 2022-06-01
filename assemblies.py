@@ -58,12 +58,18 @@ class HeaterAssembly:
 
     def _get_default_pid(self):
         """
-        Sets the output limits, sample time, set point, and the Kp, Ki, and Kd of the PID object.
+        Sets the output limits based on heater and power supply limits. Sets default values to sample time, set point,
+        and the Kp, Ki, and Kd of the PID object.
+
+        Returns
+        -------
+        simple_pid.PID()
+            PID object with default values.
         """
         pid = simple_pid.PID()
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        out_max = min(self._heater.MAX_volts, ps.get_channel_voltage_limit(ch))
+        out_max = min(self._heater.MAX_volts, ps.get_voltage_limit(ch))
 
         pid.Kp = 1
         pid.Ki = 0.03
@@ -75,50 +81,74 @@ class HeaterAssembly:
         return pid
 
     def reset_pid(self):
+        """
+        Resets the pid settings to their default values. Output limits set based on power supply and heater limit
+        voltage.
+        :return:
+        """
         self._pid = self._get_default_pid()
 
     def reset_pid_limits(self):
+        """
+        Reset PID output limits based on heater and power supply limit voltage.
+        """
         pid = self._pid
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        out_max = min(self.MAX_voltage_limit, ps.get_channel_voltage_limit(ch))
+        out_max = min(self.MAX_voltage_limit, ps.get_voltage_limit(ch))
 
         pid.output_limits = (0, out_max)
 
     def stop_supply(self):
+        """
+        Turn off supply channel, set voltage and current to 0.
+        """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         ps.set_channel_state(ch, False)
-        ps.set_set_voltage(ch, 0)
-        ps.set_set_current(ch, 0)
+        ps.set_voltage(ch, 0)
+        ps.set_current(ch, 0)
 
     def reset_power_supply(self):
+        """
+        Turn off supply channel, set voltage and current to 0, and reset voltage and current limits based on power
+        supply max limits.
+        """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         ps.set_channel_state(ch, False)
-        ps.set_set_voltage(ch, 0)
-        ps.set_set_current(ch, 0)
-        ps.set_channel_voltage_limit(ch, ps.MAX_voltage_limit)
-        ps.set_channel_current_limit(ch, ps.MAX_current_limit)
+        ps.set_voltage(ch, 0)
+        ps.set_current(ch, 0)
+        ps.set_voltage_limit(ch, ps.MAX_voltage_limit)
+        ps.set_current_limit(ch, ps.MAX_current_limit)
 
     def ready_power_supply(self):
+        """
+        set voltage and current limits based on heater and power supply limits, set the setpoint current to the
+        channel current limit, and turn on the supply channel.
+        """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_set_voltage(ch, 0)
-        ps.set_set_current(ch, 0)
-        if ps.get_channel_voltage_limit(ch) > self.MAX_voltage_limit:
-            ps.set_channel_voltage_limit(ch, self.MAX_voltage_limit)
-        if ps.get_channel_current_limit(ch) > self.MAX_current_limit:
-            ps.set_channel_current_limit(ch, self.MAX_current_limit)
-        ps.set_set_current(ch, ps.get_channel_current_limit(ch))
+        ps.set_voltage(ch, 0)
+        ps.set_current(ch, 0)
+        if ps.get_voltage_limit(ch) > self.MAX_voltage_limit:
+            ps.set_voltage_limit(ch, self.MAX_voltage_limit)
+        if ps.get_current_limit(ch) > self.MAX_current_limit:
+            ps.set_current_limit(ch, self.MAX_current_limit)
+        ps.set_current(ch, ps.get_current_limit(ch))
         ps.set_channel_state(ch, True)
 
     def reset_assembly(self):
+        """
+        Turn off supply channel, set voltage and current to 0, and reset voltage and current limits based on supply
+        and heater limits.
+        Reset PID to default values.
+        """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         self.reset_power_supply()
-        ps.set_channel_voltage_limit(ch, self.MAX_voltage_limit)
-        ps.set_channel_current_limit(ch, self.MAX_current_limit)
+        ps.set_voltage_limit(ch, self.MAX_voltage_limit)
+        ps.set_current_limit(ch, self.MAX_current_limit)
         self.reset_pid()
 
     def ready_assembly(self):
@@ -145,25 +175,25 @@ class HeaterAssembly:
     def supply_set_voltage(self):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        return ps.get_set_voltage(ch)
+        return ps.get_setpoint_voltage(ch)
 
     @supply_set_voltage.setter
     def supply_set_voltage(self, new_volt):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_set_voltage(ch, new_volt)
+        ps.set_voltage(ch, new_volt)
 
     @property
     def supply_set_current(self):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        return ps.get_set_current(ch)
+        return ps.get_setpoint_current(ch)
 
     @supply_set_current.setter
     def supply_set_current(self, new_curr):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_set_current(ch, new_curr)
+        ps.set_current(ch, new_curr)
 
     @property
     def supply_actual_voltage(self):
@@ -181,25 +211,25 @@ class HeaterAssembly:
     def supply_voltage_limit(self):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        return ps.get_channel_voltage_limit(ch)
+        return ps.get_voltage_limit(ch)
 
     @supply_voltage_limit.setter
     def supply_voltage_limit(self, new_lim):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_channel_voltage_limit(ch, new_lim)
+        ps.set_voltage_limit(ch, new_lim)
 
     @property
     def supply_current_limit(self):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        return ps.get_channel_current_limit(ch)
+        return ps.get_current_limit(ch)
 
     @supply_current_limit.setter
     def supply_current_limit(self, new_lim):
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        ps.set_channel_current_limit(ch, new_lim)
+        ps.set_current_limit(ch, new_lim)
 
     @property
     def supply_channel_state(self):
@@ -361,7 +391,7 @@ class HeaterAssembly:
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         new_ps_voltage = self._pid(round(self.temp, 2))
-        ps.set_set_voltage(channel=ch, volts=new_ps_voltage)
+        ps.set_voltage(channel=ch, volts=new_ps_voltage)
 
         return new_ps_voltage
 
