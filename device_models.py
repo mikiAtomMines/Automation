@@ -12,6 +12,10 @@ from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
 try:
     from device_type import MccDeviceWindows
+except (ImportError, NameError):
+    pass
+
+try:
     from device_type import MccDeviceLinux
 except (ImportError, NameError):
     pass
@@ -341,9 +345,8 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         self.zero_all_channels()
         print('Both channels turned off and set to 0. Channel limits are reset to MAX.')
 
-    # =============================================================================
-    #       Get methods
-    # =============================================================================
+    # Methods
+    # -------
     def get_channel_state(self, channel):
         """
         The 5th digit from right to left of the binary output from the system status query gives the state of channel 1,
@@ -353,69 +356,41 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         ----------
         channel : int
             channel to get the state from. Number is from 1 up to the number of channels of the power supply.
-        Return
-        ------
+
+        Returns
+        -------
         bool
-            True for on, False for off.
+            If succesful, True for ON, False for OFF.
+        str
+            Else, return error string
         """
-        self.check_channel_syntax(channel)
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
         one_or_zero = int(self.system_status[-4-channel])
         return bool(one_or_zero)
 
-    def get_set_voltage(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        qry = 'CH' + str(channel) + ':voltage?'
-        return float(self._query_(qry))
-
-    def get_actual_voltage(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        qry = 'measure:voltage? ' + 'CH' + str(channel)
-        return float(self._query_(qry))
-
-    def get_set_current(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        qry = 'CH' + str(channel) + ':current?'
-        return float(self._query_(qry))
-
-    def get_actual_current(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        qry = 'measure:current? ' + 'CH' + str(channel)
-        return float(self._query_(qry))
-
-    def get_channel_voltage_limit(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        return self._channel_voltage_limits[channel - 1]
-
-    def get_channel_current_limit(self, channel):
-        """
-        :param channel: int
-        """
-        self.check_channel_syntax(channel)
-        return self._channel_current_limits[channel - 1]
-
-    # =============================================================================
-    #       Set methods
-    # =============================================================================
     def set_channel_state(self, channel, state):
         """
-        :param channel: int
-        :param bool or int state: True for on, False for off
+        Parameters
+        ----------
+        channel : int
+            channel to set the state. Number is from 1 up to the number of channels of the power supply.
+        state : bool, int
+            True or 1 for ON, False or 0 for OFF
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            Else, return error string
         """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
         state = bool(state)
         if state:
             state_str = 'ON'
@@ -425,69 +400,148 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         cmd = 'Output CH' + str(channel) + ',' + state_str
         self._command_(cmd)
 
-    def set_set_voltage(self, channel, volts):
+    def get_setpoint_voltage(self, channel):
         """
-        :param channel: int
-        :param volts: float
+        Parameters
+        ----------
+        channel : int
+            channel to get the voltage from. Number is from 1 up to the number of channels of the power supply.
+
+        Returns
+        -------
+        float
+            If succesful.
+        str
+            Else, return error string
         """
-        self.check_channel_syntax(channel)
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        qry = 'CH' + str(channel) + ':voltage?'
+        return float(self._query_(qry))
+
+    def set_voltage(self, channel, volts):
+        """
+        Parameters
+        ----------
+        channel : int
+            channel to set the state. Number is from 1 up to the number of channels of the power supply.
+        volts : float
+            new setpoint voltage in Volts
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            Else, return error string
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        if volts > self.get_voltage_limit(channel):
+            return 'ERROR: CH' + str(channel) +' voltage not set. New voltage is higher than limit'
+
         volts = round(volts, 3)
-
-        limit = self.get_channel_voltage_limit(channel)
         chan = 'CH' + str(channel)
-        if volts <= limit:
-            cmd = chan + ':voltage ' + str(volts)
-            self._command_(cmd)
-        else:
-            raise ValueError(chan + ' voltage not set. New voltage is higher than ' + chan + ' voltage limit.')
+        cmd = chan + ':voltage ' + str(volts)
+        self._command_(cmd)
 
-    def set_set_current(self, channel, amps):
+    def get_actual_voltage(self, channel):
         """
-        :param channel: int
-        :param amps: float
+        Parameters
+        ----------
+        channel : int
+            channel to get the voltage from. Number is from 1 up to the number of channels of the power supply.
+
+        Returns
+        -------
+        float
+            If succesful.
+        str
+            Else, return error string
         """
-        self.check_channel_syntax(channel)
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        qry = 'measure:voltage? ' + 'CH' + str(channel)
+        return float(self._query_(qry))
+
+    def get_setpoint_current(self, channel):
+        """
+        Parameters
+        ----------
+        channel : int
+            channel to get the current from. Number is from 1 up to the number of channels of the power supply.
+
+        Returns
+        -------
+        float
+            If succesful.
+        str
+            Else, return error string
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        qry = 'CH' + str(channel) + ':current?'
+        return float(self._query_(qry))
+
+    def set_current(self, channel, amps):
+        """
+        Parameters
+        ----------
+        channel : int
+            channel to set the state. Number is from 1 up to the number of channels of the power supply.
+        volts : float
+            new setpoint current in Amps
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            Else, return error string
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        if amps > self.get_current_limit(channel):
+            return 'ERROR: CH' + str(channel) +' current not set. New current is higher than limit'
+
         amps = round(amps, 3)
-
-        limit = self.get_channel_current_limit(channel)
         chan = 'CH' + str(channel)
-        if amps <= limit:
-            cmd = chan + ':current ' + str(amps)
-            self._command_(cmd)
-        else:
-            raise ValueError(chan + ' current not set. New current is higher than ' + chan + ' current limit')
+        cmd = chan + ':current ' + str(amps)
+        self._command_(cmd)
 
-    def set_channel_voltage_limit(self, channel, volts):
+    def get_actual_current(self, channel):
         """
-        :param channel: int
-        :param volts: float
-        """
-        self.check_channel_syntax(channel)
+        Parameters
+        ----------
+        channel : int
+            channel to get the current from. Number is from 1 up to the number of channels of the power supply.
 
-        if volts > self._MAX_voltage_limit or volts <= 0:
-            print('Voltage limit not set. New voltage limit is not allowed by the power supply.')
-        elif volts < self.ch1_set_voltage:
-            print('Voltage limit not set. New voltage limit is lower than present channel set voltage.')
-        else: 
-            self._channel_voltage_limits[channel - 1] = volts
-            
-    def set_channel_current_limit(self, channel, amps):
+        Returns
+        -------
+        float
+            If succesful.
+        str
+            Else, return error string
         """
-        :param channel: int
-        :param amps: float
-        """
-        self.check_channel_syntax(channel)
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
 
-        if amps > self._MAX_current_limit or amps <= 0:
-            print('Current limit not set. New current limit is not allowed by the power supply.')
-        elif amps < self.ch1_set_current:
-            print('Current limit not set. New current limit is lower than present channel set current.')
-        else: 
-            self._channel_current_limits[channel - 1] = amps
+        qry = 'measure:current? ' + 'CH' + str(channel)
+        return float(self._query_(qry))
 
-    # =============================================================================
-    #       Properties
-    # =============================================================================
+    # Properties
+    # ----------
     @property
     def idn(self):
         qry = '*IDN?'
@@ -545,19 +599,19 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @property
     def ch1_set_voltage(self):
-        return self.get_set_voltage(1)
+        return self.get_setpoint_voltage(1)
 
     @ch1_set_voltage.setter
     def ch1_set_voltage(self, volts):
-        self.set_set_voltage(1, volts)
+        self.set_voltage(1, volts)
 
     @property
     def ch2_set_voltage(self):
-        return self.get_set_voltage(2)
+        return self.get_setpoint_voltage(2)
 
     @ch2_set_voltage.setter
     def ch2_set_voltage(self, volts):
-        self.set_set_voltage(2, volts)
+        self.set_voltage(2, volts)
 
     @property
     def ch1_actual_voltage(self):
@@ -569,19 +623,19 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @property
     def ch1_set_current(self):
-        return self.get_set_current(1)
+        return self.get_setpoint_current(1)
 
     @ch1_set_current.setter
     def ch1_set_current(self, amps):
-        self.set_set_current(1, amps)
+        self.set_current(1, amps)
 
     @property
     def ch2_set_current(self):
-        return self.get_set_current(2)
+        return self.get_setpoint_current(2)
 
     @ch2_set_current.setter
     def ch2_set_current(self, amps):
-        self.set_set_current(2, amps)
+        self.set_current(2, amps)
 
     @property
     def ch1_actual_current(self):
@@ -597,7 +651,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @ch1_voltage_limit.setter
     def ch1_voltage_limit(self, volts):
-        self.set_channel_voltage_limit(1, volts)
+        self.set_voltage_limit(1, volts)
 
     @property
     def ch1_current_limit(self):
@@ -605,7 +659,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @ch1_current_limit.setter
     def ch1_current_limit(self, amps):
-        self.set_channel_current_limit(1, amps)
+        self.set_current_limit(1, amps)
 
     @property
     def ch2_voltage_limit(self):
@@ -613,7 +667,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @ch2_voltage_limit.setter
     def ch2_voltage_limit(self, volts):
-        self.set_channel_voltage_limit(2, volts)
+        self.set_voltage_limit(2, volts)
 
     @property
     def ch2_current_limit(self):
@@ -621,7 +675,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     @ch2_current_limit.setter
     def ch2_current_limit(self, amps):
-        self.set_channel_current_limit(2, amps)
+        self.set_current_limit(2, amps)
 
 
 # ======================================================================================================================
