@@ -500,6 +500,9 @@ if platform == 'win32':
                 IPv4 address of the associated MCC device
             port : int
                 Communication port to be used. Safely chose any number between 49152 and 65536.
+            default_units : str
+                Temperature units to use for temp measurements. Possible values: celsius or c, fahrenheit or f,
+                and kelvin or k.
             """
 
             self._board_number = board_number
@@ -508,25 +511,133 @@ if platform == 'win32':
             self._default_units = default_units
             self._is_connected = False
 
-            if self._ip4_address is not None:
-                ul.ignore_instacal()
-                dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=self._port, timeout=2000)
-                ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
-                self._is_connected = True
+            if self._ip4_address is not None and self._port is not None:
+                self.connect()
+
+        def get_TempScale_unit(self, units):
+            """
+            Returns the associated mcculw.enums.TempScale object with the desired temperature unit.
+
+            Parameters
+            ----------
+            units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'voltage', 'r', 'raw'}, None
+                the units in which the temperature is shown. Defaults to None, which uses the default units set by the
+                instance. Possible values (not case-sensitive):
+                for Celsius                 'celsius',          'c'
+                for Fahrenheit              'fahrenheit',       'f'
+                for Kelvin                  'kelvin',           'k'
+                for calibrated voltage      'volts', 'voltage', 'v'
+                for uncalibrated voltage    'raw',              'r'
+                for default units           None
+
+            Returns
+            -------
+            enums.TempScale
+                This object is used by the mcc universal library. Possbile values: enums.TempScale.CELSIUS,
+                enums.TempScale.FAHRENHEIT, enums.TempScale.KELVIN, enums.TempScale.VOLTS, and enums.TempScale.NOSCALE.
+
+            """
+
+            TempScale_dict = {
+                'celsius': enums.TempScale.CELSIUS,
+                'c': enums.TempScale.CELSIUS,
+
+                'fahrenheit': enums.TempScale.FAHRENHEIT,
+                'f': enums.TempScale.FAHRENHEIT,
+
+                'kelvin': enums.TempScale.KELVIN,
+                'k': enums.TempScale.KELVIN,
+
+                'volts': enums.TempScale.VOLTS,
+                'voltage': enums.TempScale.VOLTS,
+                'v': enums.TempScale.VOLTS,
+
+                'raw': enums.TempScale.NOSCALE,
+                'r': enums.TempScale.NOSCALE
+            }
+
+            try:
+                out = TempScale_dict[units.lower()]
+            except KeyError:
+                print('\nERROR: input string "', units, '" for units is not a valid input. Possible inputs:')
+                print('    "celsius"                    or    "c"    ')
+                print('    "fahrenheit"                 or    "f"    ')
+                print('    "kelvin"                     or    "k"    ')
+                print('    "volts", "voltage"           or    "v"    ')
+                print('    "raw",                       or    "r"    ')
+                out = None
+            return out
+
+        def check_valid_units(self, units):  # TODO: figure out what calibrated and uncalibrated is
+            """
+            Check input units for valid format
+
+            Parameters
+            ----------
+            units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'voltage', 'r', 'raw'}, None
+                the units in which the temperature is shown. Defaults to None, which uses the default units set by the
+                instance. Possible values (not case-sensitive):
+                for Celsius                 'celsius',          'c'
+                for Fahrenheit              'fahrenheit',       'f'
+                for Kelvin                  'kelvin',           'k'
+                for calibrated voltage      'volts', 'voltage', 'v'
+                for uncalibrated voltage    'raw',              'r'
+                for default units           None
+
+            Returns
+            -------
+            None
+                If units are valid
+            str
+                Else, return error string
+            """
+            if type(units) is not str:
+                return 'ERROR: input type should be string. Type ' + str(type(units)) + ' not supported.'
+
+            units_set = {None, 'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'r', 'raw', 'none', 'noscale', 'v',
+                         'volts', 'volt', 'voltage'}
+
+            if units.lower() not in units_set:
+                return 'ERROR: units ' + str(units) + ' not supported'
+
+        def check_valid_temp_channel(self, channel):
+            """
+            Compares the input temperature channel with the number of temperature channels in the device to determine
+            if the input channel is valid.
+
+            Parameters
+            ----------
+            channel : int
+                the channel to check. Valid from 0 to the number of temp channels in the device.
+
+            Returns
+            -------
+            None
+                If channel is valid, return None.
+            str
+                Else, return error string.
+            """
+            if type(channel) is not int:
+                return 'ERROR: channel input must be int. type ' + str(type(channel)) + ' not supported.'
+
+            if not (0 <= channel < self.number_temp_channels):
+                return 'ERROR: channel ' + str(channel) + ' not valid. This unit has ' + str(
+                    self.number_temp_channels) + ' channels, starting from channel 0.'
 
         # ----------------
         # Connection and board info
         # ----------------
-        def connect(self, ip=None, port=54211):
-            if self._ip4_address is None and ip is None:
-                raise TypeError("ip address is None. Set the attribute ip_address to the device's IPv4 address, "
-                                "or input the IPv4 address as an argument and try again.")
-            ul.ignore_instacal()
-            try:
-                dscrptr = ul.get_net_device_descriptor(host=ip, port=port, timeout=2000)
-            except AttributeError:
-                dscrptr = ul.get_net_device_descriptor(host=self._ip4_address, port=port, timeout=20000)
+        def connect(self, ip=None, port=None):
+            if (self._ip4_address is None and ip is None) or (self._port is None and port is None) :
+                return "ERROR: need to give an IP address and port first."
 
+            ul.ignore_instacal()
+            if ip is None:
+                ip = self._ip4_address
+            if port is None:
+                port = self._port
+
+            dscrptr = ul.get_net_device_descriptor(host=ip, port=port, timeout=2000)
             ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
             self._is_connected = True
 
@@ -547,7 +658,7 @@ if platform == 'win32':
             if not self._is_connected:
                 self._board_number = new_num
             else:
-                raise AttributeError('ERROR: board_number cannot be changed while connection is on.')
+                print('ERROR: board_number cannot be changed while device is connected.')
 
         @property
         def ip4_address(self):
@@ -558,7 +669,7 @@ if platform == 'win32':
             if not self._is_connected:
                 self._ip4_address = new_ip
             else:
-                raise AttributeError('ERROR: ip4_address cannot be changed while connection is on.')
+                print('ERROR: ip4_address cannot be changed while device is connected')
 
         @property
         def port(self):
@@ -569,7 +680,7 @@ if platform == 'win32':
             if not self._is_connected:
                 self._port = new_port
             else:
-                raise AttributeError('ERROR: port cannot be changed while connection is on.')
+                print('ERROR: port cannot be changed while connection is on.')
 
         @property
         def model(self):
@@ -668,7 +779,6 @@ if platform == 'win32':
         # -----------------
         # Temperature DAQ's
         # -----------------
-
         def get_temp(self, channel_n=0, units=None, averaged=True):
             """
             Reads the analog signal out of a channel and returns the value in the desired units.
@@ -676,17 +786,9 @@ if platform == 'win32':
             Parameters
             ----------
             channel_n : int
-                the number of the channel from which to read the temperature. defaults to channel 0 if the channel
-                number is not specified.
-            units : string or None
-                the units in which the temperature is shown. Defaults to None which uses the default units set by the
-                instance. Possible values (not case-sensitive):
-                for Celsius                 celsius,               c
-                for Fahrenheit              fahrenheit,            f
-                for Kelvin                  kelvin,                k
-                for calibrated voltage      volts, volt, voltage,  v
-                for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
-                for default units           bool : None
+                the number of the channel from which to read the temperature. defaults to channel 0.
+            units : str, None
+                check docstring for self.check_valid_units for valid input units.
             averaged : bool
                 When selected, 10 samples are read from the specified channel and averaged. The average is the reading
                 returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
@@ -694,11 +796,20 @@ if platform == 'win32':
             Returns
             -------
             float
-                Temperature or voltage value as a float in the specified units.
+                If succesful, reading as a float in the specified units.
+            str
+                Else, return error string
             """
+            err1 = self.check_valid_units(units)
+            err2 = self.check_valid_temp_channel(channel_n)
+            if err1 is not None:
+                return err1
+            if err2 is not None:
+                return err2
 
-            filter_on_off = enums.TInOptions.FILTER
-            if not averaged:
+            if averaged:
+                filter_on_off = enums.TInOptions.FILTER
+            else:
                 filter_on_off = enums.TInOptions.NOFILTER
 
             if units is None:
@@ -707,7 +818,7 @@ if platform == 'win32':
             out = ul.t_in(
                 board_num=self._board_number,
                 channel=channel_n,
-                scale=auxiliary.get_TempScale_unit(units.lower()),
+                scale=self.get_TempScale_unit(units.lower()),
                 options=filter_on_off
             )
 
@@ -719,15 +830,8 @@ if platform == 'win32':
 
             Parameters
             ----------
-            units : string or None
-                the units in which the temperature is shown. Defaults to None which uses the default units set by the
-                default_units attribute. Possible values (not case-sensitive):
-                for Celsius                 celsius,               c
-                for Fahrenheit              fahrenheit,            f
-                for Kelvin                  kelvin,                k
-                for calibrated voltage      volts, volt, voltage,  v
-                for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
-                for default units           bool : None
+            units : str, None
+                check docstring for self.check_valid_units for valid input units.
             averaged : bool
                 When selected, 10 samples are read from the specified channel and averaged. The average is the reading
                 returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
@@ -735,10 +839,16 @@ if platform == 'win32':
             Returns
             -------
             list of float
-                List containing the temperature or voltage values as a float in the specified units. The index of a
+                List containing the readings as a float in the specified units. The index of a
                 value corresponds to its respective channel. If a channel is not available, its respective place in
                 the list will have None.
+            str
+                If an error occurs, return error string
             """
+            err = self.check_valid_units(units)
+            if err is not None:
+                return err
+
             if units is None:
                 units = self._default_units
 
@@ -767,15 +877,8 @@ if platform == 'win32':
                 the number of the channel on which to stop the scan. Defaults to channel 7 if the channel number
                 is not specified. The range is inclusive, therefore the signal from this channel is included in the
                 output
-            units : string or None
-                the units in which the temperature is shown. Defaults to None which uses the default units set by the
-                instance. Possible values (not case-sensitive):
-                for Celsius                 celsius,               c
-                for Fahrenheit              fahrenheit,            f
-                for Kelvin                  kelvin,                k
-                for calibrated voltage      volts, volt, voltage,  v
-                for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
-                for default units           bool : None
+            units : str, None
+                check docstring for self.check_valid_units for valid input units.
             averaged : bool
                 When selected, 10 samples are read from the specified channel and averaged. The average is the reading
                 returned. The maximum acquisiton frequency doesn't change regardless of this parameter.
@@ -786,7 +889,19 @@ if platform == 'win32':
                 List containing the temperature or voltage values as a float in the specified units. The index of a
                 value corresponds to its respective channel. If a channel is not available, its respective place in
                 the list will have None.
+            str
+                If an error occurs, return error string
             """
+            err1 = self.check_valid_units(units)
+            err2 = self.check_valid_temp_channel(low_channel)
+            err3 = self.check_valid_temp_channel(high_channel)
+            if err1 is not None:
+                return err1
+            if err2 is not None:
+                return err2
+            if err3 is not None:
+                return err3
+
             if units is None:
                 units = self._default_units
 
@@ -803,11 +918,19 @@ if platform == 'win32':
 
         def get_thermocouple_type(self, channel):
             """
-            :param int channel: MCC temp channel
-            :return str: TC type.
+            Parameters:
+            -----------
+            channel : int
+                temperature channel to get TC-type
+
+            Returns
+            -------
+            str
+                If succesful, return TC-type as a string. Else, return an error string.
             """
-            if not (0 <= channel <= self.number_temp_channels):
-                raise ValueError('channel', channel, 'not found. Check the number of temp channels in the device.')
+            err = self.check_valid_temp_channel(channel)
+            if err is not None:
+                return err
 
             tc_type_dict = {
                 1: 'J',
@@ -831,9 +954,24 @@ if platform == 'win32':
 
         def set_thermocuple_type(self, channel, new_tc_type):
             """
-            :param int channel: MCC temp channel
-            :param str new_tc_type: new thermocouple type to set on the desired channel. Not cap sensitive
+            Parameters
+            ----------
+            channel : int
+                temperature channel to set the TC-type
+            new_tc_type : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
+                Not case-sensitive.
+
+            Returns
+            -------
+            None
+                If succesful, return None
+            str
+                Else, return an error string
             """
+            err = self.check_valid_temp_channel(channel)
+            if err is not None:
+                return err
+
             tc_type_dict = {
                 'J': 1,
                 'K': 2,
@@ -845,12 +983,10 @@ if platform == 'win32':
                 'N': 8
             }
 
-            if not (0 <= channel <= self.number_temp_channels):
-                raise ValueError('channel', channel, 'not found. Check the number of temp channels in the device.')
-            if new_tc_type not in tc_type_dict.keys():
-                raise ValueError('TC type ' + new_tc_type + ' not supported by this device.')
-
-            val = tc_type_dict[new_tc_type.upper()]
+            try:
+                val = tc_type_dict[new_tc_type.upper()]
+            except KeyError:
+                return 'TC type ' + new_tc_type + ' not supported by this device.'
 
             ul.set_config(
                 info_type=enums.InfoType.BOARDINFO,
@@ -872,19 +1008,17 @@ if platform == 'win32':
 
             Parameters
             ----------
-            new_units : string
-                the units in which the channel signal is shown. Valid inputs (not case-sensitive):
-                for Celsius                 celsius,               c
-                for Fahrenheit              fahrenheit,            f
-                for Kelvin                  kelvin,                k
-                for calibrated voltage      volts, volt, voltage,  v
-                for uncalibrated voltage    raw, none, noscale     r   TODO: figure out what calibrated and uncalibrated is
+            new_units : string, None
+                see docstring for self.check_valid_units for valid units.
             """
-            if new_units is None:
-                new_units = 'celsius'
-            new_units = new_units.lower()
-            auxiliary.get_TempScale_unit(new_units)
-            self._default_units = new_units
+            err = self.check_valid_units(new_units)
+            if err is not None:
+                print(err)
+            else:
+                if new_units is None:
+                    new_units = 'celsius'
+
+                self._default_units = new_units.lower()
 
         @property
         def thermocouple_type_ch0(self):
@@ -994,6 +1128,14 @@ if platform == 'linux' or platform == 'linux2':
             """
             Class for an MCC Device. Use only on Linux machines.
 
+            Parameters
+            ----------
+            ip4_address : str
+                IPv4 address of device in format '255.255.255.255'
+            port : int
+                communications port number.
+            default_units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'r', 'raw'}
+                default units to use for temperature measurements
             """
             d = uldaq.get_net_daq_device_descriptor(ip4_address, port, ifc_name=None, timeout=2)
             super().__init__(d)
@@ -1017,15 +1159,126 @@ if platform == 'linux' or platform == 'linux2':
             try:
                 return units_dict[units.lower()]
             except KeyError:
-                raise ValueError('ERROR: units ' + str(units) + ' not supported.')
+                return None
+
+        def check_valid_units(self, units):  # TODO: figure out what calibrated and uncalibrated is
+            """
+            Check input units for valid format
+
+            Parameters
+            ----------
+            units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'voltage', 'r', 'raw'}, None
+                the units in which the temperature is shown. Defaults to None, which uses the default units set by the
+                instance. Possible values (not case-sensitive):
+                for Celsius                 'celsius',          'c'
+                for Fahrenheit              'fahrenheit',       'f'
+                for Kelvin                  'kelvin',           'k'
+                for calibrated voltage      'volts',            'v'
+                for uncalibrated voltage    'raw',              'r'
+                for default units           None
+
+            Returns
+            -------
+            None
+                If units are valid
+            str
+                Else, return error string
+            """
+            if type(units) is not str:
+                return 'ERROR: input type should be string. Type ' + str(type(units)) + ' not supported.'
+
+            units_set = {None, 'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'r', 'raw', 'v', 'volts'}
+
+            if units.lower() not in units_set:
+                return 'ERROR: units ' + str(units) + ' not supported'
+
+        def check_valid_temp_channel(self, channel):
+            """
+            Compares the input temperature channel with the number of temperature channels in the device to determine
+            if the input channel is valid.
+
+            Parameters
+            ----------
+            channel : int
+                the channel to check. Valid from 0 to the number of temp channels in the device.
+
+            Returns
+            -------
+            None
+                If channel is valid, return None.
+            str
+                Else, return error string.
+            """
+            if type(channel) is not int:
+                return 'ERROR: channel input must be int. type ' + str(type(channel)) + ' not supported.'
+
+            if not (0 <= channel < self.number_temp_channels):
+                return 'ERROR: channel ' + str(channel) + ' not valid. This unit has ' + str(
+                    self.number_temp_channels) + ' channels, starting from channel 0.'
 
         def get_temp(self, channel_n=0, units=None):
+            """
+            Reads the analog signal out of a channel and returns the value in the desired units.
+
+            Parameters
+            ----------
+            channel_n : int
+                the number of the channel from which to read the temperature. defaults to channel 0.
+            units : str, None
+                check docstring for self.check_valid_units for valid input units.
+
+            Returns
+            -------
+            float
+                If succesful, reading as a float in the specified units.
+            str
+                Else, return error string
+            """
+            err1 = self.check_valid_units(units)
+            err2 = self.check_valid_temp_channel(channel_n)
+            if err1 is not None:
+                return err1
+            if err2 is not None:
+                return err2
+
             if units is None:
                 units = self._default_units
 
             return self.get_ai_device().t_in(channel=channel_n, scale=self.get_TempScale_unit(units.lower()))
 
         def get_temp_scan(self, low_channel=0, high_channel=7, units=None):
+            """
+            Reads the analog signal out of a range of channels delimited by the low_channel and the high_channel
+            (inclusive). The read values are returned inside a list.
+
+            Parameters
+            ----------
+            low_channel : int
+                the channel from which to start the scan. Defaults to channel 0.
+            high_channel : int
+                the channel on which to stop the scan. Defaults to channel 7.
+            units : str, None
+                check docstring for self.check_valid_units for valid input units.
+
+            Returns
+            -------
+            list of float
+                List containing the temperature or voltage values as a float in the specified units. The index of a
+                value corresponds to its respective channel. If a channel is not available, its respective place in
+                the list will have None.
+            str
+                If an error occurs, return error string
+            """
+            err1 = self.check_valid_units(units)
+            err2 = self.check_valid_temp_channel(low_channel)
+            err3 = self.check_valid_temp_channel(high_channel)
+            if err1 is not None:
+                return err1
+            if err2 is not None:
+                return err2
+            if err3 is not None:
+                return err3
+
             if units is None:
                 units = self._default_units
 
@@ -1033,9 +1286,51 @@ if platform == 'linux' or platform == 'linux2':
                                                   scale=self.get_TempScale_unit(units.lower()))
 
         def get_thermocouple_type(self, channel):
-            return self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
+            """
+            Parameters:
+            -----------
+            channel : int
+                temperature channel to get TC-type
+
+            Returns
+            -------
+            str
+                If succesful, return TC-type as a string. Else, return an error string.
+            """
+            err = self.check_valid_temp_channel(channel)
+            if err is not None:
+                return err
+
+            tc_type_dict = {
+                1: 'J',
+                2: 'K',
+                3: 'T',
+                4: 'E',
+                5: 'R',
+                6: 'S',
+                7: 'B',
+                8: 'N'
+            }
+
+            tc_int = self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
+            return tc_type_dict[tc_int]
 
         def set_thermocouple_type(self, channel, new_tc_type):
+            """
+            Parameters
+            ----------
+            channel : int
+                temperature channel to set the TC-type
+            new_tc_type : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
+                Not case-sensitive.
+
+            Returns
+            -------
+            None
+                If succesful, return None
+            str
+                Else, return an error string
+            """
             tc_type_dict = {
                 'J': 1,
                 'K': 2,
@@ -1050,7 +1345,8 @@ if platform == 'linux' or platform == 'linux2':
             try:
                 val = tc_type_dict[new_tc_type.upper()]
             except KeyError:
-                raise ValueError('ERROR: TC Type ' + str(new_tc_type) + ' not supported')
+                return 'ERROR: TC Type ' + str(new_tc_type) + ' not supported'
+
             self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
 
         @property
