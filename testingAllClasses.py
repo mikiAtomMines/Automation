@@ -81,13 +81,13 @@ def main():
     pid_.output_limits = (0, 30)
     pid_.tunings = (1, 0.05, 0)
 
-    spd.set_set_current(1, 0.5)
+    spd.set_current(1, 0.5)
     spd.set_channel_state(1, 'on')
 
     while True:
         temp = daq.temp_ch0
         new_volt = pid_(temp)
-        spd.set_set_voltage(1, new_volt)
+        spd.set_voltage(1, new_volt)
         print(round(temp, 2))
 
         time.sleep(0.5)

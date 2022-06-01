@@ -23,7 +23,7 @@ PORT = 65432
 # Devices
 # -------                                                                                                           
 ps = Spd3303x('10.176.42.121')
-ps.set_set_current(1, 0.5)
+ps.set_current(1, 0.5)
 ps.set_channel_state(1, 'on')
 
 daq = MccDeviceLinux('10.176.42.200')
@@ -63,9 +63,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             new_volts = pid(temp)
 
             if regulate:
-                ps.set_set_voltage(1, new_volts)
+                ps.set_voltage(1, new_volts)
             else:
-                ps.set_set_voltage(1, 0)
+                ps.set_voltage(1, 0)
 
 
 
