@@ -30,8 +30,8 @@ import simple_pid
 class PowerSupply:
     def __init__(
             self,
-            MAX_voltage_limit=None,
-            MAX_current_limit=None,
+            MAX_voltage_limit,
+            MAX_current_limit,
             channel_voltage_limits=None,
             channel_current_limits=None,
             number_of_channels=1,
@@ -74,23 +74,357 @@ class PowerSupply:
         if self._channel_current_limits is None and self._MAX_current_limit is not None:
             self._channel_current_limits = [self._MAX_current_limit] * self._number_of_channels
 
-    def check_channel_syntax(self, channel):
+    def check_valid_channel(self, channel):
         if type(channel) != int:
-            raise TypeError('ERROR: channel should be an int, starting from 1.', type(channel), 'not supported')
+            return 'ERROR: channel should be an int, starting from 1.', type(channel), 'not supported'
         elif channel > self.number_of_channels:
-            raise ValueError('ERROR: channel', channel, 'not found. This power supply has',
-                             self.number_of_channels, 'channels.')
+            return 'ERROR: channel' + str(channel) + 'not found. This power supply has' + str(self.number_of_channels)\
+                   + 'channels. '
+        else:
+            return None
 
+    def get_channel_state(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the state
+
+        Returns
+        -------
+        bool
+            If succesful, return a bool. True for ON, False for OFF.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def set_channel_state(self, channel, state):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the state, True for ON, False for OFF
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def get_setpoint_voltage(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set voltage
+
+        Returns
+        -------
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def set_voltage(self, channel, volts):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the set voltage
+        volts : float
+            The desired new value for the set voltage in volts.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def get_actual_voltage(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set voltage
+
+        Returns
+        -------
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def get_setpoint_current(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Returns
+        -------
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def set_current(self, channel, amps):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the set current
+        amps : float
+            The desired new value for the set current in amps.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        pass
+
+    def get_actual_current(self, channel):
+        """
+        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the set current
+
+        Return
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        ------
+        """
+        pass
+
+    def get_voltage_limit(self, channel):
+        """
+        Get the software voltage limit of the power supply. The setpoint voltage of the power supply cannot be set
+        higher than this value. This value cannot be set higher than the hardware power supply MAX voltage limit.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the channel voltage limit
+
+        Returns
+        -------
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        return self._channel_voltage_limits[channel - 1]
+
+    def set_voltage_limit(self, channel, volts):
+        """
+        Set the software voltage limit of the power supply. The setpoint voltage of the power supply cannot be set
+        higher than this value. This value cannot be set higher than the hardware power supply MAX voltage limit.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the channel voltage limit
+        volts : float
+            The desired new value for the voltage limit.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        if volts > self._MAX_voltage_limit or volts <= 0:
+            return 'Voltage limit not set. New voltage limit is not allowed by the power supply.'
+        elif volts < self.get_setpoint_voltage(channel):
+            return 'Voltage limit not set. New voltage limit is lower than present channel setpoint voltage.'
+        else:
+            self._channel_voltage_limits[channel - 1] = volts
+
+    def get_current_limit(self, channel):
+        """
+        Get the software current limit of the power supply. The setpoint current of the power supply cannot be set
+        higher than this value. This value cannot be set higher than the hardware power supply MAX current limit.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to get the channel current limit
+
+        Returns
+        -------
+        float
+            If succesful, return a float.
+        str
+            Else, return an error string.
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        return self._channel_current_limits[channel - 1]
+
+    def set_current_limit(self, channel, amps):
+        """
+        Set the software current limit of the power supply. The setpoint current of the power supply cannot be set
+        higher than this value. This value cannot be set higher than the hardware power supply MAX current limit.
+
+        Parameters
+        ----------
+        channel : int
+            The desired channel to set the channel current limit
+        amps : float
+            The desired new value for the current limit.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        err = self.check_valid_channel(channel)
+        if err is not None:
+            return err
+
+        if amps > self._MAX_current_limit or amps <= 0:
+            return 'Current limit not set. New current limit is not allowed by the power supply.'
+        elif amps < self.get_setpoint_current(channel):
+            return 'Current limit not set. New current limit is lower than present channel setpoint current.'
+        else:
+            self._channel_current_limits[channel - 1] = amps
+
+    def set_all_channels_voltage_limit(self, volts):
+        """
+        Set the software voltage limit of the power supply for all channels. The setpoint voltage of the power supply
+        cannot be set higher than this value. This value cannot be set higher than the hardware power supply MAX
+        voltage limit.
+
+        Parameters
+        ----------
+        volts : float
+            The desired new value for the voltage limit.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        for chan in range(1, self.number_of_channels+1):
+            err = self.set_voltage_limit(chan, volts)
+            if err is not None:
+                return err
+
+    def set_all_channels_current_limit(self, amps):
+        """
+        Set the software current limit of the power supply for all channels. The setpoint current of the power supply
+        cannot be set higher than this value. This value cannot be set higher than the hardware power supply MAX
+        current limit.
+
+        Parameters
+        ----------
+        amps : float
+            The desired new value for the current limit.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        for chan in range(1, self.number_of_channels+1):
+            err = self.set_current_limit(chan, amps)
+            if err is not None:
+                return err
+
+    def zero_all_channels(self):
+        """
+        Sets the set voltage and set current of all channels to 0. Then sets all voltage and current channel limits
+        to the maximum allowed limits for full range of operation.
+
+        Returns
+        -------
+        None
+            If succesful, returns None.
+        str
+            Else, return an error string.
+        """
+        max_v = self.MAX_voltage_limit
+        max_c = self.MAX_current_limit
+        for chan in range(1, self.number_of_channels+1):
+            err1 = self.set_voltage(channel=chan, volts=0)
+            err2 = self.set_current(channel=chan, amps=0)
+            err3 = self.set_voltage_limit(channel=chan, volts=max_v)
+            err4 = self.set_current_limit(channel=chan, amps=max_c)
+
+            if err1 is not None:
+                return err1
+            if err2 is not None:
+                return err2
+            if err3 is not None:
+                return err3
+            if err4 is not None:
+                return err4
+
+    # Properties
+    # ----------
     @property
     def idn(self):
         """
         This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
 
-        Return : str
-        ------
+        Returns
+        -------
+        str
             identification string
         """
-        return None
+        pass
 
     @property
     def MAX_voltage_limit(self):
@@ -137,163 +471,6 @@ class PowerSupply:
         print('CAUTION: The number of channels should always match the hardware')
         print('Setting number of channels to', n)
         self._number_of_channels = n
-
-    def get_set_voltage(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set voltage
-
-        Return : float
-        ------
-        """
-        pass
-
-    def get_actual_voltage(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set voltage
-
-        Return : float
-        ------
-        """
-        pass
-
-    def set_set_voltage(self, channel, volts):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to set the set voltage
-        volts : float
-            The desired new value for the set voltage in volts.
-        """
-        pass
-
-    def get_set_current(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set current
-
-        Return : float
-        ------
-        """
-        pass
-
-    def get_actual_current(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set current
-
-        Return : float
-        ------
-        """
-        pass
-
-    def get_channel_voltage_limit(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set current
-
-        Return : float
-        ------
-        """
-        pass
-
-    def get_channel_current_limit(self, channel):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to get the set current
-
-        Return : float
-        ------
-        """
-        pass
-
-    def set_set_current(self, channel, amps):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to set the set current
-        amps : float
-            The desired new value for the set current in amps.
-        """
-        pass
-
-    def set_channel_voltage_limit(self, channel, volts):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to set the channel voltage limit
-        volts : float
-            The desired new value for the voltage limit.
-        """
-        pass
-
-    def set_channel_current_limit(self, channel, amps):
-        """
-        This is a placeholder for the real method. For each model of power supply, this method has to be re-writen.
-
-        Parameters
-        ----------
-        channel : int
-            The desired channel to set the channel current limit
-        amps : float
-            The desired new value for the current limit.
-        """
-        pass
-
-    def set_all_channels_voltage_limit(self, volts):
-        for chan in range(1, self.number_of_channels+1):
-            self.set_channel_voltage_limit(chan, volts)
-
-    def set_all_channels_current_limit(self, amps):
-        for chan in range(1, self.number_of_channels+1):
-            self.set_channel_current_limit(chan, amps)
-
-    def zero_all_channels(self):
-        """
-        Sets the set voltage and set current of all channels to 0. Then sets all voltage and current channel limits
-        to the maximum allowed limits for full range of operation.
-        """
-        max_v = self.MAX_voltage_limit
-        max_c = self.MAX_current_limit
-        for chan in range(1, self.number_of_channels+1):
-            self.set_set_voltage(channel=chan, volts=0)
-            self.set_set_current(channel=chan, amps=0)
-            self.set_channel_voltage_limit(channel=chan, volts=max_v)
-            self.set_channel_current_limit(channel=chan, amps=max_c)
 
 
 # ======================================================================================================================
