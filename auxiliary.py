@@ -13,64 +13,6 @@ except ModuleNotFoundError:
 
 error_count = 0
 
-
-def get_TempScale_unit(units):
-    """
-    Returns the associated mcculw.enums.TempScale object with the desired temperature unit.
-
-    Parameters
-    ----------
-    units : string
-        the units in which the temperature is shown. Possible values (not case-sensitive):
-        for Celsius                 celsius,               c
-        for Fahrenheit              fahrenheit,            f
-        for Kelvin                  kelvin,                k
-        for calibrated voltage      volts, volt, voltage,  v
-        for uncalibrated voltage    raw, none, noscale     r
-
-    Returns
-    -------
-    enums.TempScale
-        This object is used by the mcc universal library. Possbile values: enums.TempScale.CELSIUS,
-        enums.TempScale.FAHRENHEIT, enums.TempScale.KELVIN, enums.TempScale.VOLTS, and enums.TempScale.NOSCALE.
-
-    """
-
-    TempScale_dict = {
-        'celsius': enums.TempScale.CELSIUS,
-        'c': enums.TempScale.CELSIUS,
-
-        'fahrenheit': enums.TempScale.FAHRENHEIT,
-        'f': enums.TempScale.FAHRENHEIT,
-
-        'kelvin': enums.TempScale.KELVIN,
-        'k': enums.TempScale.KELVIN,
-
-        'volts': enums.TempScale.VOLTS,
-        'volt': enums.TempScale.VOLTS,
-        'voltage': enums.TempScale.VOLTS,
-        'v': enums.TempScale.VOLTS,
-
-        'raw': enums.TempScale.NOSCALE,
-        'none': enums.TempScale.NOSCALE,
-        'noscale': enums.TempScale.NOSCALE,
-        'r': enums.TempScale.NOSCALE
-    }
-
-    try:
-        out = TempScale_dict[units.lower()]
-        return out
-    except KeyError:
-        print('\nERROR: input string "', units, '" for units is not a valid input. Possible inputs:')
-        print('    "celsius"                    or    "c"    ')
-        print('    "fahrenheit"                 or    "f"    ')
-        print('    "kelvin"                     or    "k"    ')
-        print('    "volts", volt", "voltage"    or    "v"    ')
-        print('    "raw", "none", "noscale"     or    "r"    ')
-
-        sys.exit()
-
-
 def test_GM3(gaussmeter):
     # for i in range(100):
     #     a = gaussmeter.properties
