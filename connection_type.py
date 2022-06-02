@@ -55,11 +55,11 @@ class SocketEthernetDevice:
 
         try:
             self._socket.sendall(query)
+            time.sleep(0.3)
             reply = self._socket.recv(4096)
         except OSError:
-            raise OSError('ERROR: Query not sent. Try using the connect() method first.')
+            return 'ERROR: Query not sent. Try using the connect() method first.'
 
-        time.sleep(0.3)
         return reply
 
     def _command(self, cmd):
@@ -79,10 +79,10 @@ class SocketEthernetDevice:
 
         try:
             out = self._socket.sendall(cmd)
+            time.sleep(0.3)
         except OSError:
-            raise OSError('ERROR: Socket not found. Command not sent. Try using the connect() method first.')
+            return 'ERROR: Socket not found. Command not sent. Try using the connect() method first.'
 
-        time.sleep(0.3)
         return out
 
     @property
