@@ -28,7 +28,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
             ch1_current_limit=3.3,
             ch2_voltage_limit=32,
             ch2_current_limit=3.3,
-            reset_on_startup=True
+            zero_on_startup=True
     ):
 
         """
@@ -41,7 +41,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         :param ch1_current_limit: Set an upper limit on the current output of channel 1.
         :param ch2_voltage_limit: Set an upper limit on the voltage output of channel 2.
         :param ch2_current_limit: Set an upper limit on the current output of channel 2.
-        :param reset_on_startup: If True, run a routine to set turn off the output of both channels and set the set
+        :param zero_on_startup: If True, run a routine to set turn off the output of both channels and set the set
 
 
         Note that all channel voltage limits are software-based since the power supply does not have any built-in limit
@@ -60,7 +60,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
 
         self._MAX_voltage_limit = 32
         self._MAX_current_limit = 3.3
-        self.reset_on_startup = reset_on_startup
+        self.reset_on_startup = zero_on_startup
 
         self.connect()
         
