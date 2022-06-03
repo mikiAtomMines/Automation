@@ -3,6 +3,7 @@ from sys import platform
 import time
 
 from device_models import Spd3303x
+from device_models import Mr50040
 from assemblies import HeaterAssembly
 from device_type import Heater
 try:
@@ -69,23 +70,29 @@ def process_command(cmd, asm_dict):
         The command to be processed. For information of the syntax, refer to README.md
     asm_dict : dictionary of str: HeaterAssembly
         Contains the HeaterAssembly objects to be used by the oven and their respective keys used to access them.
+
+    Returns
+    -------
+    str
+        Might return requested output string or error string.
     """
     try:
-        asm_key, comm, param = cmd.split()
+        asm_key, dev_comm, param = cmd.split()
         param = param.upper()
     except ValueError:
         try:
-            asm_key, comm = cmd.split()
+            asm_key, dev_comm = cmd.split()
         except ValueError:
             return 'ERROR: ' + str(cmd) + ' could not be processed. Missing assembly key or command'
 
     asm_key = asm_key.upper()
-    comm = comm.upper()
+    dev_comm = dev_comm.upper()
+    dev, comm = dev_comm.split(':')
 
     # Oven commands
     # -------------
     if asm_key == 'OVEN':
-        if comm == 'OV:KEYS':
+        if dev_comm == 'OV:KEYS':
             out = ''
             for key in asm_dict.keys():
                 out += key + ' '
@@ -100,135 +107,153 @@ def process_command(cmd, asm_dict):
     # Power supply commands
     # ---------------------
     try:
-        if comm == 'PS:IDN':
-            return asm.power_supply
-        elif comm == 'PS:RSET':
-            asm.reset_power_supply()
-        elif comm == 'PS:STOP':
-            asm.stop_supply()
-        elif comm == 'PS:REDY':
-            asm.ready_power_supply()
-        elif comm == 'PS:VOLT':
-            if param == '?':
-                return asm.supply_actual_voltage
+        if dev == 'PS':
+            if comm == 'IDN':
+                return asm.power_supply
+            elif comm == 'RSET':
+                asm.reset_power_supply()
+            elif comm == 'STOP':
+                asm.stop_supply()
+            elif comm == 'REDY':
+                asm.ready_power_supply()
+            elif comm == 'VOLT':
+                if param == '?':
+                    return asm.get_supply_actual_voltage()
+                else:
+                    return asm.set_supply_voltage(float(param))
+            elif comm == 'VSET':
+                if param == '?':
+                    return asm.get_supply_setpoint_voltage()
+                else:
+                    return asm.set_supply_voltage(float(param))
+            elif comm == 'AMPS':
+                if param == '?':
+                    return asm.get_supply_actual_current()
+                else:
+                    return asm.set_supply_current(float(param))
+            elif comm == 'ASET':
+                if param == '?':
+                    return asm.get_supply_setpoint_current()
+                else:
+                    return asm.set_supply_current(float(param))
+            elif comm == 'VLIM':
+                if param == '?':
+                    return asm.get_supply_voltage_limit()
+                else:
+                    return asm.set_supply_voltage_limit(float(param))
+            elif comm == 'ALIM':
+                if param == '?':
+                    return asm.get_supply_current_limit()
+                else:
+                    return asm.set_supply_current_limit(float(param))
+            elif comm == 'CHIO':
+                if param == '?':
+                    return asm.get_supply_channel_state()
+                else:
+                    return asm.set_supply_channel_state(bool(int(param)))
+            elif comm == 'CHAN':
+                if param == '?':
+                    return asm.get_supply_channel()
+                else:
+                    return asm.set_supply_channel(int(param))
             else:
-                asm.supply_set_voltage = float(param)
-        elif comm == 'PS:VSET':
-            if param == '?':
-                return asm.supply_set_voltage
-            else:
-                asm.supply_set_voltage = float(param)
-        elif comm == 'PS:AMPS':
-            if param == '?':
-                return asm.supply_actual_current
-            else:
-                asm.supply_set_current = float(param)
-        elif comm == 'PS:ASET':
-            if param == '?':
-                return asm.supply_set_current
-            else:
-                asm.supply_set_current = float(param)
-        elif comm == 'PS:VLIM':
-            if param == '?':
-                return asm.supply_voltage_limit
-            else:
-                asm.supply_voltage_limit = float(param)
-        elif comm == 'PS:ALIM':
-            if param == '?':
-                return asm.supply_current_limit
-            else:
-                asm.supply_current_limit = float(param)
-        elif comm == 'PS:CHIO':
-            if param == '?':
-                return asm.supply_channel_state
-            else:
-                asm.supply_channel_state = bool(int(param))
-        elif comm == 'PS:CHAN':
-            if param == '?':
-                return asm.supply_channel
-            else:
-                asm.supply_channel = int(param)
+                return 'ERROR: bad command ' + str(cmd)
 
-        # DAQ commands
-        elif comm == 'DQ:IDN':
-            return asm.daq
-        elif comm == 'DQ:TEMP':
-            return asm.temp
-        elif comm == 'DQ:CHAN':
-            if param == '?':
-                return asm.daq_channel
+            # DAQ commands
+        elif dev == 'DQ':
+            if comm == 'IDN':
+                return asm.daq
+            elif comm == 'TEMP':
+                return asm.get_daq_temp()
+            elif comm == 'CHAN':
+                if param == '?':
+                    return asm.get_daq_channel()
+                else:
+                    return asm.set_daq_channel(int(param))
+            elif comm == 'TCTY':
+                if param == '?':
+                    return asm.get_daq_tc_type()
+                else:
+                    return asm.set_daq_tc_type(param)
+            elif comm == 'UNIT':
+                if param == '?':
+                    return asm.get_daq_temp_units()
+                else:
+                    return asm.set_daq_temp_units(param)
             else:
-                asm.daq_channel = int(param)
-        elif comm == 'DQ:TCTY':
-            if param == '?':
-                return asm.thermocouple_type
-            else:
-                asm.thermocouple_type = param
-        elif comm == 'DQ:UNIT':
-            if param == '?':
-                return asm.temp_units
-            else:
-                asm.temp_units = param
+                return 'ERROR: bad command ' + str(cmd)
 
-        # PID settings
-        elif comm == 'PD:IDN':
-            return asm.pid_function
-        elif comm == 'PD:RSET':
-            return asm.reset_pid()
-        elif comm == 'PD:RLIM':
-            return asm.reset_pid_limits()
-        elif comm == 'PD:KPRO':
-            if param == '?':
-                return asm.pid_kp
+            # PID settings
+        elif dev == 'PD':
+            if comm == 'IDN':
+                return asm.pid_function
+            elif comm == 'RSET':
+                return asm.reset_pid()
+            elif comm == 'RLIM':
+                return asm.reset_pid_limits()
+            elif comm == 'LIMS':
+                if param == '?':
+                    return asm.get_pid_limits()
+            elif comm == 'KPRO':
+                if param == '?':
+                    return asm.pid_kp
+                else:
+                    asm.pid_kp = float(param)
+            elif comm == 'KINT':
+                if param == '?':
+                    return asm.pid_ki
+                else:
+                    asm.pid_ki = float(param)
+            elif comm == 'KDER':
+                if param == '?':
+                    return asm.pid_kd
+                else:
+                    asm.pid_kd = float(param)
+            elif comm == 'SETP':
+                if param == '?':
+                    return asm.get_pid_setpoint()
+                else:
+                    return asm.set_pid_setpoint(float(param))
+            elif comm == 'SAMP':
+                if param == '?':
+                    return asm.get_pid_sample_time()
+                else:
+                    return asm.set_pid_sample_time(float(param))
+            elif comm == 'REGT':
+                if param == '?':
+                    return asm.get_pid_regulation()
+                elif int(param) == 1:
+                    asm.ready_assembly()
+                    return asm.set_pid_regulation(True)
+                elif int(param) == 0:
+                    asm.set_pid_regulation(False)
+                    return asm.set_supply_voltage(0)
             else:
-                asm.pid_kp = float(param)
-        elif comm == 'PD:KINT':
-            if param == '?':
-                return asm.pid_ki
-            else:
-                asm.pid_ki = float(param)
-        elif comm == 'PD:KDER':
-            if param == '?':
-                return asm.pid_kd
-            else:
-                asm.pid_kd = float(param)
-        elif comm == 'PD:SETP':
-            if param == '?':
-                return asm.set_temperature
-            else:
-                asm.set_temperature = float(param)
-        elif comm == 'PD:SAMP':
-            if param == '?':
-                return asm.sample_time
-            else:
-                asm.sample_time = float(param)
-        elif comm == 'PD:REGT':
-            if param == '?':
-                return asm.pid_regulating
-            elif int(param) == 1:
-                asm.ready_assembly()
-                asm.pid_regulating = bool(int(param))
-            elif int(param) == 0:
-                asm.pid_regulating = bool(int(param))
-                asm.supply_set_voltage = 0
+                return 'ERROR: bad command ' + str(cmd)
 
-        # Assembly
-        elif comm == 'AM:STOP':
-            return asm.stop()
-        elif comm == 'AM:RSET':
-            return asm.reset_assembly()
-        elif comm == 'AM:REDY':
-            return asm.ready_assembly()
-        elif comm == 'AM:MAXV':
-            return asm.MAX_voltage_limit
-        elif comm == 'AM:MAXA':
-            return asm.MAX_current_limit
+            # Assembly
+        elif dev == 'AM':
+            if comm == 'STOP':
+                return asm.stop()
+            elif comm == 'RSET':
+                return asm.reset_assembly()
+            elif comm == 'REDY':
+                return asm.ready_assembly()
+            elif comm == 'MAXV':
+                return asm.MAX_voltage_limit
+            elif comm == 'MAXA':
+                return asm.MAX_current_limit
+            else:
+                return 'ERROR: bad command ' + str(comm)
 
-        # Bad Command
+            # Bad Device
         else:
-            return 'ERROR: bad command' + str(cmd)
+            return 'ERROR: bad device ' + str(dev)
+
     except NameError:
-        return 'ERROR: parameter missing'
+        return 'ERROR: parameter missing for ' + str(cmd)
+    except ValueError:
+        return 'ERROR: bad parameter ' + str(param)
     return
 
 
@@ -251,7 +276,7 @@ def update_heaters(asm_dict, t0_dict):
         in the next iteration.
     """
     for key, asm in asm_dict.items():
-        if time.time() - t0_dict[key] >= asm.sample_time and asm.pid_regulating:
+        if time.time() - t0_dict[key] >= asm.get_pid_sample_time() and asm.pid_is_regulating:
             asm.update_supply()
             t0_dict[key] = time.time()
             print(asm.temp)
@@ -275,7 +300,7 @@ def server_loop(asm_dict):
     for key in keys_raw:  # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
 
-    HOST = get_host_ip(True)
+    HOST = get_host_ip(loopback=True)
     PORT = 65432
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((HOST, PORT))
@@ -316,9 +341,9 @@ def server_loop(asm_dict):
                         print(f"Disconnected by {addr}")
                         break
                     out = process_command(data, asm_dict)
-
-                    if out is not None:
-                        conn.sendall((str(out) + '\r').encode('utf-8'))
+                    if out is None:
+                        out = 'NOERROR'
+                    conn.sendall((str(out) + '\r').encode('utf-8'))
 
                 except BlockingIOError:
                     pass
@@ -328,7 +353,7 @@ def server_loop(asm_dict):
 
 
 def main():
-    ps = Spd3303x('10.176.42.121')
+    ps = Mr50040('10.176.42.220')
     h = Heater(MAX_temp=100, MAX_volts=30, MAX_current=0.5)
     daq_ip = '10.176.42.200'
 

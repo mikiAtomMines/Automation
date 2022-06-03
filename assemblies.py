@@ -15,34 +15,21 @@ class HeaterAssembly:
             heater=None,
     ):
         """
-        Pid controller device based on the beaglebone black rev C. The controller connects through a socket TCP/IP
-        connection. Essentially a heater assembly.
-
-        A heater assembly composed of a heater, a temperature measuring device, and a power supply.
+        A heater assembly composed of a heater, a temperature measuring device, and a power supply. This assembly
+        should only need to be used by the pid_controller_server.py file running on a BeagleBone Black.
 
         Parameters
         ----------
         supply_and_channel : two tuple of device_models.PowerSupply and int
-            The power supply model that is being used for controlling the electrical power going into the heater.
+            First item in the tuple is the power supply that is being used for controlling the electrical power going
+            into the heater. The second item is the supply channel that is being used. If the power supply has only
+            one channel, use 1.
         daq_and_channel : two tuple of device_models.MCC_device and int
-            The temperature DAQ device that is being used for reading the temperature of the heater.
-        simple_pid : simple_pid.PID()
-            The PID function used to regulate the heater's temperature to the set point.
-        set_temperature : float
-            The desired set temperature in the same units as the temperature readings from the temperature DAQ.
-        temp_units : str, None
-            Set the temperature units for all temperature readings, setpoints, etc. Possible values (not
-            case-sensitive):
-            for Celsius                 celsius,               c
-            for Fahrenheit              fahrenheit,            f
-            for Kelvin                  kelvin,                k
-            for default units           None
+            First item in the tuple is the temperature DAQ device that is being used for reading the temperature of the
+            heater. The second item is the channel to use.
         heater : Heater
-            heater type. Should contain the MAX temperature, MAX current, and MAX volts based on the hardware.
-
-        configure_on_startup : bool
-            Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
-            True if the pid object has not been manually configured.
+            Object that contains the MAX temperature, MAX current, and MAX volts based on the physical heater
+            hardware. If none is provided, the class will create an instance of the Heater class to use.
         """
 
         self._supply_and_channel = supply_and_channel
@@ -84,7 +71,6 @@ class HeaterAssembly:
         """
         Resets the pid settings to their default values. Output limits set based on power supply and heater limit
         voltage.
-        :return:
         """
         self._pid = self._get_default_pid()
 
@@ -165,6 +151,79 @@ class HeaterAssembly:
 
     # Power supply
     # ------------
+    def get_supply_channel(self):
+        return self._supply_and_channel[1]
+
+    def set_supply_channel(self, new_ch):
+        ps = self._supply_and_channel[0]
+
+        err = ps.check_valid_channel(new_ch)
+        if err is None:
+            ps.zero_all_channels()
+            self._supply_and_channel[1] = new_ch
+        else:
+            return err
+
+    def get_supply_channel_state(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_channel_state(ch)
+
+    def set_supply_channel_state(self, state):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.set_channel_state(ch, state)
+
+    def get_supply_setpoint_voltage(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_setpoint_voltage(ch)
+
+    def set_supply_voltage(self, volts):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.set_voltage(ch, volts)
+
+    def get_supply_actual_voltage(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_actual_voltage(ch)
+
+    def get_supply_setpoint_current(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_setpoint_current(ch)
+
+    def set_supply_current(self, amps):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.set_current(ch, amps)
+
+    def get_supply_actual_current(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_actual_current(ch)
+
+    def get_supply_voltage_limit(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_voltage_limit(ch)
+
+    def set_supply_voltage_limit(self, volts):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.set_voltage_limit(ch, volts)
+
+    def get_supply_current_limit(self):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.get_current_limit(ch)
+
+    def set_supply_current_limit(self, amps):
+        ps = self._supply_and_channel[0]
+        ch = self._supply_and_channel[1]
+        return ps.set_current_limit(ch, amps)
+
     @property
     def power_supply(self):
         out = 'IDN: ' + self._supply_and_channel[0].idn + '\n' \
@@ -172,88 +231,48 @@ class HeaterAssembly:
         return out
 
     @property
-    def supply_set_voltage(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_setpoint_voltage(ch)
-
-    @supply_set_voltage.setter
-    def supply_set_voltage(self, new_volt):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        ps.set_voltage(ch, new_volt)
+    def supply_setpoint_voltage(self):
+        return self.get_supply_setpoint_voltage()
 
     @property
-    def supply_set_current(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_setpoint_current(ch)
-
-    @supply_set_current.setter
-    def supply_set_current(self, new_curr):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        ps.set_current(ch, new_curr)
+    def supply_setpoint_current(self):
+        return self.get_supply_setpoint_current()
 
     @property
     def supply_actual_voltage(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_actual_voltage(ch)
+        return self.get_supply_actual_voltage()
 
     @property
     def supply_actual_current(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_actual_current(ch)
+        return self.get_supply_actual_current()
+
+    @property
+    def supply_voltage(self):
+        return self.get_supply_actual_voltage()
+
+    @property
+    def supply_current(self):
+        return self.get_supply_actual_current()
 
     @property
     def supply_voltage_limit(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_voltage_limit(ch)
-
-    @supply_voltage_limit.setter
-    def supply_voltage_limit(self, new_lim):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        ps.set_voltage_limit(ch, new_lim)
+        return self.get_supply_voltage_limit()
 
     @property
     def supply_current_limit(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_current_limit(ch)
-
-    @supply_current_limit.setter
-    def supply_current_limit(self, new_lim):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        ps.set_current_limit(ch, new_lim)
+        return self.get_supply_current_limit()
 
     @property
     def supply_channel_state(self):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        return ps.get_channel_state(ch)
-
-    @supply_channel_state.setter
-    def supply_channel_state(self, new_state):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        ps.set_channel_state(ch, new_state)
+        return self.get_supply_channel_state()
 
     @property
     def supply_channel(self):
         return self._supply_and_channel[1]
 
-    @supply_channel.setter
-    def supply_channel(self, new_ch):
-        ps = self._supply_and_channel[0]
-        ch = self._supply_and_channel[1]
-        if new_ch <= ps.number_of_channels and new_ch != ch:
-            ps.zero_all_channels()
-            self._supply_and_channel[1] = new_ch
+    @property
+    def supply_number_of_channels(self):
+        return self._supply_and_channel[0].number_of_channels
 
     @property
     def supply_MAX_voltage(self):
@@ -273,6 +292,43 @@ class HeaterAssembly:
 
     # Temp DAQ
     # --------
+    def get_daq_temp(self):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        return dq.get_temp(ch)
+
+    def get_daq_channel(self):
+        return self._daq_and_channel[1]
+
+    def set_daq_channel(self, new_ch):
+        dq = self._daq_and_channel[0]
+        err = dq.check_valid_temp_channel(new_ch)
+        if err is None:
+            self._daq_and_channel[1] = new_ch
+        else:
+            return 'ERROR: channel not found'
+
+    def get_daq_tc_type(self):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        return dq.get_thermocouple_type(ch)
+
+    def set_daq_tc_type(self, new_tc):
+        dq = self._daq_and_channel[0]
+        ch = self._daq_and_channel[1]
+        return dq.set_thermocouple_type(ch, new_tc)
+
+    def get_daq_temp_units(self):
+        return self._daq_and_channel[0].default_units
+
+    def set_daq_temp_units(self, new_units):
+        dq = self._daq_and_channel[0]
+        err = dq.check_valid_units(new_units)
+        if err is None:
+            dq.default_units = new_units
+        else:
+            return 'ERROR: temp units not valid'
+
     @property
     def daq(self):
         out = 'IDN: ' + self._daq_and_channel[0].idn + '\n' \
@@ -281,48 +337,75 @@ class HeaterAssembly:
 
     @property
     def temp(self):
-        dq = self._daq_and_channel[0]
-        ch = self._daq_and_channel[1]
-        return dq.get_temp(ch)
+        return self.get_daq_temp()
 
     @property
     def daq_channel(self):
         return self._daq_and_channel[1]
 
-    @daq_channel.setter
-    def daq_channel(self, new_chan):  # TODO: add syntax checking for mcc device
-        if 0 <= new_chan < self._daq_and_channel[0].number_temp_channels:
-            self._daq_and_channel[1] = new_chan
-        else:
-            print('ERROR: channel not found')
-            sys.exit()
-
     @property
-    def thermocouple_type(self):
+    def tc_type(self):
         dq = self._daq_and_channel[0]
         ch = self._daq_and_channel[1]
         return dq.get_thermocouple_type(ch)
-
-    @thermocouple_type.setter
-    def thermocouple_type(self, new_tc):
-        dq = self._daq_and_channel[0]
-        ch = self._daq_and_channel[1]
-        dq.set_thermocouple_type(ch, new_tc)
 
     @property
     def temp_units(self):
         return self._daq_and_channel[0].default_units
 
-    @temp_units.setter
-    def temp_units(self, new_units):
-        self._daq_and_channel[0].default_units = new_units  # this also checks if input is valid
+    @property
+    def daq_number_of_temp_channels(self):
+        return self._daq_and_channel[0].number_temp_channels
 
     # PID settings
     # ------------
+    def get_pid_setpoint(self):
+        return self._pid.setpoint
+
+    def set_pid_setpoint(self, new_set):
+        if self._MAX_temp_limit < new_set:
+            return 'ERROR: new_temp value of', new_set, 'not allowed. Check temperature limits'
+        self._pid.setpoint = new_set
+
+    def get_pid_limits(self):
+        return self._pid.output_limits
+
+    def get_pid_sample_time(self):
+        return self._pid.sample_time
+
+    def set_pid_sample_time(self, seconds):
+        if seconds < 1:
+            return 'ERROR: sample time of ' + str(seconds) + ' is invalid. Use larger or equal to 1 second.'
+        self._pid.sample_time = seconds
+
+    def get_pid_regulation(self):
+        return self._regulating
+
+    def set_pid_regulation(self, reg):
+        if type(reg) is not int and type(reg) is not bool:
+            return 'ERROR: type ' + str(type(reg)) + ' not supported'
+        self._regulating = bool(reg)
+
     @property
     def pid_function(self):
         return f'kp={self._pid.Kp} ki={self._pid.Ki} kd={self._pid.Kd} setpoint={self._pid.setpoint} sampletime=' \
                f'{self._pid.sample_time}'
+
+    @property
+    def pid_setpoint(self):
+        return self.get_pid_setpoint()
+
+    @property
+    def pid_limits(self):
+        return self.get_pid_limits()
+
+    @property
+    def pid_sample_time(self):
+        return self.get_pid_sample_time()
+
+    @property
+    def is_regulating(self):
+        return self.get_pid_regulation()
 
     @property
     def pid_kp(self):
@@ -349,32 +432,8 @@ class HeaterAssembly:
         self._pid.Kd = new_kd
 
     @property
-    def set_temperature(self):
-        return self._pid.setpoint
-
-    @set_temperature.setter
-    def set_temperature(self, new_temp):
-        if self._MAX_temp_limit < new_temp:
-            raise ValueError('ERROR: new_temp value of', new_temp, 'not allowed. Check temperature limits')
-        self._pid.setpoint = new_temp
-
-    @property
-    def sample_time(self):
-        return self._pid.sample_time
-
-    @sample_time.setter
-    def sample_time(self, new_st):
-        self._pid.sample_time = new_st
-
-    @property
-    def pid_regulating(self):
+    def pid_is_regulating(self):
         return self._regulating
-
-    @pid_regulating.setter
-    def pid_regulating(self, reg):
-        if not(type(reg) is int) and not(type(reg) is float) and not(type(reg) is bool):
-            raise TypeError('ERROR: ' + str(reg) + ' not valid input')
-        self._regulating = bool(reg)
 
     @property
     def MAX_set_temp(self):
@@ -429,11 +488,27 @@ class HeaterAssembly:
         plt.show()
 
 
-class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
-    def __init__(self,ip4_address, port=65432, ):
+class Oven(SocketEthernetDevice):
+    def __init__(self, ip4_address, port=65432, ):
         super().__init__(ip4_address, port)
 
     def _query_(self, asm_key, msg):
+        """
+        Send a query to the ethernet device and receives response.
+
+        Parameters
+        ----------
+        asm_key : str or int
+            the name of the assembly to send the command. Can also be an int, which will interpret it as an index in
+            the list of assemblies in the oven.
+        msg : str
+            command from custom communications protocol.
+
+        Returns
+        -------
+        str
+            Returns response as string or error string.
+        """
         if type(asm_key) is int:
             try:
                 asm_key = self.get_assemblies_keys()[asm_key]
@@ -441,9 +516,29 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
         qry = asm_key + ' ' + msg + '\r'
-        return self._query(qry.encode('utf-8')).decode('utf-8')
+        return self._query(qry.encode('utf-8')).decode('utf-8').strip('\r')
 
     def _command_(self, asm_key, msg, param=''):
+        """
+        Send a command to the ethernet device.
+
+        Parameters
+        ----------
+        asm_key : str or int
+            the name of the assembly to send the command. Can also be an int, which will interpret it as an index in
+            the list of assemblies in the oven.
+        msg : str
+            command from custom communications protocol.
+        param : str, int, float
+            Required by setters.
+
+        Returns
+        -------
+        None
+            If command was sent and executed succesfully, return None
+        str
+            Else, return error string.
+        """
         if type(asm_key) is int:
             try:
                 asm_key = self.get_assemblies_keys()[asm_key]
@@ -451,12 +546,13 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
         cmd = asm_key + ' ' + msg + ' ' + str(param) + '\r'
-        self._command(cmd.encode('utf-8'))
+        err = self._query(cmd.encode('utf-8')).decode('utf-8')
+        if err != 'NOERROR\r':
+            return err
 
     # Oven
     def get_assemblies_keys(self):
         """
-
         :return list of str: keys of all the heater assemblies used by the oven.
         """
         return self._query_('OVEN', 'OV:KEYS').split()
@@ -484,43 +580,77 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
             self._command_(asm_key, 'PS:REDY')
 
     def get_supply_actual_voltage(self, asm_key):
-        return self._query_(asm_key, 'PS:VOLT ?')
+        qry = self._query_(asm_key, 'PS:VOLT ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
-    def get_supply_set_voltage(self, asm_key):
-        return self._query_(asm_key, 'PS:VSET ?')
+    def get_supply_setpoint_voltage(self, asm_key):
+        qry = self._query_(asm_key, 'PS:VSET ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
-    def set_supply_set_voltage(self, asm_key, volts):
+    def set_supply_voltage(self, asm_key, volts):
         return self._command_(asm_key, 'PS:VSET', volts)
 
     def get_supply_actual_current(self, asm_key):
-        return self._query_(asm_key, 'PS:AMPS ?')
+        qry = self._query_(asm_key, 'PS:AMPS ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
-    def get_supply_set_current(self, asm_key):
-        return self._query_(asm_key, 'PS:ASET ?')
+    def get_supply_setpoint_current(self, asm_key):
+        qry = self._query_(asm_key, 'PS:ASET ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return
 
-    def set_supply_set_current(self, asm_key, amps):
+    def set_supply_current(self, asm_key, amps):
         return self._command_(asm_key, 'PS:ASET', amps)
 
-    def get_supply_limit_voltage(self, asm_key):
-        return self._query_(asm_key, 'PS:VLIM ?')
+    def get_supply_voltage_limit(self, asm_key):
+        qry = self._query_(asm_key, 'PS:VLIM ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
-    def set_supply_limit_voltage(self, asm_key, volts):
+    def set_supply_voltage_limit(self, asm_key, volts):
         return self._command_(asm_key, 'PS:VLIM', volts)
 
-    def get_supply_limit_current(self, asm_key):
-        return self._query_(asm_key, 'PS:ALIM ?')
+    def get_supply_current_limit(self, asm_key):
+        qry = self._query_(asm_key, 'PS:ALIM ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
-    def set_supply_limit_current(self, asm_key, amps):
+    def set_supply_current_limit(self, asm_key, amps):
         return self._command_(asm_key, 'PS:ALIM', amps)
 
     def get_supply_channel_state(self, asm_key):
-        return self._query_(asm_key, 'PS:CHIO ?')
+        qry = self._query_(asm_key, 'PS:CHIO ?')
+        if qry == 'False':
+            return False
+        elif qry == 'True':
+            return True
+        else:
+            return qry
 
     def set_supply_channel_state(self, asm_key, state):
         return self._command_(asm_key, 'PS:CHIO', int(state))
 
     def get_supply_channel(self, asm_key):
-        return self._query_(asm_key, 'PS:CHAN ?')
+        qry = self._query_(asm_key, 'PS:CHAN ?')
+        try:
+            return int(qry)
+        except ValueError:
+            return qry
 
     def set_supply_channel(self, asm_key, new_chan):
         return self._command_(asm_key, 'PS:CHAN', new_chan)
@@ -531,10 +661,18 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
         return self._query_(asm_key, 'DQ:IDN')
 
     def get_daq_temp(self, asm_key):
-        return self._query_(asm_key, 'DQ:TEMP ?')
+        qry = self._query_(asm_key, 'DQ:TEMP ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def get_daq_channel(self, asm_key):
-        return self._query_(asm_key, 'DQ:CHAN ?')
+        qry = self._query_(asm_key, 'DQ:CHAN ?')
+        try:
+            return int(qry)
+        except ValueError:
+            return qry
 
     def set_daq_channel(self, asm_key, new_chan):
         return self._command_(asm_key, 'DQ:CHAN', new_chan)
@@ -559,51 +697,88 @@ class Oven(SocketEthernetDevice):  # TODO: Error handling for commands.
     def reset_pid(self, asm_key):
         return self._command_(asm_key, 'PD:RSET')
 
+    def get_pid_limits(self, asm_key):
+        return self._query_(asm_key, 'PD:LIMS ?')
+
     def reset_pid_limits(self, asm_key):
         return self._command_(asm_key, 'PD:RLIM')
 
     def get_pid_kpro(self, asm_key):
-        return self._query_(asm_key, 'PD:KPRO ?')
+        qry = self._query_(asm_key, 'PD:KPRO ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def set_pid_kpro(self, asm_key, new_k):
         return self._command_(asm_key, 'PD:KPRO', new_k)
 
     def get_pid_kint(self, asm_key):
-        return self._query_(asm_key, 'PD:KINT ?')
+        qry = self._query_(asm_key, 'PD:KINT ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def set_pid_kint(self, asm_key, new_k):
         return self._command_(asm_key, 'PD:KINT', new_k)
 
     def get_pid_kder(self, asm_key):
-        return self._query_(asm_key, 'PD:KDER ?')
+        qry = self._query_(asm_key, 'PD:KDER ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def set_pid_kder(self, asm_key, new_k):
         return self._command_(asm_key, 'PD:KDER', new_k)
 
     def get_pid_setpoint(self, asm_key):
-        return self._query_(asm_key, 'PD:SETP ?')
+        qry = self._query_(asm_key, 'PD:SETP ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def set_pid_setpoint(self, asm_key, new_temp):
         return self._command_(asm_key, 'PD:SETP', new_temp)
 
     def get_pid_sample_time(self, asm_key):
-        return self._query_(asm_key, 'PD:SAMP ?')
+        qry = self._query_(asm_key, 'PD:SAMP ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def set_pid_sample_time(self, asm_key, new_t):
         return self._command_(asm_key, 'PD:SAMP', new_t)
 
-    def get_pid_regulating(self, asm_key):
-        return self._query_(asm_key, 'PD:REGT ?')
+    def get_pid_regulation(self, asm_key):
+        qry = self._query_(asm_key, 'PD:REGT ?')
+        if qry == 'False':
+            return False
+        elif qry == 'True':
+            return True
+        else:
+            return qry
 
-    def set_pid_regulating(self, asm_key, regt):
+    def set_pid_regulation(self, asm_key, regt):
         return self._command_(asm_key, 'PD:REGT', int(regt))
 
-    #Assembly
+    # Assembly
     def get_assembly_MAX_voltage(self, asm_key):
-        return self._query_(asm_key, 'AM:MAXV')
+        qry = self._query_(asm_key, 'AM:MAXV')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def get_assembly_MAX_current(self, asm_key):
-        return self._query_(asm_key, 'AM:MAXA')
+        qry = self._query_(asm_key, 'AM:MAXA')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
 
     def stop(self, asm_key):
         return self._command_(asm_key, 'AM:STOP')
