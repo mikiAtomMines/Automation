@@ -11,6 +11,7 @@ import simple_pid as pid
 from mcculw import ul
 from mcculw import enums
 from mcculw.enums import InterfaceType
+from device_models import Mr50040
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
     # pico = device_models.Model8742(ip4_address='10.176.42.123')
     # auxiliary.testing_model8742(pico)
 
-    spd = device_models.Spd3303x(ip4_address='10.176.42.121')
+    # spd = device_models.Spd3303x(ip4_address='10.176.42.121')
     # auxiliary.testing_SPD3303X(spd)
 
 
@@ -76,24 +77,26 @@ def main():
     # print(rga._command_(cmd='FL'))
     # print(rga.status_byte)
 
-    pid_ = pid.PID()
-    pid_.setpoint = 50
-    pid_.output_limits = (0, 30)
-    pid_.tunings = (1, 0.05, 0)
+    # pid_ = pid.PID()
+    # pid_.setpoint = 50
+    # pid_.output_limits = (0, 30)
+    # pid_.tunings = (1, 0.05, 0)
+    #
+    # spd.set_current(1, 0.5)
+    # spd.set_channel_state(1, 'on')
+    #
+    # while True:
+    #     temp = daq.temp_ch0
+    #     new_volt = pid_(temp)
+    #     spd.set_voltage(1, new_volt)
+    #     print(round(temp, 2))
+    #
+    #     time.sleep(0.5)
 
-    spd.set_current(1, 0.5)
-    spd.set_channel_state(1, 'on')
 
-    while True:
-        temp = daq.temp_ch0
-        new_volt = pid_(temp)
-        spd.set_voltage(1, new_volt)
-        print(round(temp, 2))
+    mr = Mr50040('10.176.42.220')
 
-        time.sleep(0.5)
-
-
-
+    auxiliary.test_Mr50040(mr)
 
 
     pass
