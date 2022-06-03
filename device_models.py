@@ -5,9 +5,7 @@ Created on Thursday, April 7, 2022
 
 import serial
 from sys import platform
-import time
 
-import auxiliary
 from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
 try:
@@ -263,7 +261,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
             port=5025,
             channel_voltage_limits=None,
             channel_current_limits=None,
-            reset_on_startup=True
+            zero_on_startup=True
     ):
         """
         Parameters
@@ -279,7 +277,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         channel_current_limits : list
             Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents 
             channel 2, and so on.
-        reset_on_startup : bool
+        zero_on_startup : bool
             If True, run a routine to set turn off the output of both channels and set the set
 
 
@@ -305,11 +303,11 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
             number_of_channels=physical_parameters['number_of_channels'],
             channel_voltage_limits=channel_voltage_limits,
             channel_current_limits=channel_current_limits,
-            reset_on_startup=reset_on_startup,
+            zero_on_startup=zero_on_startup,
         )
 
-        if self._reset_on_startup is True and ip4_address is not None:
-            self.reset_channels()
+        if self._zero_on_startup and ip4_address is not None:
+            self.zero_all_channels()
 
     def _query_(self, qry):
         """
@@ -322,8 +320,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         str
             Decode the response in bytes using utf-8
         """
-        out = self._query(qry.encode('utf-8'))
-        return out.decode('utf-8').strip()
+        return self._query(qry.encode('utf-8')).decode('utf-8').strip()
     
     def _command_(self, cmd):
         """
@@ -336,14 +333,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         Nonetype
             returns None if command is sent succesfully.
         """
-        out = self._command(cmd.encode('utf-8'))
-        return out
-
-    def reset_channels(self):
-        self.set_channel_state(1, False)
-        self.set_channel_state(2, False)
-        self.zero_all_channels()
-        print('Both channels turned off and set to 0. Channel limits are reset to MAX.')
+        return self._command(cmd.encode('utf-8'))
 
     # Methods
     # -------
@@ -390,6 +380,9 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         err = self.check_valid_channel(channel)
         if err is not None:
             return err
+
+        if type(state) is not bool and type(state) is not int:
+            return 'ERROR: type ' + str(type(state)) + ' not supported. Input True or 1 for ON, or False or 0 for OFF'
 
         state = bool(state)
         if state:
@@ -442,7 +435,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
             return err
 
         if volts > self.get_voltage_limit(channel):
-            return 'ERROR: CH' + str(channel) +' voltage not set. New voltage is higher than limit'
+            return 'ERROR: CH' + str(channel) + ' voltage not set. New voltage is higher than limit'
 
         volts = round(volts, 3)
         chan = 'CH' + str(channel)
@@ -497,7 +490,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         ----------
         channel : int
             channel to set the state. Number is from 1 up to the number of channels of the power supply.
-        volts : float
+        amps : float
             new setpoint current in Amps
 
         Returns
@@ -512,7 +505,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
             return err
 
         if amps > self.get_current_limit(channel):
-            return 'ERROR: CH' + str(channel) +' current not set. New current is higher than limit'
+            return 'ERROR: CH' + str(channel) + ' current not set. New current is higher than limit'
 
         amps = round(amps, 3)
         chan = 'CH' + str(channel)
@@ -678,6 +671,197 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         self.set_current_limit(2, amps)
 
 
+class Mr50040(SocketEthernetDevice, PowerSupply):
+    def __init__(
+            self,
+            ip4_address=None,
+            port=5025,
+            zero_on_startup=True
+    ):
+        """
+        Parameters
+        ----------
+        ip4_address : str
+            IPv4 address of the power supply.
+        port : int
+            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
+            devices, can use any between 49152 and 65536.
+        channel_voltage_limits : list
+            Set an upper limit on the set voltage of the channels. Entry 0 represents channel 1, entry 1 represents
+            channel 2, and so on.
+        channel_current_limits : list
+            Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents
+            channel 2, and so on.
+        zero_on_startup : bool
+            If True, run a routine to set turn off the output of both channels and set the set
+
+
+        Note that all channel voltage limits are software-based since the power supply does not have any built-in limit
+        features. This means that the channel limits are checked before sending a command to the power supply. If the
+        requested set voltage is higher than the channel voltage limit, the command will not go through.
+        """
+        physical_parameters = {
+            'MAX_voltage_limit': 500,
+            'MAX_current_limit': 40,
+            'number_of_channels': 1,
+        }
+
+        SocketEthernetDevice.__init__(
+            self,
+            ip4_address=ip4_address,
+            port=port
+        )
+        PowerSupply.__init__(
+            self,
+            MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
+            MAX_current_limit=physical_parameters['MAX_current_limit'],
+            number_of_channels=physical_parameters['number_of_channels'],
+            channel_voltage_limits=None,
+            channel_current_limits=None,
+            zero_on_startup=zero_on_startup,
+        )
+
+        if self._zero_on_startup is True and ip4_address is not None:
+            self.zero_all_channels()
+
+    def get_error_code(self):
+        """
+
+        :return int:
+        """
+        return int(self._query('system:error?\n'.encode('utf-8')).decode('utf-8').split(',')[0])
+
+    def get_error(self):
+        """
+
+        Returns
+        -------
+        str
+            format: '<code>,<message>\n'
+        """
+        return self._query('system:error?\n'.encode('utf-8')).decode('utf-8')
+
+    def _query_(self, qry):
+        """
+        query the device through a socket connection using the self._query method from the SocketEthernetDevice
+        master class
+
+        Parameters:
+        qry - str
+            message to send as a string. No need to add \n.
+
+        Returns
+        -------
+        str
+            Either the requested information or an error string
+        """
+        qry += '\n'
+        out = self._query(qry.encode('utf-8')).decode('utf-8').strip()
+        code, err = self.get_error().strip().split(',')
+        if int(code) != 0:
+            return out + '\nERROR: ' + str(err)
+        else:
+            return out
+
+    def _command_(self, cmd):
+        """
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            Else, return an error string
+        """
+        cmd += '\n'
+        out = self._command(cmd.encode('utf-8'))
+        code, err = self.get_error().strip().split(',')
+        if int(code) != 0:
+            return 'ERROR: ' + str(err)
+        else:
+            return out
+
+    def get_status_byte(self):
+        """
+
+        :return int: int representing the status byte
+        """
+        return int(self._query_('*stb?'))
+
+    def get_channel_state(self, channel=1):
+        return bool(int(self._query_('output?')))
+
+    def set_channel_state(self, channel=1, state=None):
+        if state is None:
+            raise TypeError('ERROR: state parameter missing')
+        if state is True:
+            st_str = 'on'
+        elif state is False:
+            st_str = 'off'
+        else:
+            return 'ERROR: bad parameter ' + str(state)
+
+        return self._command_('output ' + st_str)
+
+    def get_setpoint_voltage(self, channel=1):
+        return float(self._query_('voltage?'))
+
+    def set_voltage(self, channel=1, volts=None):
+        if volts is None:
+            raise TypeError('ERROR: volts parameter missing')
+        return self._command_('voltage ' + str(volts))
+
+    def get_actual_voltage(self, channel=1):
+        return float(self._query_('measure:voltage?'))
+
+    def get_setpoint_current(self, channel=1):
+        return float(self._query_('current?'))
+
+    def set_current(self, channel=1, amps=None):
+        if amps is None:
+            raise TypeError('ERROR: amps parameter missing')
+        return self._command_('current ' + str(amps))
+
+    def get_actual_current(self, channel=1):
+        return float(self._query_('measure:current?'))
+
+    def get_setpoint_power(self):
+        return float(self._query_('power?'))
+
+    def get_actual_power(self):
+        return float(self._query_('measure:power?'))
+
+    def get_voltage_limit(self, channel=1):
+        return float(self._query_('voltage:max?'))
+
+    def set_voltage_limit(self, channel=1, volts=None):
+        if volts is None:
+            raise TypeError('ERROR: volts parameter missing')
+        return self._command_('voltage:max ' + str(volts))
+
+    def get_current_limit(self, channel=1):
+        return float(self._query_('current:max?'))
+
+    def set_current_limit(self, channel=1, amps=None):
+        if amps is None:
+            raise TypeError('ERROR: amps parameter missing')
+        return self._command_('current:max ' + str(amps))
+
+    @property
+    def idn(self):
+        return self._query_('*IDN?')
+
+    @property
+    def is_current_limited(self):
+        return (int(self._query_('status:operation:condition?')) & 0b0000010)
+
+    @property
+    def is_voltage_limited(self):
+        return (int(self._query_('status:operation:condition?')) & 0b0000001)
+
+
+
+
 # ======================================================================================================================
 # Temperature DAQs
 # ======================================================================================================================
@@ -690,8 +874,8 @@ if platform == 'win32':
             Parameters
             ----------
             ip4_address : string
-                The current IPv4 address of the device. Can be found through instacal. For the Web_TC, the ip4_address is
-                unused because the API functions that use it are not supported by this device.
+                The current IPv4 address of the device. Can be found through instacal. For the Web_TC,
+                the ip4_address is unused because the API functions that use it are not supported by this device.
             port : int
                 The port number to be used. MCC recommends to use 54211. Port 80 is reserved for the web browser
                 application. For the Web_TC, the port number is unused because the API functions that use it are not
@@ -722,8 +906,8 @@ if platform == 'win32':
             Parameters
             ----------
             ip4_address : string
-                The current IPv4 address of the device. Can be found through instacal. For the Web_TC, the ip4_address is
-                unused because the API functions that use it are not supported by this device.
+                The current IPv4 address of the device. Can be found through instacal. For the Web_TC,
+                the ip4_address is unused because the API functions that use it are not supported by this device.
             port : int
                 The port number to be used. MCC recommends to use 54211. Port 80 is reserved for the web browser
                 application. For the Web_TC, the port number is unused because the API functions that use it are not
