@@ -117,6 +117,18 @@ def testing_SPD3303X(power_supply):
     power_supply.disconnect()
 
 
+def test_Mr50040(mr):
+    print(mr.get_actual_voltage())
+    print(mr.get_actual_current())
+    print(mr.set_current(amps=0.2))
+    print(mr.set_voltage(volts=2))
+    print(mr.set_channel_state(state=True))
+    print(mr.get_actual_voltage())
+    print(mr.get_actual_current())
+    print(mr.get_actual_power())
+    print(mr.set_current(amps=0))
+    print(mr.set_voltage(volts=0))
+
 # def testing_HeaterAssembly():
 #     ps = device_models.SPD3303X(ip4_address='10.176.42.121')
 #     ps.ch1_state = 'on'
@@ -216,3 +228,4 @@ def simple_plot(file):
     plt.plot(time_list, actual_temp_list)
 
     plt.show()
+
