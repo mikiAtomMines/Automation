@@ -107,6 +107,18 @@ class SocketEthernetDevice:
     #     else:
     #         raise AttributeError('ERROR: port cannot be changed while connection is on.')
 
+    @property
+    def idn(self):
+        """
+        Placeholder
+
+        Returns
+        -------
+        str
+            Identification string.
+        """
+        pass
+
     def connect(self):
         """
         Establish socket connection to the ip address of the current SocketEthernetDevice. Attempt to connect 10
@@ -123,14 +135,24 @@ class SocketEthernetDevice:
             If 10 attempts to connect fail, raise OSError.
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        for i in range(10):
-            try:
-                sock.connect((self._ip4_address, self._port))
-                self._socket = sock
-                self._is_connected = True
-                return
-            except OSError:
-                continue
+        try:
+            sock.connect((self._ip4_address, self._port))
+            self._socket = sock
+            self._is_connected = True
+            print('Connection to', self._ip4_address, 'was succesful.')
+            return
+        except OSError:
+            print('Failed to connect. Reattempting...')
+            for i in range(10):
+                try:
+                    sock.connect((self._ip4_address, self._port))
+                    self._socket = sock
+                    self._is_connected = True
+                    print('Connection to', self._ip4_address, 'was succesful.')
+                    return
+                except OSError:
+                    print('attempt', i, 'failed')
+                    continue
         raise OSError('ERROR: Could not connect to' + str(self._ip4_address))
 
     def disconnect(self):

@@ -21,7 +21,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-import simple_pid
 
 # TODO: Add proper error handling. This includes receiving error from power supply.
 # TODO: Finish adding comments
@@ -35,7 +34,7 @@ class PowerSupply:
             channel_voltage_limits=None,
             channel_current_limits=None,
             number_of_channels=1,
-            reset_on_startup=True
+            zero_on_startup=True
     ):
 
         """
@@ -47,17 +46,17 @@ class PowerSupply:
             Maximum voltage that the power supply can output based on hardware limitations.
         MAX_current_limit : float
             Maximum current that the power supply can output based on hardware limitations.
-        channel_voltage_limits : list of float
+        channel_voltage_limits : list of float, None
             list containing the individual channel limits for the set voltage. The set voltage of a channel cannot
             exceed its limit voltage. The 0th item corresponds to the limit of channel 1, 1st item to channel 2,
             and so on.
-        channel_current_limits : list of float
+        channel_current_limits : list of float, None
             list containing the individual channel limits for the set current. The set current of a channel cannot
             exceed its limit current. The 0th item corresponds to the limit of channel 1, 1st item to channel 2,
             and so on.
         number_of_channels : int
             the number of physical programmable channels in the power supply.
-        reset_on_startup : bool
+        zero_on_startup : bool
             If set to true, will run a method to set the set voltage and current to 0 and reset the channel limits to
             their full range.
         """
@@ -67,7 +66,7 @@ class PowerSupply:
         self._channel_voltage_limits = channel_voltage_limits
         self._channel_current_limits = channel_current_limits
         self._number_of_channels = number_of_channels
-        self._reset_on_startup = reset_on_startup
+        self._zero_on_startup = zero_on_startup
 
         if self._channel_voltage_limits is None and self._MAX_voltage_limit is not None:
             self._channel_voltage_limits = [self._MAX_voltage_limit] * self._number_of_channels
@@ -385,8 +384,7 @@ class PowerSupply:
 
     def zero_all_channels(self):
         """
-        Sets the set voltage and set current of all channels to 0. Then sets all voltage and current channel limits
-        to the maximum allowed limits for full range of operation.
+        Sets the set voltage and set current of all channels to 0.
 
         Returns
         -------
@@ -395,22 +393,17 @@ class PowerSupply:
         str
             Else, return an error string.
         """
-        max_v = self.MAX_voltage_limit
-        max_c = self.MAX_current_limit
         for chan in range(1, self.number_of_channels+1):
             err1 = self.set_voltage(channel=chan, volts=0)
-            err2 = self.set_current(channel=chan, amps=0)
-            err3 = self.set_voltage_limit(channel=chan, volts=max_v)
-            err4 = self.set_current_limit(channel=chan, amps=max_c)
-
             if err1 is not None:
                 return err1
+            err2 = self.set_current(channel=chan, amps=0)
             if err2 is not None:
                 return err2
+            err3 = self.set_channel_state(channel=chan, state=False)
             if err3 is not None:
                 return err3
-            if err4 is not None:
-                return err4
+            print('All channels zeroed')
 
     # Properties
     # ----------
@@ -591,7 +584,9 @@ if platform == 'win32':
             str
                 Else, return error string
             """
-            if type(units) is not str:
+            if units is None:
+                return
+            elif type(units) is not str:
                 return 'ERROR: input type should be string. Type ' + str(type(units)) + ' not supported.'
 
             units_set = {None, 'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'r', 'raw', 'none', 'noscale', 'v',
@@ -640,6 +635,7 @@ if platform == 'win32':
             dscrptr = ul.get_net_device_descriptor(host=ip, port=port, timeout=2000)
             ul.create_daq_device(board_num=self._board_number, descriptor=dscrptr)
             self._is_connected = True
+            print('Connection to', self._ip4_address, 'was succesful')
 
         def disconnect(self):
             ul.release_daq_device(self._board_number)
@@ -1184,7 +1180,9 @@ if platform == 'linux' or platform == 'linux2':
             str
                 Else, return error string
             """
-            if type(units) is not str:
+            if units is None:
+                return
+            elif type(units) is not str:
                 return 'ERROR: input type should be string. Type ' + str(type(units)) + ' not supported.'
 
             units_set = {None, 'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'r', 'raw', 'v', 'volts'}
@@ -1235,9 +1233,9 @@ if platform == 'linux' or platform == 'linux2':
                 Else, return error string
             """
             err1 = self.check_valid_units(units)
-            err2 = self.check_valid_temp_channel(channel_n)
             if err1 is not None:
                 return err1
+            err2 = self.check_valid_temp_channel(channel_n)
             if err2 is not None:
                 return err2
 
@@ -1367,8 +1365,11 @@ if platform == 'linux' or platform == 'linux2':
 
         @default_units.setter
         def default_units(self, new_units):
-            self.get_TempScale_unit(new_units)
-            self._default_units = new_units
+            err = self.check_valid_units(new_units)
+            if err is None:
+                self._default_units = new_units
+            else:
+                print(err)
 
         @property
         def temp_ch0(self):
