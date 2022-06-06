@@ -58,9 +58,9 @@ class HeaterAssembly:
         ch = self._supply_and_channel[1]
         out_max = min(self._heater.MAX_volts, ps.get_voltage_limit(ch))
 
-        pid.Kp = 1
-        pid.Ki = 0.03
-        pid.Kd = 0
+        pid.Kp = 0.6
+        pid.Ki = 0.02
+        pid.Kd = 0.005
         pid.setpoint = 0
         pid.sample_time = 2
         pid.output_limits = (0, out_max)
