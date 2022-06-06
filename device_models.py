@@ -686,12 +686,6 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         port : int
             port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
             devices, can use any between 49152 and 65536.
-        channel_voltage_limits : list
-            Set an upper limit on the set voltage of the channels. Entry 0 represents channel 1, entry 1 represents
-            channel 2, and so on.
-        channel_current_limits : list
-            Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents
-            channel 2, and so on.
         zero_on_startup : bool
             If True, run a routine to set turn off the output of both channels and set the set
 
@@ -716,8 +710,8 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
             MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
             MAX_current_limit=physical_parameters['MAX_current_limit'],
             number_of_channels=physical_parameters['number_of_channels'],
-            channel_voltage_limits=None,
-            channel_current_limits=None,
+            channel_voltage_limits=None,  # not used by this class. Limit is enforced by hardware.
+            channel_current_limits=None,  # not used by this class. Limit is enforced by hardware.
             zero_on_startup=zero_on_startup,
         )
 
@@ -726,46 +720,63 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
 
     def get_error_code(self):
         """
+        Queries the supply for an error, then extracts the error code from the message
 
-        :return int:
+        Returns
+        -------
+        int
+            error code as an int. Refer to MR50040 programming manual to see the meaning of error code.
         """
         return int(self._query('system:error?\n'.encode('utf-8')).decode('utf-8').split(',')[0])
 
     def get_error(self):
         """
+        Queries the supply for an error, then returns the error code and the error message in a single string
+        separated by a comma.
 
         Returns
         -------
         str
-            format: '<code>,<message>\n'
+            format: '<code>,<message>'
         """
-        return self._query('system:error?\n'.encode('utf-8')).decode('utf-8')
+        return self._query('system:error?\n'.encode('utf-8')).decode('utf-8').strip()
 
-    def _query_(self, qry):
+    def _query_(self, qry, data_type):
         """
         query the device through a socket connection using the self._query method from the SocketEthernetDevice
-        master class
+        master class. After querying, check for errors directly to the power supply. If an error occured, return the
+        error message.
 
         Parameters:
-        qry - str
+        -----------
+        qry : str
             message to send as a string. No need to add \n.
+        data_type : type
+            should be the callable object of int, float, or str. This is used to change the string query from
+            the power supply into its correct type.
 
         Returns
         -------
         str
             Either the requested information or an error string
+        float
+            Requested value as a float
+        int
+            Requested value as an int. Usually for True/False requests or status bytes.
         """
         qry += '\n'
         out = self._query(qry.encode('utf-8')).decode('utf-8').strip()
-        code, err = self.get_error().strip().split(',')
+        code, err = self.get_error().split(',')
         if int(code) != 0:
-            return out + '\nERROR: ' + str(err)
+            return str(out) + '\nERROR: ' + str(err)
         else:
-            return out
+            return data_type(out)
 
     def _command_(self, cmd):
         """
-
+        send a command to the device through a socket connection using the self._command method from the
+        SocketEthernetDevice master class. After sending the command, check for errors directly to the power supply.
+        If an error occured, return the error message.
         Returns
         -------
         None
@@ -783,39 +794,185 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
 
     def get_status_byte(self):
         """
+        Refer to Mr50040 programming manual for more info on status byte
 
-        :return int: int representing the status byte
+        Returns
+        -------
+        int
+            representing the status byte
         """
-        return int(self._query_('*stb?'))
+        return self._query_('*stb?', int)
+
+    def get_cc_to_cv_protection_state(self):
+        """
+        Get if Constant Current to Constant Voltage protection is on or off. If this protection is on, the power supply
+        will shut off the output whenever the supply switched from Constant Current operation to Constant Voltage.
+
+        Returns
+        -------
+        bool
+            True for on, False for off
+        str
+            If an error occurs, return the error string
+        """
+        out = self._query_('cccv:protection?', int)
+        try:  # if out is error string, return error string
+            return bool(out)
+        except ValueError:
+            return out
+
+    def set_cc_to_cv_protection_state(self, state):
+        """
+        Set Constant Current to Constant Voltage protection on or off. If this protection is on, the power supply
+        will shut off the output whenever the supply is switched from Constant Current operation to Constant Voltage.
+
+        Parameters
+        ----------
+        state : bool
+            True for on, False for off.
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
+        try:
+            return self._command_('cccv:protection ' + str(int(state)))
+        except ValueError:
+            return 'ERROR: type ' + str(type(state)) + ' not supported, state should be a bool'
+
+    def get_cv_to_cc_protection_state(self):
+        """
+        Get if Constant Voltage to Constant Current protection is on or off. If this protection is on, the power supply
+        will shut off the output whenever the supply is switched from Constant Voltage operation to Constant Current.
+
+        Returns
+        -------
+        bool
+            True for on, False for off
+        str
+            If an error occurs, return the error string
+        """
+        out = self._query_('cvcc:protection?', int)
+        try:  # if out is error string, return error string
+            return bool(out)
+        except ValueError:
+            return out
+
+    def set_cv_to_cc_protection_state(self, state):
+        """
+        Set Constant Voltage to Constant Current protection on or off. If this protection is on, the power supply
+        will shut off the output whenever the supply is switched from Constant Voltage operation to Constant Current.
+
+        Parameters
+        ----------
+        state : bool
+            True for on, False for off.
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
+        try:
+            return self._command_('cvcc:protection ' + str(int(state)))
+        except ValueError:
+            return 'ERROR: type ' + str(type(state)) + ' not supported, state should be a bool'
 
     def get_channel_state(self, channel=1):
-        return bool(int(self._query_('output?')))
+        """
+        Get if output is on or off.
+
+        Parameters
+        ----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
+        out = self._query_('output?', int)
+        try:  # if out is error string, return error string.
+            return bool(out)
+        except ValueError:
+            return out
 
     def set_channel_state(self, channel=1, state=None):
-        if state is None:
-            raise TypeError('ERROR: state parameter missing')
-        if state is True:
-            st_str = 'on'
-        elif state is False:
-            st_str = 'off'
-        else:
-            return 'ERROR: bad parameter ' + str(state)
+        """
+        Set the output of the supply on or off.
 
-        return self._command_('output ' + st_str)
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+        state : bool
+            True for on, False for off
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
+        if state is None:
+            return 'ERROR: keyword argument state parameter missing'
+        try:
+            return self._command_('output ' + str(int(state)))
+        except ValueError:
+            return 'ERROR: type ' + str(type(state)) + ' not supported, state should be a bool'
 
     def get_setpoint_voltage(self, channel=1):
-        return float(self._query_('voltage?'))
+        """
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+
+        Returns
+        -------
+        float
+            If succesful, return float value
+        str
+            If an error occurs, return the error string
+        """
+        return self._query_('voltage?', float)
 
     def set_voltage(self, channel=1, volts=None):
+        """
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+        volts : float
+            setpoint voltage in volts.
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
         if volts is None:
             raise TypeError('ERROR: volts parameter missing')
         return self._command_('voltage ' + str(volts))
 
     def get_actual_voltage(self, channel=1):
-        return float(self._query_('measure:voltage?'))
+        return self._query_('measure:voltage?', float)
 
     def get_setpoint_current(self, channel=1):
-        return float(self._query_('current?'))
+        return self._query_('current?', float)
 
     def set_current(self, channel=1, amps=None):
         if amps is None:
@@ -823,43 +980,132 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         return self._command_('current ' + str(amps))
 
     def get_actual_current(self, channel=1):
-        return float(self._query_('measure:current?'))
+        return self._query_('measure:current?', float)
 
     def get_setpoint_power(self):
-        return float(self._query_('power?'))
+        return self._query_('power?', float)
 
     def get_actual_power(self):
-        return float(self._query_('measure:power?'))
+        return self._query_('measure:power?', float)
 
     def get_voltage_limit(self, channel=1):
-        return float(self._query_('voltage:max?'))
+        """
+        This is a voltage limit enforced by the power supply.
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+
+        Returns
+        -------
+        float
+            If succesful, return float value
+        str
+            If an error occurs, return the error string
+        """
+        return self._query_('voltage:max?', float)
 
     def set_voltage_limit(self, channel=1, volts=None):
+        """
+        This is a voltage limit enforced by the power supply.
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+        volts : float
+            voltage limit in volts
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
         if volts is None:
-            raise TypeError('ERROR: volts parameter missing')
+            return 'ERROR: volts parameter missing'
         return self._command_('voltage:max ' + str(volts))
 
     def get_current_limit(self, channel=1):
-        return float(self._query_('current:max?'))
+        """
+        This is a current limit enforced by the power supply.
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+
+        Returns
+        -------
+        float
+            If succesful, return float value
+        str
+            If an error occurs, return the error string
+        """
+        return self._query_('current:max?', float)
 
     def set_current_limit(self, channel=1, amps=None):
+        """
+        This is a current limit enforced by the power supply.
+
+        Parameters:
+        -----------
+        channel : int, optional
+            Anything else than 1 will result in error. Exists only for compatibility with the library.
+        amps : float
+            current limit in volts
+
+        Returns
+        -------
+        None
+            If succesful, return None
+        str
+            If an error occurs, return the error string
+        """
         if amps is None:
-            raise TypeError('ERROR: amps parameter missing')
+            return 'ERROR: amps parameter missing'
         return self._command_('current:max ' + str(amps))
 
     @property
     def idn(self):
-        return self._query_('*IDN?')
+        return self._query_('*IDN?', str)
 
     @property
     def is_current_limited(self):
-        return (int(self._query_('status:operation:condition?')) & 0b0000010)
-
+        out = self._query_('status:operation:condition?', int)
+        try:
+            return out & 0b0000010
+        except TypeError:
+            return out
     @property
     def is_voltage_limited(self):
-        return (int(self._query_('status:operation:condition?')) & 0b0000001)
+        out = self._query_('status:operation:condition?', int)
+        try:
+            return out & 0b0000001
+        except TypeError:
+            return out
 
+    @property
+    def error_code(self):
+        return self.get_error_code()
 
+    @property
+    def error_message(self):
+        return self.get_error().split(',')[1]
+
+    @property
+    def voltage(self):
+        return self.get_actual_voltage()
+
+    @property
+    def current(self):
+        return self.get_actual_current()
+
+    @property
+    def power(self):
+        return self.get_actual_power()
 
 
 # ======================================================================================================================
