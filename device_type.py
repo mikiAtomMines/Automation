@@ -57,8 +57,7 @@ class PowerSupply:
         number_of_channels : int
             the number of physical programmable channels in the power supply.
         zero_on_startup : bool
-            If set to true, will run a method to set the set voltage and current to 0 and reset the channel limits to
-            their full range.
+            If set to true, will run a method to set the set voltage and current to 0.
         """
 
         self._MAX_voltage_limit = MAX_voltage_limit
@@ -423,21 +422,21 @@ class PowerSupply:
     def MAX_voltage_limit(self):
         return self._MAX_voltage_limit
 
-    @MAX_voltage_limit.setter
-    def MAX_voltage_limit(self, new_MAX_voltage):
-        print('CAUTION: The MAX voltage limit should always match the hardware limitation of the power supply.')
-        print('Setting MAX voltage limit to', new_MAX_voltage)
-        self._MAX_voltage_limit = new_MAX_voltage
+    # @MAX_voltage_limit.setter
+    # def MAX_voltage_limit(self, new_MAX_voltage):
+    #     print('CAUTION: The MAX voltage limit should always match the hardware limitation of the power supply.')
+    #     print('Setting MAX voltage limit to', new_MAX_voltage)
+    #     self._MAX_voltage_limit = new_MAX_voltage
 
     @property
     def MAX_current_limit(self):
         return self._MAX_current_limit
 
-    @MAX_current_limit.setter
-    def MAX_current_limit(self, new_MAX_current):
-        print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
-        print('Setting MAX voltage limit to', new_MAX_current)
-        self._MAX_voltage_limit = new_MAX_current
+    # @MAX_current_limit.setter
+    # def MAX_current_limit(self, new_MAX_current):
+    #     print('CAUTION: The MAX current limit should always match the hardware limitation of the power supply.')
+    #     print('Setting MAX voltage limit to', new_MAX_current)
+    #     self._MAX_voltage_limit = new_MAX_current
 
     @property
     def channel_voltage_limits(self):
@@ -459,11 +458,11 @@ class PowerSupply:
     def number_of_channels(self):
         return self._number_of_channels
 
-    @number_of_channels.setter
-    def number_of_channels(self, n):
-        print('CAUTION: The number of channels should always match the hardware')
-        print('Setting number of channels to', n)
-        self._number_of_channels = n
+    # @number_of_channels.setter
+    # def number_of_channels(self, n):
+    #     print('CAUTION: The number of channels should always match the hardware')
+    #     print('Setting number of channels to', n)
+    #     self._number_of_channels = n
 
 
 # ======================================================================================================================
@@ -507,7 +506,7 @@ if platform == 'win32':
             if self._ip4_address is not None and self._port is not None:
                 self.connect()
 
-        def get_TempScale_unit(self, units):
+        def get_TempScale_units(self, units):
             """
             Returns the associated mcculw.enums.TempScale object with the desired temperature unit.
 
@@ -814,7 +813,7 @@ if platform == 'win32':
             out = ul.t_in(
                 board_num=self._board_number,
                 channel=channel_n,
-                scale=self.get_TempScale_unit(units.lower()),
+                scale=self.get_TempScale_units(units.lower()),
                 options=filter_on_off
             )
 
@@ -948,13 +947,13 @@ if platform == 'win32':
 
             return tc_type_dict[tc_int]
 
-        def set_thermocuple_type(self, channel, new_tc_type):
+        def set_thermocuple_type(self, channel, new_tc):
             """
             Parameters
             ----------
             channel : int
                 temperature channel to set the TC-type
-            new_tc_type : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
+            new_tc : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
                 Not case-sensitive.
 
             Returns
@@ -980,9 +979,9 @@ if platform == 'win32':
             }
 
             try:
-                val = tc_type_dict[new_tc_type.upper()]
+                val = tc_type_dict[new_tc.upper()]
             except KeyError:
-                return 'TC type ' + new_tc_type + ' not supported by this device.'
+                return 'TC type ' + new_tc + ' not supported by this device.'
 
             ul.set_config(
                 info_type=enums.InfoType.BOARDINFO,
@@ -1022,7 +1021,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch0.setter
         def thermocouple_type_ch0(self, new_tc_type):
-            self.set_thermocuple_type(channel=0, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=0, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch1(self):
@@ -1030,7 +1029,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch1.setter
         def thermocouple_type_ch1(self, new_tc_type):
-            self.set_thermocuple_type(channel=1, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=1, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch2(self):
@@ -1038,7 +1037,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch2.setter
         def thermocouple_type_ch2(self, new_tc_type):
-            self.set_thermocuple_type(channel=2, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=2, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch3(self):
@@ -1046,7 +1045,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch3.setter
         def thermocouple_type_ch3(self, new_tc_type):
-            self.set_thermocuple_type(channel=3, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=3, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch4(self):
@@ -1054,7 +1053,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch4.setter
         def thermocouple_type_ch4(self, new_tc_type):
-            self.set_thermocuple_type(channel=4, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=4, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch5(self):
@@ -1062,7 +1061,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch5.setter
         def thermocouple_type_ch5(self, new_tc_type):
-            self.set_thermocuple_type(channel=5, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=5, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch6(self):
@@ -1070,7 +1069,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch6.setter
         def thermocouple_type_ch6(self, new_tc_type):
-            self.set_thermocuple_type(channel=6, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=6, new_tc=new_tc_type)
 
         @property
         def thermocouple_type_ch7(self):
@@ -1078,7 +1077,7 @@ if platform == 'win32':
 
         @thermocouple_type_ch7.setter
         def thermocouple_type_ch7(self, new_tc_type):
-            self.set_thermocuple_type(channel=7, new_tc_type=new_tc_type)
+            self.set_thermocuple_type(channel=7, new_tc=new_tc_type)
 
         @property
         def temp_ch0(self):
@@ -1313,13 +1312,13 @@ if platform == 'linux' or platform == 'linux2':
             tc_int = self.get_ai_device().get_config().get_chan_tc_type(channel=channel)
             return tc_type_dict[tc_int]
 
-        def set_thermocouple_type(self, channel, new_tc_type):
+        def set_thermocouple_type(self, channel, new_tc):
             """
             Parameters
             ----------
             channel : int
                 temperature channel to set the TC-type
-            new_tc_type : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
+            new_tc : {'j', 'k', 't', 'e', 'r', 's', 'b', 'n'}
                 Not case-sensitive.
 
             Returns
@@ -1341,9 +1340,9 @@ if platform == 'linux' or platform == 'linux2':
             }
 
             try:
-                val = tc_type_dict[new_tc_type.upper()]
+                val = tc_type_dict[new_tc.upper()]
             except KeyError:
-                return 'ERROR: TC Type ' + str(new_tc_type) + ' not supported'
+                return 'ERROR: TC Type ' + str(new_tc) + ' not supported'
 
             self.get_ai_device().get_config().set_chan_tc_type(channel=channel, tc_type=val)
 
@@ -1406,20 +1405,29 @@ if platform == 'linux' or platform == 'linux2':
 
 # =====================================================================================================================
 class Heater:
-    def __init__(self, idn=None, MAX_temp=9999, MAX_volts=9999, MAX_current=9999, resistance=20):
+    def __init__(
+            self,
+            idn=None,
+            MAX_temp=float('inf'),
+            MAX_volts=float('inf'),
+            MAX_current=float('inf'),
+    ):
         """
         Parameters
         ----------
-        
-        MAX_temp : float, None
+        idn : str
+            Identification string.
+        MAX_temp : float
             The maximum possible value for set temp. Should be based on the physical limitations of the heater.
             Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
-            allows. If set to None, the limit is infinity.
-
+            allows. Default is set to infinity.
+        MAX_volts : float
+            The maximum allowed value for voltage across the heater. Analogous to MAX_temp.
+        MAX_current : float
+            The maximum allowed value for the current going through the heater. Analogous to MAX_temp and MAX_voltage.
         """
         self.idn = idn
         self.MAX_temp = MAX_temp
         self.MAX_volts = MAX_volts
         self.MAX_current = MAX_current
-        self.resistance = resistance
 
