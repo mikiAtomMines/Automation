@@ -67,13 +67,13 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         if self.reset_on_startup is True:
             self.reset_channels()
 
-    def _query(self, query):  # TODO: Make more general. Take bytes as input, return bytes as output.
+    def _query(self, qry):  # TODO: Make more general. Take bytes as input, return bytes as output.
         """
         send a query to the ethernet device and receive a response.
 
         Parameters
         ----------
-        query : string
+        qry : string
             Python string containing the query command. Dependent on each individual device.
 
         Returns
@@ -85,7 +85,7 @@ class SPD3303X(SocketEthernetDevice, PowerSupply):
         """
 
         try:
-            query_bytes = query.encode('utf-8')
+            query_bytes = qry.encode('utf-8')
             socket_ps = self._socket
             socket_ps.sendall(query_bytes)
             reply_bytes = socket_ps.recv(4096)

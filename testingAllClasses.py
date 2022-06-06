@@ -15,7 +15,7 @@ from device_models import Mr50040
 
 
 def main():
-    daq = device_models.ETcWindows(ip4_address='10.176.42.200', board_number=0)
+    # daq = device_models.ETcWindows(ip4_address='10.176.42.200', board_number=0)
     # print(daq.temp_ch0)
     # print(daq.number_temp_channels)
     # print(daq.number_da_channels)
