@@ -33,13 +33,13 @@ class SocketEthernetDevice:
 
         self.connect()
 
-    def _query(self, query):
+    def _query(self, qry):
         """
         send a query to the ethernet device and receive a response.
 
         Parameters
         ----------
-        query : bytes
+        qry : bytes
             The message to send through the socket connection.
 
         Returns
@@ -54,7 +54,7 @@ class SocketEthernetDevice:
         """
 
         try:
-            self._socket.sendall(query)
+            self._socket.sendall(qry)
             time.sleep(0.3)
             reply = self._socket.recv(4096)
         except OSError:
@@ -151,7 +151,7 @@ class SocketEthernetDevice:
                     print('Connection to', self._ip4_address, 'was succesful.')
                     return
                 except OSError:
-                    print('attempt', i, 'failed')
+                    print('attempt', i+1, 'failed')
                     continue
         raise OSError('ERROR: Could not connect to' + str(self._ip4_address))
 
