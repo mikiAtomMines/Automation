@@ -4,6 +4,7 @@ Created on Thursday, April 7, 2022
 """
 
 import serial
+import time
 from serial import Serial
 from sys import platform
 
@@ -762,6 +763,7 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         """
         qry += '\n'
         out = self._query(qry.encode('utf-8')).decode('utf-8').strip()
+        time.sleep(0.3)
         code, err = self.get_error().split(',')
         if int(code) != 0:
             return str(out) + '\nERROR: ' + str(err)
@@ -782,6 +784,7 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         """
         cmd += '\n'
         out = self._command(cmd.encode('utf-8'))
+        time.sleep(0.3)
         code, err = self.get_error().strip().split(',')
         if int(code) != 0:
             return 'ERROR: ' + str(err)
