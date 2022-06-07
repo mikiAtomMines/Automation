@@ -143,6 +143,7 @@ class HeaterAssembly:
 
     def stop(self):
         self.stop_supply()
+        self.set_pid_regulation(False)
         self._pid.setpoint = 0
 
     # -----------------------------------------------------------------------------
@@ -449,10 +450,14 @@ class HeaterAssembly:
         """
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        new_ps_voltage = self._pid(round(self.temp, 2))
-        ps.set_voltage(channel=ch, volts=new_ps_voltage)
+        new_volts = self._pid(round(self.temp, 2))
 
-        return new_ps_voltage
+        err = ps.set_voltage(channel=ch, volts=new_volts)
+        if err is not None:
+            return err
+
+        out = self.get_daq_temp()
+        return out
 
     def live_plot(self, x_size=10):
         """
@@ -546,8 +551,8 @@ class Oven(SocketEthernetDevice):
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
         cmd = asm_key + ' ' + msg + ' ' + str(param) + '\r'
-        err = self._query(cmd.encode('utf-8')).decode('utf-8')
-        if err != 'NOERROR\r':
+        err = self._query(cmd.encode('utf-8'))
+        if err != b'NOERROR\r':
             return err
 
     # Oven

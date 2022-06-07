@@ -275,13 +275,17 @@ def update_heaters(asm_dict, t0_dict):
         the same dictionary used to keep track of sampling time. Should be used as the input for the same function
         in the next iteration.
     """
+    out_dict = {}
     for key, asm in asm_dict.items():
         if time.time() - t0_dict[key] >= asm.get_pid_sample_time() and asm.pid_is_regulating:
-            asm.update_supply()
+            out_or_err = asm.update_supply()
             t0_dict[key] = time.time()
-            print(asm.temp)
+            out_dict[key] = out_or_err
 
-    return t0_dict
+    for key in out_dict:
+        print(key + ':', out_dict[key])
+
+    return t0_dict, out_dict
 
 
 def server_loop(asm_dict):
@@ -307,9 +311,10 @@ def server_loop(asm_dict):
     print('Bound to', HOST, PORT)
 
     while True:
-        t0_dict1 = {}
+        t0_dict = {}
         for key in asm_dict.keys():
-            t0_dict1[key] = time.time()
+            t0_dict[key] = time.time()  # start timers for all assemblies. Keeps track of the sampling time
+
         while True:
             # While disconnected, listen to connection requests.
             # Additionally, keep updating the power supplies from the heater assemblies.
@@ -321,7 +326,8 @@ def server_loop(asm_dict):
                 conn, addr = s.accept()
                 break
             except socket.timeout:
-                t0_dict1 = update_heaters(asm_dict, t0_dict1)
+                t0_dict, out_dict = update_heaters(asm_dict, t0_dict)
+
 
         # With the connection: update heaters.
         # Additionally, receive and process commands.
@@ -329,11 +335,8 @@ def server_loop(asm_dict):
         conn.setblocking(False)
         print(f"Connected by {addr}")
         with conn:
-            t0_dict2 = {}
-            for key in asm_dict.keys():
-                t0_dict2[key] = time.time()
             while True:
-                update_heaters(asm_dict, t0_dict2)
+                t0_dict, out_dict = update_heaters(asm_dict, t0_dict)
 
                 try:
                     data = conn.recv(1024).decode('utf-8').upper()
