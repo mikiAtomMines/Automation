@@ -1,4 +1,4 @@
-Last updated: April 12, 2022.
+Date created: March 14, 2022.
 
 Author: Sebastian Miki-Silva
 
@@ -16,7 +16,7 @@ from device_type.py.
 ---
 
 ### SocketEthernetDevice
-    SocketEthernetDevice(ip4_address=None, port=50000)
+    SocketEthernetDevice(ip4_address, port)
             
     Parameters
     ----------
@@ -26,20 +26,32 @@ from device_type.py.
         Connection port number. The port number is not device-specific and can be chosen to be any number between 49152 
         and 65536. Some manufacturers might recommend some other numbers.
 
-This class connects to a device which uses TCP-IP protocol to communicate. The connection is established via a socket 
-object from the socket library. To connect to the device, an IPv4 address must be provided. If provided, the object will 
-automatically attempt to establish a connection. If none is provided, a connection must be made manually using the 
-connect() method.
+This class connects to a device through a socket connection to communicate. To connect to the device, an IPv4 address 
+must be provided. The object will automatically attempt to establish a connection. If it fails, it will reattempt 10 
+times.
 
 #### Properties
-- ip4_address
-- port
+- ip4_address : str
+- port : int
 
 #### Methods
 - _query(qry)
+  - :param qry: bytes
+  - :returns: bytes or error string
+  
+  
 - _command(cmd)
+  - :param cmd: bytes
+  - :returns: None or error string
+
+
 - connect()
+  - :returns: None
+  - :raises: OSError
+
 - disconnect()
+  - :returns: None
+
 
 ## Classes from device_type.py
 
@@ -47,8 +59,8 @@ connect() method.
 
 ### PowerSupply
     PowerSupply(
-            MAX_voltage_limit=None,
-            MAX_current_limit=None,
+            MAX_voltage_limit,
+            MAX_current_limit,
             channel_voltage_limits=None,
             channel_current_limits=None,
             number_of_channels=1,
@@ -62,145 +74,336 @@ connect() method.
             Maximum voltage that the power supply can output based on hardware limitations.
         MAX_current_limit : float
             Maximum current that the power supply can output based on hardware limitations.
-        channel_voltage_limits : list of float
+        channel_voltage_limits : list of float, optional
             list containing the individual channel limits for the set voltage. The set voltage of a channel cannot 
             exceed its limit voltage. The 0th item corresponds to the limit of channel 1, 1st item to channel 2, 
-            and so on.
+            and so on. If set to None, a list is created with MAX_voltage_limit as the limit for all channels.
         channel_current_limits : list of float
             list containing the individual channel limits for the set current. The set current of a channel cannot 
             exceed its limit current. The 0th item corresponds to the limit of channel 1, 1st item to channel 2, 
-            and so on.
+            and so on.If set to None, a list is created with MAX_voltage_limit as the limit for all channels.
         number_of_channels : int
             the number of physical programmable channels in the power supply.
         reset_on_startup : bool
-            If set to true, will run a method to set the set voltage and current to 0 and reset the channel limits to 
-            their full range. 
+            If set to true, will run a method to set the set voltage and current to 0.
         """
 
 This class represents any benchtop programmable power supply. It contains the maximum voltage and current values allowed 
-by the hardware of the power supply. These attributes should not be used as voltage and current limit setters, as they 
-are a property of the hardware and should remain constant unless the hardware is changed. 
+by the hardware of the power supply. These attributes should not be used as voltage and current limit setters and should
+remain constant unless the hardware is changed. 
 
 #### Properties
-- MAX_voltage_limit  
-- MAX_current_limit  
-- channel_voltage_limits **(no setter)**
-- channel_current_limits **(no setter)** 
-- number_of_channels
+
+##### Getters
+
+- idn : str
+- MAX_voltage_limit : float  
+- MAX_current_limit : float
+- channel_voltage_limits : float
+- channel_current_limits : float
+- number_of_channels : int
+
 
 #### Methods
-- set_set_voltage  
-- set_set_current   
-- set_channel_voltage_limit  
-- set_channel_current_limit  
-- set_all_channels_voltage_limit  
-- set_all_channels_voltage_limit
+
+Note that all these methods are placeholders for the actual methods to be used in the device_models.py classes.
+
+- check_valid_channel(channel)
+  - :param channel: int >= 1
+  - :returns: None or error string
+  
+
+- get_channel_state(channel)
+  - :param channel: int >= 1
+  - :returns: bool or error string
+
+
+- set_channel_state(channel, state)
+  - :param channel: int >= 1
+  - :param state: bool
+  - :returns: None or error string
+
+- get_setpoint_voltage(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+
+
+- set_voltage(channel, volts)
+  - :param channel: int >= 1
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_actual_voltage(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+
+- get_setpoint_current(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+
+- set_current(channel, amps)
+  - :param channel: int >= 1
+  - :param amps: float
+  - :returns: None or error string
+
+
+- get_actual_current(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+
+
+- get_voltage_limit(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+  
+
+- set_voltage_limit(channel, volts)
+  - :param channel: int >= 1
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_current_limit(channel)
+  - :param channel: int >= 1
+  - :returns: float or error string
+
+    
+- set_current_limit(channel, amps)
+  - :param channel: int >= 1
+  - :param amps: float
+  - :returns: None or error string
+
+
+- set_all_channels_voltage_limit(volts)
+  - :param volts: float
+  - :returns: None or error string
+
+
+- set_all_channels_current_limit(amps)
+  - :param amps: float
+  - :returns: None or error string
+
+
 - zero_all_channels
+  - :returns: None or error string
 
-### MCC_device
 
-    MCC_Device(board_number=0)
+### MccDeviceWindows
+
+    MccDeviceWindows(board_number, ip4_address=None, port=None, default_units='celsius')
         Parameters
         ----------
         board_number : int
             All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
             match the board number of its associated device. Possible values from 0 to 99.
-        ip4_address : str
+        ip4_address : str, optional
             IPv4 address of the associated MCC device
-        port : int
+        port : int, optional
             Communication port to be used. Safely chose any number between 49152 and 65536.
+        default_units : str
+            units used for temperature readings. Possible values: celsius or c, fahrenheit or f, and kelvin or k.
 
-This class represents any MCC device that is supported by the MCC universal library. To connect to the device 
-automatically using instacal, a board number must be specified and must match the board number of the associated device. 
-To establish a connection to the device using the MCC Universal Library API functions, an IPv4 address and port number
-must be specified. Currently, the API functions have not been implemented so only a connection using instacal possible. 
+This class represents any MCC device that is supported by the MCC universal library in Windows. To connect to the device 
+without using an IP address, instacal needs to be installed and the board number must match the board number of the 
+according device. If an IPv4 address and port number are given, the class will try to establish a connection to the 
+device using the MCC Universal Library API functions automatically which do not require instalcal.  
 
-#### Properties
-
-- idn **(no setter)**
-- board_number
-- ip4_address **(no setter)**
-- port **(no setter)**
-- model **(no setter)**
-- max_address  **(no setter)**
-- unique_id **(no setter)**
-- serial_number **(no setter)**
-- number_temp_channels **(no setter)**
-- number_io_channels **(no setter)**
-- number_ad_channels **(no setter)** 
-- number_da_channels **(no setter)**
-- clock_frequency_MHz **(no setter)**
-
-### HeaterAssembly
-
-    HeaterAssembly(
-            power_supply=None,
-            supply_channel=None,
-            temperature_daq=None,
-            daq_channel=None,
-            pid_function=None,
-            set_temperature=None,
-            temp_units=None,
-            MAX_set_temp=None,
-            MIN_set_temp=None,
-            configure_on_startup=False,
-
-    ):
-        """
-        A heater assembly composed of a heater, a temperature measuring device, and a power supply.
-
-        Parameters
-        ----------
-        power_supply : device_models.PowerSupply
-            The power supply model that is being used for controlling the electrical power going into the heater.
-        supply_channel : int
-            The physical power supply channel connected to the heater for controlling the electrical power.
-        temperature_daq : device_models.MCC_device
-            The temperature DAQ device that is being used for reading the temperature of the heater.
-        daq_channel : int
-            The physical DAQ channel used for taking temperature readings of the heater.
-        pid_function : simple_pid.PID
-            The PID function used to regulate the heater's temperature to the set point.
-        set_temperature : float
-            The desired set temperature in the same units as the temperature readings from the temperature DAQ.
-        temp_units : str, None
-            Set the temperature units for all temperature readings, setpoints, etc. Possible values (not
-            case-sensitive):
-            for Celsius                 celsius,               c
-            for Fahrenheit              fahrenheit,            f
-            for Kelvin                  kelvin,                k
-            for default units           None
-        MAX_set_temp : float, None
-            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
-            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
-            allows. If set to None, the limit is infinity.
-        MIN_set_temp : float, None
-            The minimum possible value for set temp. Analogous to MAX_temp.
-        configure_on_startup : bool
-            Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
-            True if the pid object has not been manually configured.
-        """
 
 #### Properties
 
-- power_supply **(no setter)**
-- supply_channel 
-- temperature_daq **(no setter)**
-- daq_channel
-- set_temperature
-- temp_units
-- pid_function **(no setter)**
-- MAX_set_temp **(no setter)**
-- MIN_set_temp **(no setter)**
-- configure_pid_on_startup **(no setter)**
-- current_temperature **(no setter)**
+##### Getters
+
+- idn : str
+- board_number : int
+- ip4_address : str
+- port : int
+- model : str
+- mac_address : str
+- unique_id : str
+- serial_number : str
+- number_temp_channels : int
+- number_io_channels : int
+- number_ad_channels : int
+- number_da_channels : int
+- clock_frequency_MHz : int
+- default_units : str
+- thermocouple_type_ch<n> : str
+- temp_ch\<n> : float
+  - 0 <= n <= 7
+
+##### Setters
+
+- board_number : int
+- ip4_address : str
+- port : int
+- default_units : str
+- thermocouple_type_ch\<n> : str
+  - 0 <= n <= 7
+
 
 #### Methods
 
-- configure_pid()
-- update_supply()
-- live_plot(x_size)
+- get_TempScale_units(units)
+  - :param units: str
+  - :returns: mcculw.enums.TempScale
+
+
+- check_valid_units(units)
+  - :param units: str
+  - :returns: None or error string
+
+- check_valid_temp_channel(channel)
+  - :param channel: int
+  - :returns: None or error string
+
+
+- connect(ip=None, port=None)
+  - :param ip: str
+  - :param port: int
+  - :returns: None or error string
+
+
+- disconnect()
+
+
+- get_temp(channel_n=0, units=None, averaged=True)
+  - :param channel_n: int
+  - :param units: str or None
+  - :param averaged: bool
+  - :returns: float or error string
+
+
+- get_temp_all_channels(units=None, averaged=True)
+  - :param units: str
+  - :param averaged: bool
+  - :returns: list of (floats or None) or error string
+
+
+- get_temp_scan(low_channel=0, high_channel=7, units=None, averaged=True)
+  - :param low_channel: int <= high_channel
+  - :param high_channel: int >= low_channel
+  - :param units: str or None
+  - :param averaged: bool
+  - :returns: list of (floats or None) or error string
+
+
+- get_thermocouple_type(channel)
+  - :param channel: int
+  - :returns: str or error string
+
+
+- set_thermocouple_type(channel, new_tc_type)
+  - :param channel: int
+  - :param new_tc_type: str
+  - :returns: None or error string
+
+
+### MccDeviceLinux
+
+    MccDeviceLinux(
+                ip4_address,
+                port=54211,
+                default_units='celsius'
+    ):
+        """
+        Class for an MCC Device. Use only on Linux machines.
+
+        Parameters
+        ----------
+        ip4_address : str
+            IPv4 address of device in format '255.255.255.255'
+        port : int
+            communications port number.
+        default_units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'r', 'raw'}
+            default units to use for temperature measurements
+        """
+
+Similar to MccDeviceWindows, but for Linux machines. This class connects only through a TCP/IP connection. There is no 
+instalcal for Linux.
+
+#### Properties
+
+##### Getters
+
+- idn : str
+- ip4_addres : str
+- number_temp_channels : int
+- default_units : str
+- temp_ch\<n>
+  - 0 <= n <= 7
+
+##### Getters
+- default_units : str
+
+
+#### Methods
+
+- get_TempScale_units(units)
+  - :param units: str
+  - :returns: int or None
+
+
+- check_valid_units(units)
+  - :param units: str
+  - :returns: None or error string
+
+
+- check_valid_temp_channel(channel)
+  - :param channel: int
+  - :returns: None or error string
+
+
+- get_temp(channel_n=0, units=None)
+  - :param channel_n: int
+  - :param units: str or None
+  - :returns: float or error string
+
+
+- get_temp_scan(low_channel=0, high_channel=7, units=None)
+  - :param low_channel: int <= high_channel
+  - :param high_channel: int >= low_channel
+  - :returns: list of float or error string
+  
+
+- get_thermocouple_type(channel)
+  - :param channel: int
+  - :returns: str or error string
+
+
+- set_thermocouple_type(channel, new_tc)
+  - :param channel: int
+  - :param new_tc: str
+  - :returns: None or str
+  
+
+### Heater
+
+    Heater( 
+            idn=None, 
+            MAX_temp=float('inf'), 
+            MAX_volts=float('inf'), 
+            MAX_current=float('inf'), 
+    ):
+        """
+        Parameters
+        ----------
+        idn : str
+            Identification string. 
+        MAX_temp : float
+            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
+            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
+            allows. Default is set to infinity. 
+        MAX_volts : float
+            The maximum allowed value for voltage across the heater. Analogous to MAX_temp.
+        MAX_current : float
+            The maximum allowed value for the current going through the heater. Analogous to MAX_temp and MAX_voltage.
+        """
+
+This class stores the physical parameters of a heater. Used in the HeaterAssembly and the Oven class to set voltage, 
+current, and temperature limits. 
         
+
 ## Classes from device_model.py
 
 ---
@@ -208,26 +411,15 @@ must be specified. Currently, the API functions have not been implemented so onl
 These classes inherit from connection_type.py and device_type.py.
 
 ### GM3
-    class GM3(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1):
-    def __init__(self, *args, **kwargs):
-        super().__init__(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, *args, **kwargs)
+    GM3(port, tmout):
         
     Parameters
     ----------
     port : str
         Device port name. Can be found on device manager. Example: COM3
-    baudrate : int 
-        The baudrate unique to this device.
-    bytesize : int
-        The size in bits of a single byte. 
-    parity : serial.PARITY
-        Unique to device. Possible values: PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE
-    stopbits : serial.STOPBITS
-        Number of stop bits. Possible values: STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
-    timeout : int
+    tmout : float
         read timeout in seconds. Time that read() will wait for response before exiting.
-
-    More parameters in documentation for serial.Serial class.
+    
 
 This class represents the GM3 gaussmeter by AlphaLabInc. Connects to the device using serial communication through USB. 
 
@@ -244,71 +436,262 @@ This class represents the GM3 gaussmeter by AlphaLabInc. Connects to the device 
 - get_instantenous_data_t0
 
 ### SPD3303X
-    SPD3303X(ip4_address=None, port=5025, ch1_voltage_limit=32, ch1_current_limit=3.3, ch2_voltage_limit=32, 
+    SPD3303X(ip4_address, port=5025, ch1_voltage_limit=32, ch1_current_limit=3.3, ch2_voltage_limit=32, 
              ch2_current_limit=3.3, reset_on_startup=True):
-    
-    Parameters
-    ----------
-    ip4_address : str
-        IPv4 address of the power supply.
-    port : int
-        port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other devices,
-        can use any between 49152 and 65536.
-    ch1_voltage_limit : float
-        Set an upper limit on the voltage output of channel 1.
-    ch1_current_limit : float
-        Set an upper limit on the current output of channel 1.
-    ch2_voltage_limit : float
-        Set an upper limit on the voltage output of channel 2.
-    ch2_current_limit : float
-        Set an upper limit on the current output of channel 2.
-    reset_on_startup : bool 
-        If True, run a routine to set turn off the output of both channels and set the set
 
-This class represents the SPD3303X power supply by Siglent. Implements methods to set and read voltage and current for 
-both programmable channels. Note that all channel voltage limits are software-based since the power supply does not have any built-in limit
-features. This means that the channel limits are checked before sending a command to the power supply. If the
-requested set voltage is higher than the channel voltage limit, the command will not go through.
+        Parameters
+        ----------
+        ip4_address : str
+            IPv4 address of the power supply.
+        port : int
+            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
+            devices, can use any between 49152 and 65536.
+        channel_voltage_limits : list
+            Set an upper limit on the set voltage of the channels. Entry 0 represents channel 1, entry 1 represents 
+            channel 2, and so on.
+        channel_current_limits : list
+            Set an upper limit on the set current of the channels. Entry 0 represents channel 1, entry 1 represents 
+            channel 2, and so on.
+        zero_on_startup : bool
+            If True, run a routine to set turn off the output of both channels and set the set
+
+This class represents the SPD3303X power supply by Siglent. This class inherits from SocketEthernetDevice and from 
+PowerSupply classes. Implements methods to set and read voltage and current for both programmable channels. Note that 
+all channel voltage limits are software-based since the power supply does not have any built-in limit features. This 
+means that the channel limits are checked before sending a command to the power supply. If the requested set voltage is 
+higher than the channel voltage limit, the command will not go through.
 
 #### Properties
 
-- idn **(no setter)**
-- ip4_address **(no setter)**
-- system_status **(no setter)**
-- ch1_state
-- ch2_state
-- ch1_set_voltage
-- ch2_set_voltage
-- ch1_actual_voltage **(no setter)**
-- ch2_actual_voltage **(no setter)**
-- ch1_set_current
-- ch2_set_current
-- ch1_actual_current **(no setter)**
-- ch2_actual_current **(no setter)**
-- ch1_voltage_limit
-- ch1_current_limit
-- ch2_voltage_limit
-- ch2_current_limit
+##### Getters
+
+- idn : str
+- ip4_address : str 
+- system_status : str
+- ch1_state : bool
+- ch2_state : bool
+- ch1_set_voltage : float
+- ch2_set_voltage : float
+- ch1_actual_voltage : float
+- ch2_actual_voltage : float
+- ch1_set_current : float
+- ch2_set_current : float
+- ch1_actual_current : float
+- ch2_actual_current : float
+- ch1_voltage_limit : float
+- ch1_current_limit : float
+- ch2_voltage_limit : float
+- ch2_current_limit : float
+
+##### Setters
+
+- ch1_state : bool
+- ch2_state : bool
+- ch1_set_voltage : float
+- ch2_set_voltage : float
+- ch1_set_current : float
+- ch2_set_current : float
+- ch1_voltage_limit : float
+- ch1_current_limit : float
+- ch2_voltage_limit : float
+- ch2_current_limit : float
 
 #### Methods
 
-- reset_channels()
+These are the methods that are explicitly defined under the class. More methods can be found under the PowerSupply 
+class.
+
+
 - get_channel_state(channel)
-- get_set_voltage(channel)
-- get_actual_voltage(channel)
-- get_set_current(channel)
-- get_actual_current(channel)
-- get_voltage_limit(channel)
-- get_current_limit(channel)
+  - :param channel: int
+  - :returns: bool or error string
+
+  
 - set_channel_state(channel, state)
-- set_set_voltage(channel, volts)
-- set_set_current(channel, amps)
-- set_channel_voltage_limit(channel, volts)
-- set_channel_current_limit(channel, amps)
+  - :param channel: int
+  - :param state: bool
+  - :returns: None or error string
 
 
-### Web-Tc
-    Web_Tc(ip4_address=None, port=54211, board_number=0, default_units='celsius')
+- get_setpoint_voltage(channel)
+  - :param channel: int
+  - :returns: float or error string
+
+
+- set_voltage(channel, volts)
+  - :param channel: int
+  - :param volts: float
+  - :returns: None or error string
+
+  
+- get_actual_voltage(channel)
+  - :param channel: int
+  - :returns: float or error string
+
+  
+- get_setpoint_current(channel)
+  - :param channel: int
+  - :returns: float or error string
+
+  
+- set_current(channel, amps)
+  - :param channel: int
+  - :param amps: float
+  - :returns: None or error string
+
+
+- get_actual_current(channel)
+  - :param channel: int
+  - :returns: float or error string
+
+  
+
+### Mr50040
+
+    Mr50040(
+            ip4_address=None,
+            port=5025,
+            zero_on_startup=True
+    ):
+
+        Parameters
+        ----------
+        ip4_address : str
+            IPv4 address of the power supply.
+        port : int
+            port used for communication. Siglent recommends to use 5025 for the SPD3303X power supply. For other
+            devices, can use any between 49152 and 65536.
+        zero_on_startup : bool
+            If True, run a routine to set turn off the output of both channels and set the set
+
+This class represents the B&K Precision MR50040 power supply. This class inherits from the SocketEthernetDevice and 
+PowerSupply classes. 
+
+#### Properties
+
+##### Getters
+
+- idn : str
+- is_current_limited : bool
+- is_voltage_limited : bool
+- error_code : int
+- error_message : str
+- voltage : float
+- current : float
+- power : float
+
+#### Methods
+
+- get_error_code()
+  - :returns: int
+
+
+- get_error()
+  - :returns: str
+
+
+- get_status_byte()
+  - :returns: int or error string
+
+
+- get_cc_to_cv_protection_state()
+  - :returns: bool or error string
+
+
+- set_cc_to_cv_protection_state(state)
+  - :param state: bool 
+  - :returns: None or error string
+
+
+- get_cv_to_cc_protection_state()
+  - :returns: bool or error string
+
+
+- set_cv_to_cc_protection_state(state)
+  - :param state: bool 
+  - :returns: None or error string
+
+
+- get_channel_state(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: bool or error string
+
+
+- set_channel_state(channel=1, state=None)
+  - :param channel: int=1, must be equal to 1
+  - :param state: bool
+  - :returns: None or error string
+
+
+- get_setpoint_voltage(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+
+- set_voltage(channel=1, volts=None)
+  - :param channel: int=1, must be equal to 1
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_actual_voltage(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+
+- get_setpoint_current(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+
+- set_current(channel=1, amps)
+  - :param channel: int=1, must be equal to 1
+  - :param amps: float
+  - :returns: None or error string
+
+
+- get_actual_current(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+
+- get_setpoint_power()
+  - :returns: float or error string
+
+
+- get_actual_power()
+  - :returns: float or error string
+
+
+- get_voltage_limit(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+
+- set_voltage_limit(channel=1, volts)
+  - :param channel: int=1, must be equal to 1
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_current_limit(channel=1)
+  - :param channel: int=1, must be equal to 1
+  - :returns: float or error string
+
+  
+- set_current_limit(channel=1, amps)
+  - :param channel: int=1, must be equal to 1
+  - :param amps: float
+  - :returns: None or error string
+  
+
+### ETcWindows
+
+### ETcLinux
+
+
+### WebTc
+    WebTc(ip4_address=None, port=54211, board_number=0, default_units='celsius')
         Parameters
         ----------
         ip4_address : string
@@ -406,3 +789,92 @@ Will implement I/O configuration methods in the future.
 - velocity_ch2
 - velocity_ch3
 - velocity_ch4
+
+
+
+### Srs100
+
+
+### Ell14k
+
+
+
+
+
+
+## Classes from assemblies.py
+
+
+
+
+
+
+### HeaterAssembly
+
+    HeaterAssembly(
+            power_supply=None,
+            supply_channel=None,
+            temperature_daq=None,
+            daq_channel=None,
+            pid_function=None,
+            set_temperature=None,
+            temp_units=None,
+            MAX_set_temp=None,
+            MIN_set_temp=None,
+            configure_on_startup=False,
+
+    ):
+        """
+        A heater assembly composed of a heater, a temperature measuring device, and a power supply.
+
+        Parameters
+        ----------
+        power_supply : device_models.PowerSupply
+            The power supply model that is being used for controlling the electrical power going into the heater.
+        supply_channel : int
+            The physical power supply channel connected to the heater for controlling the electrical power.
+        temperature_daq : device_models.MCC_device
+            The temperature DAQ device that is being used for reading the temperature of the heater.
+        daq_channel : int
+            The physical DAQ channel used for taking temperature readings of the heater.
+        pid_function : simple_pid.PID
+            The PID function used to regulate the heater's temperature to the set point.
+        set_temperature : float
+            The desired set temperature in the same units as the temperature readings from the temperature DAQ.
+        temp_units : str, None
+            Set the temperature units for all temperature readings, setpoints, etc. Possible values (not
+            case-sensitive):
+            for Celsius                 celsius,               c
+            for Fahrenheit              fahrenheit,            f
+            for Kelvin                  kelvin,                k
+            for default units           None
+        MAX_set_temp : float, None
+            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
+            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
+            allows. If set to None, the limit is infinity.
+        MIN_set_temp : float, None
+            The minimum possible value for set temp. Analogous to MAX_temp.
+        configure_on_startup : bool
+            Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
+            True if the pid object has not been manually configured.
+        """
+
+#### Properties
+
+- power_supply **(no setter)**
+- supply_channel 
+- temperature_daq **(no setter)**
+- daq_channel
+- set_temperature
+- temp_units
+- pid_function **(no setter)**
+- MAX_set_temp **(no setter)**
+- MIN_set_temp **(no setter)**
+- configure_pid_on_startup **(no setter)**
+- current_temperature **(no setter)**
+
+#### Methods
+
+- configure_pid()
+- update_supply()
+- live_plot(x_size)
