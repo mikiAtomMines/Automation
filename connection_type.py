@@ -56,9 +56,13 @@ class SocketEthernetDevice:
         try:
             self._socket.sendall(qry)
             time.sleep(0.3)
+            self._socket.settimeout(2)
             reply = self._socket.recv(4096)
+        except TimeoutError:
+            return 'ERROR: No response from device for query ' + str(qry)
         except OSError:
             return 'ERROR: Query not sent. Try using the connect() method first.'
+
 
         return reply
 
