@@ -4,6 +4,7 @@ Created on Thursday, April 7, 2022
 """
 
 import serial
+from serial import Serial
 from sys import platform
 
 from connection_type import SocketEthernetDevice
@@ -30,31 +31,26 @@ except ModuleNotFoundError:
 error_count = 0
 
 
-class GM3(serial.Serial):  # TODO: needs work.
-    def __init__(self, *args, **kwargs):
-        super().__init__(baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, *args, **kwargs)
-
+class GM3():  # TODO: needs work.
+    def __init__(self, port, tmout):
         """
         Parameters
         ----------
         port : str
             Device port name. Can be found on device manager. Example: COM3
-        baudrate : int 
-            The baudrate unique to this device.
-        bytesize : int
-            The size in bits of a single byte. 
-        parity : serial.PARITY
-            Unique to device. Possible values: PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE
-        stopbits : serial.STOPBITS
-            Number of stop bits. Possible values: STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
-        timeout : int
+        timeout : float
             read timeout in seconds. Time that read() will wait for response before exiting.
-    
-        More parameters in documentation for serial.Serial class.
         """
+        self._ser = Serial(
+            port=port,
+            baudrate=115200,
+            bytesize=8,
+            parity=serial.PARITY_NONE,
+            stopbits=1,
+            timeout=tmout
+        )
 
     def query(self, command):
-        global error_count
         """
         query function for gaussmeter. The function sends the appropriate command to the gaussmeter and reads the
         appropiate number of bytes and returns them as a byte string. Currently, the only supported commands are:
@@ -63,14 +59,16 @@ class GM3(serial.Serial):  # TODO: needs work.
         Parameters
         ----------
         command : str
-            
-        
-        :param command: the command to send to the gaussmeter. Can be a string with the hex value of the command 
-        in the
-        format 'AA' or '0xAA' or the command name as it appears in the AlphaApp comm protocol manual.
-        :return: byte object containing the response from the gaussmeter. Has variable length depending on the query
-        command used.
+            the command to send to the gaussmeter. Can be a string with the hex value of the command in the format
+            'AA' or '0xAA' or the command name as it appears in the AlphaApp comm protocol manual.
+
+        Returns
+        -------
+        bytes
+            byte object containing the response from the gaussmeter. Has variable length depending on the query
+            command used.
         """
+        global error_count
 
         qry_dict = {  # command as appears in manual: hex command identifyer
             'ID_METER_PROP': '01',
@@ -106,9 +104,9 @@ class GM3(serial.Serial):  # TODO: needs work.
         ack = ''
         r = None
         while ack != bytes.fromhex('08'):  # loop to confirm that the message has been received
-            self.write(bytes.fromhex(qry * 6))
-            r = self.read(read_length)
-            ack = self.read(1)
+            self._ser.write(bytes.fromhex(qry * 6))
+            r = self._ser.read(read_length)
+            ack = self._ser.read(1)
 
             if ack != bytes.fromhex('08'):  # count the number of times a message is not received succesfully.
                 error_count += 1
@@ -117,9 +115,9 @@ class GM3(serial.Serial):  # TODO: needs work.
             return r
 
         while ack != bytes.fromhex('07'):
-            self.write(bytes.fromhex('08' * 6))
-            r += self.read(read_length)
-            ack = self.read(1)
+            self._ser.write(bytes.fromhex('08' * 6))
+            r += self._ser.read(read_length)
+            ack = self._ser.read(1)
 
         return r
 
@@ -139,7 +137,7 @@ class GM3(serial.Serial):  # TODO: needs work.
             raise ValueError('ERROR: command', command, 'not found. Possible string commands:',
                              '\nKILL_ALL_PROCESS    or    FF    or    0xFF')
 
-        self.write(bytes.fromhex(cmd * 6))
+        self._ser.write(bytes.fromhex(cmd * 6))
 
         return None
 
@@ -257,7 +255,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
 
     def __init__(
             self,
-            ip4_address=None,
+            ip4_address,
             port=5025,
             channel_voltage_limits=None,
             channel_current_limits=None,
@@ -306,7 +304,7 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
             zero_on_startup=zero_on_startup,
         )
 
-        if self._zero_on_startup and ip4_address is not None:
+        if self._zero_on_startup:
             self.zero_all_channels()
 
     def _query_(self, qry):
@@ -358,8 +356,11 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         if err is not None:
             return err
 
-        one_or_zero = int(self.system_status[-4-channel])
-        return bool(one_or_zero)
+        out = self.system_status[-4-channel]
+        try:
+            return bool(int(out))
+        except ValueError:
+            return out
 
     def set_channel_state(self, channel, state):
         """
@@ -688,11 +689,6 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
             devices, can use any between 49152 and 65536.
         zero_on_startup : bool
             If True, run a routine to set turn off the output of both channels and set the set
-
-
-        Note that all channel voltage limits are software-based since the power supply does not have any built-in limit
-        features. This means that the channel limits are checked before sending a command to the power supply. If the
-        requested set voltage is higher than the channel voltage limit, the command will not go through.
         """
         physical_parameters = {
             'MAX_voltage_limit': 500,
