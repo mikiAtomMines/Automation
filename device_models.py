@@ -763,7 +763,6 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         """
         qry += '\n'
         out = self._query(qry.encode('utf-8')).decode('utf-8').strip()
-        time.sleep(0.3)
         code, err = self.get_error().split(',')
         if int(code) != 0:
             return str(out) + '\nERROR: ' + str(err)
