@@ -306,6 +306,7 @@ def server_loop(asm_dict):
 
     HOST = get_host_ip(loopback=True)
     PORT = 65432
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((HOST, PORT))
     print('Bound to', HOST, PORT)
@@ -337,7 +338,7 @@ def server_loop(asm_dict):
         with conn:
             while True:
                 t0_dict, out_dict = update_heaters(asm_dict, t0_dict)
-
+                time.sleep(0.2)
                 try:
                     data = conn.recv(1024).decode('utf-8').upper()
                     if not data:
