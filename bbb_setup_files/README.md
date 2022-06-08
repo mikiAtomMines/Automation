@@ -43,7 +43,19 @@ Wait a couple seconds and run the following commands on the BBB terminal to ensu
     $ cd /
     $ sudo fdisk -l
 
-You should see something similar to the following in the terminal:
+You might see the following prompt for the sudo password:
+
+    We trust you have received the usual lecture from the local System
+    Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+    [sudo] password for debian:
+    
+The default password for Debian is `temppwd`. After entering the password, you should see something similar to the 
+following output:
     
     debian@beaglebone:/$ sudo fdisk -l                                        <--------- runs sudo fdisk -l
     Disk /dev/mmcblk1: 3.6 GiB, 3825205248 bytes, 7471104 sectors
@@ -68,21 +80,30 @@ You should see something similar to the following in the terminal:
     Device     Boot Start      End  Sectors  Size Id Type
     /dev/sda1  *       64 60506111 60506048 28.9G  7 HPFS/NTFS/exFAT          <--------- usb drive info
 
-Save the path to the USB drive under the 'Device' column for later use. In the example above, the path is `/dev/sda1`. 
+If you do not see the bottom half of the output, please refer back to the section on Getting installation files ready. 
+If the problem persists, try using a different USB drive.
+After confirming that the USB drive is correctly detected by the board, save the path to the USB drive under the 
+'Device' column for later use. In the example above, the path is `/dev/sda1`. 
 
 Run the following commands:
 
     $ sudo mkdir media/usb1
     $ sudo mount -o rw /dev/sda1 media/usb1
 
-The USB drive is now ready for use.
+Note that if your path to your USB drive is different from `/dev/sda1`, you need to replace that path with your specific
+correct path in the second command. 
+
+If the command is succesful, the USB drive is now ready for use.
+
+ # TODO: add section about mounting the USB drive being read-only and not writtable
 
 ### Running installation files
 
-To run the setup file bbb_setup.sh, run the following commands:
+The installation file will automatically move to the home directory `/~` to install all the files. To run the setup file
+bbb_setup.sh, run the following commands:
 
     $ cd /
-    $ ./media/usb1/bbb_setup
+    $ ./media/usb1/bbb_setup_files/bbb_setup.sh
 
 The setup takes about 2 hours. If the setup file is working properly, no more work from the user is needed. After the 
 setup is done, the USB can be safely disconnected.

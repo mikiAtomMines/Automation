@@ -10,4 +10,4 @@ work as expected in other versions, depending on what comes preinstalled with th
 comment
 
 
-./lib/steps.sh < lib/prompts.txt
+./media/usb1/bbb_setup_files/lib/steps.sh < ./media/usb1/bbb_setup_files/lib/prompts.txt
