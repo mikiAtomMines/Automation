@@ -10,7 +10,6 @@ printf '\n'
 
 echo 'Installing zip and unzip...'
 sudo apt install zip
-sudo apt install unzip
 printf '\n'
 
 
@@ -39,9 +38,9 @@ printf '\n'
 
 echo 'Downloading Automation library...'
 git clone https://github.com/mikiAtomMines/Automation.git
-cd Automation
 printf '\n'
 
+cd /
 echo 'Finished'
 printf '\n'
 
