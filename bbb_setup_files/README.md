@@ -26,19 +26,22 @@ https://beagleboard.org/getting-started
 
 After flashing the board, get it ready to use its Linux terminal followin the steps in Connecting to the board.
 
-## Getting installation files ready
+
+
+## Installation with USB drive
+
+### Getting installation files ready
 
 Add the folder containing these files into a USB drive compatible with Linux.To make sure the USB drive is compatible, 
 first format the USB drive in a Linux machine to the file system NTFS. 
 
 
-## Installation 
+### Installation steps
 
-### Getting the USB drive ready
+#### Getting the USB drive ready
 
-Plug in the USB drive into the BBB.
-
-Wait a couple seconds and run the following commands on the BBB terminal to ensure the USB drive is working properly:
+Plug in the USB drive into the BBB. Wait a couple seconds and run the following commands on the BBB terminal to ensure 
+the USB drive is working properly:
 
     $ cd /
     $ sudo fdisk -l
@@ -91,19 +94,37 @@ Run the following commands:
     $ sudo mount -o rw /dev/sda1 media/usb1
 
 Note that if your path to your USB drive is different from `/dev/sda1`, you need to replace that path with your specific
-correct path in the second command. 
+correct path in the second command. If the command is succesful, the USB drive is now ready for use.
 
-If the command is succesful, the USB drive is now ready for use.
+If the USB drive is mounted as read-only, this might indicate an issue with the formatting procedure of the USB drive. 
+Try formatting the USB drive again in a Linux machine or try using a different USB drive.
 
- # TODO: add section about mounting the USB drive being read-only and not writtable
 
-### Running installation files
+#### Running installation files
 
-The installation file will automatically move to the home directory `/~` to install all the files. To run the setup file
-bbb_setup.sh, run the following commands:
+To run the setup file bbb_setup.sh, run the following commands:
 
     $ cd /
     $ ./media/usb1/bbb_setup_files/bbb_setup.sh
 
-The setup takes about 2 hours. If the setup file is working properly, no more work from the user is needed. After the 
-setup is done, the USB can be safely disconnected.
+The setup takes about 2 hours. If the setup file is working properly, no more work from the user is needed. 
+
+Before unplugging the USB drive, run the following command:
+
+    $ cd /
+    $ sudo umount /media/usb1
+
+If the command runs succesfully, there should be no output and the USB can be safely ejected. 
+
+
+## Installation with setup files
+
+### Getting installation files ready
+
+Get the folder containing these files to the home directory.
+
+
+### Running installation files
+
+    $ cd bbb_setup_files/lib
+    $ ./steps.sh < prompts.txt
