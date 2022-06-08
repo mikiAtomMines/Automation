@@ -1,3 +1,5 @@
+#!/bin/bash
+
 << comment
 
 Sebastian Miki-Silva
@@ -9,5 +11,5 @@ work as expected in other versions, depending on what comes preinstalled with th
 
 comment
 
-
-./media/usb1/bbb_setup_files/lib/steps.sh < ./media/usb1/bbb_setup_files/lib/prompts.txt
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+/bin/bash $DIR/lib/steps.sh < $DIR/lib/prompts.txt
