@@ -10,4 +10,4 @@ work as expected in other versions, depending on what comes preinstalled with th
 comment
 
 
-./steps.sh < prompts.txt
+./lib/steps.sh < lib/prompts.txt
