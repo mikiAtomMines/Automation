@@ -9,7 +9,7 @@ printf '\n'
 
 
 echo 'Installing zip and unzip...'
-sudo apt install zip
+sudo -S apt install zip
 printf '\n'
 
 
@@ -31,7 +31,7 @@ wget -N https://github.com/mccdaq/uldaq/releases/download/v1.2.1/libuldaq-1.2.1.
 tar -xvjf libuldaq-1.2.1.tar.bz2
 cd libuldaq-1.2.1
 ./configure && make
-sudo make install
+sudo -S make install
 pip3 install uldaq
 cd ~/
 printf '\n'
