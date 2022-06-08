@@ -344,6 +344,8 @@ def server_loop(asm_dict):
                     if not data:
                         print(f"Disconnected by {addr}")
                         break
+
+                    print(data)
                     out = process_command(data, asm_dict)
                     if out is None:
                         out = 'NOERROR'
