@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Sebastian Miki-Silva
 # June 7th, 2022
 
@@ -43,10 +45,3 @@ printf '\n'
 cd /
 echo 'Finished'
 printf '\n'
-
-echo 'Unmounting USB drive...'
-sudo umount /media/usb1
-printf '\n'
-
-echo 'Safe to eject USB drive'
-echo 'Finished...'
