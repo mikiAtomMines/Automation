@@ -19,7 +19,7 @@ https://www.youtube.com/watch?v=C2KVSy_yTWk
 ### Flashing the board
 
 Before starting the installation, make sure to have a BeagleBone Black (BBB) rev C that has been freshly flashed with 
-Debian 10.3. Although the installation files might work on different versions, it is not guaranteed. For more 
+Debian 10.12. Although the installation files might work on different versions, it is not guaranteed. For more 
 information on how to flash the BeagleBone, refer to the following link:
 
 https://beagleboard.org/getting-started
@@ -38,15 +38,15 @@ first format the USB drive in a Linux machine to the file system NTFS.
 
 ### Installation steps
 
-#### Getting the USB drive ready
+#### Reading from the USB drive
 
-Plug in the USB drive into the BBB. Wait a couple seconds and run the following commands on the BBB terminal to ensure 
-the USB drive is working properly:
+Plug in the USB drive containing the setup folder into the BBB. Wait a couple seconds and run the following commands on 
+the BBB terminal to ensure the USB drive is being recognized correctly and is working properly:
 
     $ cd /
     $ sudo fdisk -l
 
-You might see the following prompt for the sudo password:
+You might see the following prompt asking for the sudo password:
 
     We trust you have received the usual lecture from the local System
     Administrator. It usually boils down to these three things:
@@ -85,8 +85,8 @@ following output:
 
 If you do not see the bottom half of the output, please refer back to the section on Getting installation files ready. 
 If the problem persists, try using a different USB drive.
-After confirming that the USB drive is correctly detected by the board, save the path to the USB drive under the 
-'Device' column for later use. In the example above, the path is `/dev/sda1`. 
+After confirming that the USB drive is correctly detected by the board, write down in a piece of paper the path to the 
+USB drive found under the 'Device' column. In the example above, the path is `/dev/sda1`. 
 
 Run the following commands:
 
@@ -96,8 +96,9 @@ Run the following commands:
 Note that if your path to your USB drive is different from `/dev/sda1`, you need to replace that path with your specific
 correct path in the second command. If the command is succesful, the USB drive is now ready for use.
 
-If the USB drive is mounted as read-only, this might indicate an issue with the formatting procedure of the USB drive. 
-Try formatting the USB drive again in a Linux machine or try using a different USB drive.
+If the USB drive is mounted as read-only, meaning that the files inside cannot be executed, this might indicate an issue
+with the formatting procedure of the USB drive. Try formatting the USB drive again in a Linux machine or try using a 
+different USB drive.
 
 
 #### Running installation files
@@ -118,8 +119,6 @@ If the command runs succesfully, there should be no output and the USB can be sa
 
 
 ## Installation with setup files
-
-### Getting installation files ready
 
 Alternatively, you can copy the folder containing these files into the BBB using any other method. The destination of 
 the folder does not matter. Once the folder has been copied into the BBB, set it as your working directory and run the 
