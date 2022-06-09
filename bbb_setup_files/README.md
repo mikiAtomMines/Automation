@@ -121,10 +121,8 @@ If the command runs succesfully, there should be no output and the USB can be sa
 
 ### Getting installation files ready
 
-Get the folder containing these files to the home directory.
+Alternatively, you can copy the folder containing these files into the BBB using any other method. The destination of 
+the folder does not matter. Once the folder has been copied into the BBB, set it as your working directory and run the 
+setup file:
 
-
-### Running installation files
-
-    $ cd bbb_setup_files/lib
-    $ ./steps.sh < prompts.txt
+    $ ./bbb_setup.sh
