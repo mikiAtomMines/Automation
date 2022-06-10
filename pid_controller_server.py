@@ -186,7 +186,7 @@ def process_command(cmd, asm_dict):
             # PID settings
         elif dev == 'PD':
             if comm == 'IDN':
-                return asm.pid_function
+                return asm.pid_settings
             elif comm == 'RSET':
                 return asm.reset_pid()
             elif comm == 'RLIM':
@@ -240,9 +240,9 @@ def process_command(cmd, asm_dict):
             elif comm == 'REDY':
                 return asm.ready_assembly()
             elif comm == 'MAXV':
-                return asm.MAX_voltage_limit
+                return asm.MAX_voltage
             elif comm == 'MAXA':
-                return asm.MAX_current_limit
+                return asm.MAX_current
             else:
                 return 'ERROR: bad command ' + str(comm)
 

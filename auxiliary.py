@@ -110,7 +110,7 @@ def testing_SPD3303X(power_supply):
     print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)
     print('CH1 and CH2 voltage limits are:', power_supply.ch1_voltage_limit, power_supply.ch2_voltage_limit)
     print('CH1 and CH2 current limits are:', power_supply.ch1_current_limit, power_supply.ch2_current_limit)
-    print('MAX voltage and current limits are:', power_supply.MAX_voltage_limit, power_supply.MAX_current_limit)
+    print('MAX voltage and current limits are:', power_supply.MAX_voltage, power_supply.MAX_current)
     power_supply.reset_channels()
     print('CH1 and CH2 actual voltages are:', power_supply.ch1_actual_voltage, power_supply.ch2_actual_voltage)
     print('CH1 and CH2 actual currents are:', power_supply.ch1_actual_current, power_supply.ch2_actual_current)

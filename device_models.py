@@ -1528,6 +1528,7 @@ class Model8742(SocketEthernetDevice):
 # RGA
 # ======================================================================================================================
 class Srs100:
+    # TODO: fix error handling. If succesful, should return None. Else, return the error message.
     def __init__(
             self,
             port,
@@ -1872,11 +1873,21 @@ class Srs100:
         return self._query_('NF?')
 
     def set_detector_cdem_state(self, state):
-        if state.lower() == 'on':
-            self._cdem_state = True
+        """
+        For on, sets the default voltage value. For off, sets voltage to 0.
+
+        Parameters
+        ----------
+        state : bool
+            True for on, False for off.
+
+
+
+        """
+        self._cdem_state = True
+        if state:
             return self._command_('HV*')
-        elif state.lower() == 'off':
-            self._cdem_state = False
+        else:
             return self._command_('HV0')
 
     def set_detector_cdem_voltage(self, volts):

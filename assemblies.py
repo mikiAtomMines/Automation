@@ -38,11 +38,13 @@ class HeaterAssembly:
         if self._heater is None:
             self._heater = Heater()
         self._pid = self._get_default_pid()
-        self._MAX_voltage_limit = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage_limit)
-        self._MAX_current_limit = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current_limit)
+        self._MAX_voltage = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage)
+        self._MAX_current = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current)
         self._MAX_temp_limit = self._heater.MAX_temp
         self._regulating = False
 
+    # Assembly
+    # --------
     def _get_default_pid(self):
         """
         Sets the output limits based on heater and power supply limits. Sets default values to sample time, set point,
@@ -81,7 +83,7 @@ class HeaterAssembly:
         pid = self._pid
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
-        out_max = min(self.MAX_voltage_limit, ps.get_voltage_limit(ch))
+        out_max = min(self.MAX_voltage, ps.get_voltage_limit(ch))
 
         pid.output_limits = (0, out_max)
 
@@ -105,8 +107,8 @@ class HeaterAssembly:
         ps.set_channel_state(ch, False)
         ps.set_voltage(ch, 0)
         ps.set_current(ch, 0)
-        ps.set_voltage_limit(ch, ps.MAX_voltage_limit)
-        ps.set_current_limit(ch, ps.MAX_current_limit)
+        ps.set_voltage_limit(ch, ps.MAX_voltage)
+        ps.set_current_limit(ch, ps.MAX_current)
 
     def ready_power_supply(self):
         """
@@ -117,10 +119,10 @@ class HeaterAssembly:
         ch = self._supply_and_channel[1]
         ps.set_voltage(ch, 0)
         ps.set_current(ch, 0)
-        if ps.get_voltage_limit(ch) > self.MAX_voltage_limit:
-            ps.set_voltage_limit(ch, self.MAX_voltage_limit)
-        if ps.get_current_limit(ch) > self.MAX_current_limit:
-            ps.set_current_limit(ch, self.MAX_current_limit)
+        if ps.get_voltage_limit(ch) > self.MAX_voltage:
+            ps.set_voltage_limit(ch, self.MAX_voltage)
+        if ps.get_current_limit(ch) > self.MAX_current:
+            ps.set_current_limit(ch, self.MAX_current)
         ps.set_current(ch, ps.get_current_limit(ch))
         ps.set_channel_state(ch, True)
 
@@ -133,8 +135,8 @@ class HeaterAssembly:
         ps = self._supply_and_channel[0]
         ch = self._supply_and_channel[1]
         self.reset_power_supply()
-        ps.set_voltage_limit(ch, self.MAX_voltage_limit)
-        ps.set_current_limit(ch, self.MAX_current_limit)
+        ps.set_voltage_limit(ch, self.MAX_voltage)
+        ps.set_current_limit(ch, self.MAX_current)
         self.reset_pid()
 
     def ready_assembly(self):
@@ -146,9 +148,21 @@ class HeaterAssembly:
         self.set_pid_regulation(False)
         self._pid.setpoint = 0
 
-    # -----------------------------------------------------------------------------
-    # Properties
-    # -----------------------------------------------------------------------------
+    @property
+    def MAX_voltage(self):
+        return self._MAX_voltage
+
+    @property
+    def MAX_current(self):
+        return self._MAX_current
+
+    @property
+    def MAX_set_temp(self):
+        return self._MAX_temp_limit
+
+    @property
+    def is_regulating(self):
+        return self.get_pid_regulation()
 
     # Power supply
     # ------------
@@ -157,13 +171,11 @@ class HeaterAssembly:
 
     def set_supply_channel(self, new_ch):
         ps = self._supply_and_channel[0]
-
         err = ps.check_valid_channel(new_ch)
         if err is None:
             ps.zero_all_channels()
             self._supply_and_channel[1] = new_ch
-        else:
-            return err
+        return err
 
     def get_supply_channel_state(self):
         ps = self._supply_and_channel[0]
@@ -277,19 +289,11 @@ class HeaterAssembly:
 
     @property
     def supply_MAX_voltage(self):
-        return self._supply_and_channel[0].MAX_voltage_limit
+        return self._supply_and_channel[0].MAX_voltage
 
     @property
     def supply_MAX_current(self):
-        return self._supply_and_channel[0].MAX_current_limit
-
-    @property
-    def MAX_voltage_limit(self):
-        return self._MAX_voltage_limit
-
-    @property
-    def MAX_current_limit(self):
-        return self._MAX_current_limit
+        return self._supply_and_channel[0].MAX_current
 
     # Temp DAQ
     # --------
@@ -388,7 +392,7 @@ class HeaterAssembly:
         self._regulating = bool(reg)
 
     @property
-    def pid_function(self):
+    def pid_settings(self):
         return f'kp={self._pid.Kp} ki={self._pid.Ki} kd={self._pid.Kd} setpoint={self._pid.setpoint} sampletime=' \
                f'{self._pid.sample_time}'
 
@@ -403,10 +407,6 @@ class HeaterAssembly:
     @property
     def pid_sample_time(self):
         return self.get_pid_sample_time()
-
-    @property
-    def is_regulating(self):
-        return self.get_pid_regulation()
 
     @property
     def pid_kp(self):
@@ -431,14 +431,6 @@ class HeaterAssembly:
     @pid_kd.setter
     def pid_kd(self, new_kd):
         self._pid.Kd = new_kd
-
-    @property
-    def pid_is_regulating(self):
-        return self._regulating
-
-    @property
-    def MAX_set_temp(self):
-        return self._MAX_temp_limit
 
     # -----------------------------------------------------------------------------
     # methods
