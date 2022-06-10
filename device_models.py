@@ -1143,6 +1143,8 @@ if platform == 'win32':
 
 
     class ETcWindows(MccDeviceWindows):
+        # TODO: check if the io methods can be moved to the super class MccDeviceWindows
+
         def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
             """
             Class for a Web_Tc device from MCC. Might make a master class for temperature daq
@@ -1229,12 +1231,14 @@ if platform == 'linux' or platform == 'linux2':
 # Picomotor controller
 # ======================================================================================================================
 class Model8742(SocketEthernetDevice):
+    # TODO: Add error handling
+    # TODO: Add comments
     """
     Newport picomotor controller.
     """
     def __init__(
             self,
-            ip4_address=None,
+            ip4_address,
             port=23,
             number_of_channels=4
     ):
@@ -1250,7 +1254,7 @@ class Model8742(SocketEthernetDevice):
         """
         SocketEthernetDevice.__init__(self, ip4_address=ip4_address, port=port)
         if self._ip4_address is not None:
-            self._socket.recv(4096)
+            self._socket.recv(4096)  # Receive connection acknowledgement
 
         self._number_of_channels = number_of_channels
 
@@ -1269,7 +1273,7 @@ class Model8742(SocketEthernetDevice):
         out = self._command(cmd.encode('utf-8'))
         return out
 
-    def reboot_controller(self):
+    def restart_controller(self):
         """
         Upon restart the controller reloads parameters (e.g., velocity and acceleration) last saved in non-volatile
         memory and sets Home (DH) position to 0.
@@ -1309,7 +1313,7 @@ class Model8742(SocketEthernetDevice):
         """
         self._command_('*RCL0')
 
-    def motion_done(self, chan):
+    def is_motion_done(self, chan):
         """
         Returns True if the picomotor is not moving. Returns False if the picomotor is currently moving.
         :param int chan:
@@ -1326,7 +1330,7 @@ class Model8742(SocketEthernetDevice):
         """
         return int(self._query_(str(chan) + 'TP?'))
 
-    def get_set_position(self, chan):
+    def get_setpoint_position(self, chan):
         """
         get the position at which the picomotor is set to move to. If the picomotor is currently not moving,
         this position is the same as the instantenous position.
@@ -1375,14 +1379,14 @@ class Model8742(SocketEthernetDevice):
         """
         self._command_(str(chan) + 'DH' + '0')
 
-    def set_set_position(self, chan, position):
+    def set_position(self, chan, position):
         """
         :param int chan:
         :param int position: measured in steps with respect to the home position  # TODO: check home position or origin
         :return:
         """
         self._command_(str(chan) + 'PA' + str(position))
-        while not self.motion_done(chan=chan):
+        while not self.is_motion_done(chan=chan):
             pass
 
     def displace(self, chan, dis):
@@ -1392,7 +1396,7 @@ class Model8742(SocketEthernetDevice):
         :return:
         """
         self._command_(str(chan) + 'PR' + str(dis))
-        while not self.motion_done(chan=chan):
+        while not self.is_motion_done(chan=chan):
             pass
 
     def move_indefinetely(self, chan, direction):
@@ -1402,8 +1406,9 @@ class Model8742(SocketEthernetDevice):
         :param str direction: possible values for positive direction: +, pos, or positive. For negative direction: -,
         neg, or negative.
         """
-        while not self.motion_done(chan=chan):
+        while not self.is_motion_done(chan=chan):
             pass
+        time.sleep(0.5)
 
         direct_dict = {
             '+': '+',
@@ -1455,36 +1460,36 @@ class Model8742(SocketEthernetDevice):
         return self.get_instant_position(chan=4)
 
     @property
-    def set_position_ch1(self):
-        return self.get_set_position(chan=1)
+    def setpoint_position_ch1(self):
+        return self.get_setpoint_position(chan=1)
 
-    @set_position_ch1.setter
-    def set_position_ch1(self, new_pos):
-        self.set_set_position(chan=1, position=new_pos)
-
-    @property
-    def set_position_ch2(self):
-        return self.get_set_position(chan=2)
-
-    @set_position_ch2.setter
-    def set_position_ch2(self, new_pos):
-        self.set_set_position(chan=2, position=new_pos)
+    @setpoint_position_ch1.setter
+    def setpoint_position_ch1(self, new_pos):
+        self.set_position(chan=1, position=new_pos)
 
     @property
-    def set_position_ch3(self):
-        return self.get_set_position(chan=3)
+    def setpoint_position_ch2(self):
+        return self.get_setpoint_position(chan=2)
 
-    @set_position_ch3.setter
-    def set_position_ch3(self, new_pos):
-        self.set_set_position(chan=3, position=new_pos)
+    @setpoint_position_ch2.setter
+    def setpoint_position_ch2(self, new_pos):
+        self.set_position(chan=2, position=new_pos)
 
     @property
-    def set_position_ch4(self):
-        return self.get_set_position(chan=4)
+    def setpoint_position_ch3(self):
+        return self.get_setpoint_position(chan=3)
 
-    @set_position_ch4.setter
-    def set_position_ch4(self, new_pos):
-        self.set_set_position(chan=4, position=new_pos)
+    @setpoint_position_ch3.setter
+    def setpoint_position_ch3(self, new_pos):
+        self.set_position(chan=3, position=new_pos)
+
+    @property
+    def setpoint_position_ch4(self):
+        return self.get_setpoint_position(chan=4)
+
+    @setpoint_position_ch4.setter
+    def setpoint_position_ch4(self, new_pos):
+        self.set_position(chan=4, position=new_pos)
 
     @property
     def velocity_ch1(self):
@@ -1517,10 +1522,6 @@ class Model8742(SocketEthernetDevice):
     @velocity_ch4.setter
     def velocity_ch4(self, new_vel):
         self.set_velocity(chan=4, vel=new_vel)
-
-    # @property
-    # def (self):
-    #     return
 
 
 # ======================================================================================================================
