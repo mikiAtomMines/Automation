@@ -1548,6 +1548,8 @@ class Srs100:
         self._filament_state = False
         self._cdem_state = False
 
+        self.initialize()
+
     def _query_(self, qry):
         """
         :param str qry:
@@ -1622,15 +1624,15 @@ class Srs100:
         """
         return int(self._query_('ER?'))
 
-    def get_error_byte_all(self, status=None):
+    def handle_status_byte(self, err_byte=None):
         """
         get the error byte as a decimal int for each error type: RS232_ERR, FIL_ERR, CEM_ERR, QMF_ERR,
         DET_ERR, and PS_ERR.
         :param int status: the status byte returned by most commands of the RGA, or requested by get_status().
         :return tuple of ints:
         """
-        if status is None:
-            status = self.get_status_byte()
+        if err_byte is None:
+            err_byte = self.get_status_byte()
         errors_dict = {
             0: 'EC?',  # Communications, RS232_ERR
             1: 'EF?',  # Filament, FIL_ERR
@@ -1643,7 +1645,7 @@ class Srs100:
         }
         errors = []
         for i in range(8):
-            if status & int(2**i):
+            if err_byte & int(2**i):
                 errors.append(int(self._query_(errors_dict[i])))
             else:
                 errors.append(0)
