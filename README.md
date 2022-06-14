@@ -687,7 +687,74 @@ PowerSupply classes.
 
 ### ETcWindows
 
-### ETcLinux
+      ETcWindows(board_number, ip4_address=None, port=54211, default_units='celsius'):
+
+            Parameters
+            ----------
+            ip4_address : string
+                The current IPv4 address of the device. Can be found through instacal. For the Web_TC,
+                the ip4_address is unused because the API functions that use it are not supported by this device.
+            port : int
+                The port number to be used. MCC recommends to use 54211. Port 80 is reserved for the web browser
+                application. For the Web_TC, the port number is unused because the API functions that use it are not
+                supported by this device.
+            board_number : int
+                All MCC devices have a board number which can be configured using instacal. The instance of Web_Tc must
+                match the board number of its associated device. Possible values from 0 to 99.
+            default_units : string
+                the units in which the temperature is shown, unless specified otherwise in the method. Possible values
+                (not
+                case-sensitive):
+                for Celsius                 celsius,               c
+                for Fahrenheit              fahrenheit,            f
+                for Kelvin                  kelvin,                k
+                for calibrated voltage      volts, volt, voltage,  v
+                for uncalibrated voltage    raw, none, noscale     r
+            
+Inherits from MccDeviceWindows. 
+
+#### Methods
+
+- config_io_channel(chan, direction)
+  - :param chan: 0 <= int <= 7
+  - :param direction: str {'in', 'i', 'out', 'o'}
+
+
+- get_bit(chan)
+  - :param chan: 0 <= int <= 7
+
+
+- set_bit(chan, out)
+  - :param chan: 0 <= int <= 7
+  - :param out: int {1, 0}
+
+
+- config_io_byte(direction)
+  - :param direction: str {'in', 'i', 'out', 'o'}
+
+
+- get_byte()
+
+
+- set_byte(val)
+  - :param val: int
+
+
+
+### EtcLinux
+
+     ETcLinux(ip4_address, port=54211, default_units='celsius')
+
+         Parameters
+         ----------
+         ip4_address : str
+             IPv4 address of device in format '255.255.255.255'
+         port : int
+             communications port number.
+         default_units : {'c', 'celsius', 'f', 'fahrenheit', 'k', 'kelvin', 'v', 'volts', 'r', 'raw'}
+             default units to use for temperature measurements
+        """
+Inherits everything from MccDeviceLinux
 
 
 ### WebTc
@@ -713,32 +780,7 @@ PowerSupply classes.
             for calibrated voltage      volts, volt, voltage,  v
             for uncalibrated voltage    raw, none, noscale     r
 
-This class represents the Web-TC temperature DAQ by MCC. Implements methods to read the temperature at the TC channels. 
-Will implement I/O configuration methods in the future. 
-
-#### Properties
-- default_units
-- thermocouple_type_ch0 **(no setter)**
-- thermocouple_type_ch1 **(no setter)**
-- thermocouple_type_ch2 **(no setter)**
-- thermocouple_type_ch3 **(no setter)**
-- thermocouple_type_ch4 **(no setter)**
-- thermocouple_type_ch5 **(no setter)**
-- thermocouple_type_ch6 **(no setter)**
-- thermocouple_type_ch7 **(no setter)**
-- temp_ch0 **(no setter)**
-- temp_ch1 **(no setter)**
-- temp_ch2 **(no setter)**
-- temp_ch3 **(no setter)**
-- temp_ch4 **(no setter)**
-- temp_ch5 **(no setter)**
-- temp_ch6 **(no setter)**
-- temp_ch7 **(no setter)**
-
-#### Methods
-- get_temp(channel_n, units, averaged)
-- get_temp_all_channels(units, averaged)
-- get_temp_scan(low_channel, high_channel, units, averaged)
+This class represents the Web-TC temperature DAQ by MCC. Inherits from MccDeviceWindows. 
 
 
 ### Model8742
@@ -754,42 +796,100 @@ Will implement I/O configuration methods in the future.
 
         """
 
-#### Methods
-- reboot_controller()
-- save_settings()
-- load_settings()
-- _reset_factory_settings(0)
-- motion_done()
-- get_instant_position(chan)
-- get_set_position(chan)
-- get_velocity(chan)
-- get_acceleration(chan)
-- hard_stop_all()
-- soft_stop(chan)
-- set_origin(chan)
-- set_set_position(chan, position)
-- displace(chan, dis)
-- move_indefinetely(chan)
-- set_velocity(chan, vel)
-- set_acceleration(chan, acc)
-
+Inherits from SocketEthernetDevice. Represents the Newport Model8742 picomotor. 
 #### Properties
-- idn **(no setter)**
-- mac_address **(no setter)**
-- hostname **(no setter)**
-- position_ch1 **(no setter)**
-- position_ch2 **(no setter)**
-- position_ch3 **(no setter)**
-- position_ch4 **(no setter)**
-- set_position_ch1 
-- set_position_ch2
-- set_position_ch3
-- set_position_ch4
-- velocity_ch1
-- velocity_ch2
-- velocity_ch3
-- velocity_ch4
 
+##### Getters
+
+- idn : str
+- mac_address : str
+- hostname : str
+- position_ch\<n> : int
+  - 1 <= n <= 4
+- setpoint_position_ch\<n> : int
+  - 1 <= n <= 4
+- velocity_ch\<n> : int
+  - 1 <= n <= 4
+
+##### Setters
+
+- setpoint_position_ch\<n> : int
+  - 1 <= n <= 4
+- velocity_ch\<n> : int
+  - 1 <= n <= 4
+
+
+#### Methods
+- restart_controller()
+
+
+- save_settings()
+
+
+- load_settings()
+
+
+- _reset_factory_settings()
+
+
+- motion_done(chan)
+  - :param chan: 1 <= int <= 4
+  - :returns: bool. True for motion stopped. False for motion is ongoing. 
+
+
+- get_instant_position(chan)
+  - :param chan: 1 <= int <= 4
+  - :returns: int
+
+
+- get_set_position(chan)
+  - :param chan: 1 <= int <= 4
+  - :returns: int
+
+
+- get_velocity(chan)
+  - :param chan: 1 <= int <= 4
+  - :returns: int
+
+  
+- get_acceleration(chan)
+  - :param chan: 1 <= int <= 4
+  - :returns: int
+
+
+- hard_stop_all()
+
+
+- soft_stop(chan)
+  - :param chan: 1 <= int <= 4. Optional
+
+
+- set_origin(chan)
+  - :param chan: 1 <= int <= 4
+
+  
+- set_set_position(chan, position)
+  - :param chan: 1 <= int <= 4
+  - :param position: int
+
+
+- displace(chan, dis)
+  - :param chan: 1 <= int <= 4
+  - :param dis: int
+
+
+- move_indefinetely(chan)
+  - :param chan: 1 <= int <= 4
+
+
+- set_velocity(chan, vel)
+  - :param chan: 1 <= int <= 4
+  - :param vel: int
+
+
+- set_acceleration(chan, acc)
+  - :param chan: 1 <= int <= 4
+  - :param acc: int
 
 
 ### Srs100
@@ -804,77 +904,237 @@ Will implement I/O configuration methods in the future.
 
 ## Classes from assemblies.py
 
-
-
-
-
-
 ### HeaterAssembly
 
     HeaterAssembly(
-            power_supply=None,
-            supply_channel=None,
-            temperature_daq=None,
-            daq_channel=None,
-            pid_function=None,
-            set_temperature=None,
-            temp_units=None,
-            MAX_set_temp=None,
-            MIN_set_temp=None,
-            configure_on_startup=False,
-
+            supply_and_channel,
+            daq_and_channel,
+            heater=None,
     ):
         """
-        A heater assembly composed of a heater, a temperature measuring device, and a power supply.
+        A heater assembly composed of a heater, a temperature measuring device, and a power supply. This assembly
+        should only need to be used by the pid_controller_server.py file running on a BeagleBone Black.
 
         Parameters
         ----------
-        power_supply : device_models.PowerSupply
-            The power supply model that is being used for controlling the electrical power going into the heater.
-        supply_channel : int
-            The physical power supply channel connected to the heater for controlling the electrical power.
-        temperature_daq : device_models.MCC_device
-            The temperature DAQ device that is being used for reading the temperature of the heater.
-        daq_channel : int
-            The physical DAQ channel used for taking temperature readings of the heater.
-        pid_function : simple_pid.PID
-            The PID function used to regulate the heater's temperature to the set point.
-        set_temperature : float
-            The desired set temperature in the same units as the temperature readings from the temperature DAQ.
-        temp_units : str, None
-            Set the temperature units for all temperature readings, setpoints, etc. Possible values (not
-            case-sensitive):
-            for Celsius                 celsius,               c
-            for Fahrenheit              fahrenheit,            f
-            for Kelvin                  kelvin,                k
-            for default units           None
-        MAX_set_temp : float, None
-            The maximum possible value for set temp. Should be based on the physical limitations of the heater.
-            Should be used as a safety mechanism so the set temperature is never set higher than what the hardware
-            allows. If set to None, the limit is infinity.
-        MIN_set_temp : float, None
-            The minimum possible value for set temp. Analogous to MAX_temp.
-        configure_on_startup : bool
-            Will configure the PID object's output limits, setpoint, and optionally, the Kp, Ki, and Kd. Set this to
-            True if the pid object has not been manually configured.
+        supply_and_channel : two tuple of device_models.PowerSupply and int
+            First item in the tuple is the power supply that is being used for controlling the electrical power going
+            into the heater. The second item is the supply channel that is being used. If the power supply has only
+            one channel, use 1.
+        daq_and_channel : two tuple of device_models.MCC_device and int
+            First item in the tuple is the temperature DAQ device that is being used for reading the temperature of the
+            heater. The second item is the channel to use.
+        heater : Heater
+            Object that contains the MAX temperature, MAX current, and MAX volts based on the physical heater
+            hardware. If none is provided, the class will create an instance of the Heater class to use.
         """
 
 #### Properties
 
-- power_supply **(no setter)**
-- supply_channel 
-- temperature_daq **(no setter)**
-- daq_channel
-- set_temperature
-- temp_units
-- pid_function **(no setter)**
-- MAX_set_temp **(no setter)**
-- MIN_set_temp **(no setter)**
-- configure_pid_on_startup **(no setter)**
-- current_temperature **(no setter)**
+##### Getters
+- Assembly:
+  - MAX_voltage : float
+  - MAX_current : float
+  - MAX_set_temp : float
+  - is_regulating : bool
+
+
+- Power supply:
+  - power_supply : str
+  - supply_setpoint_voltage : float
+  - supply_setpoint_current : float
+  - supply_actual_voltage : float
+  - supply_actual_current : float
+  - supply_voltage : float
+  - supply_current : float
+  - supply_voltage_limit : float
+  - supply_current_limit : float
+  - supply_channel_state : bool
+  - supply_channel : int
+  - supply_number_of_channels : int
+  - supply_MAX_voltage : float
+  - supply_MAX_current : float
+
+
+- Temperature DAQ:
+  - daq : str
+  - temp : float
+  - daq_channel : int
+  - tc_type : str
+  - temp_units : str
+  - daq_number_of_temp_channels : int
+
+
+- PID settings:
+  - pid_settings : str
+  - pid_setpoint : float
+  - pid_limits : tuple of floats
+  - pid_sample_time : float
+  - pid_kp : float
+  - pid_ki : float
+  - pid_kd : float
+
+##### Setters
+- PID Settigns:
+  - pid_kp : float
+  - pid_ki : float
+  - pid_kd : float
+
 
 #### Methods
 
-- configure_pid()
+###### Assembly
+- reset_pid()
+  
+
+- reset_pid_limits()
+
+  
+- stop_supply()
+
+  
+- reset_power_supply()
+
+  
+- ready_power_supply()
+
+
+- reset_assembly()
+
+
+- ready_assembly()
+
+
+- stop()
+
+
 - update_supply()
-- live_plot(x_size)
+  - :returns: float
+
+###### Power supply
+
+- get_supply_channel()
+  - :returns: int
+
+
+- set_supply_channel(new_ch)
+  - :param new_ch: int
+  - :returns: None or error string
+  
+
+- get_supply_channel_state()
+  - :returns: bool
+
+
+- set_supply_channel_state(state)
+  - :param state: bool
+  - :returns: None or error string
+
+
+- get_supply_setpoint_voltage()
+  - :returns: float
+
+
+- set_supply_voltage(volts)
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_supply_actual_voltage()
+  - :returns: float
+
+
+- get_supply_setpoint_current()
+  - :returns: float
+
+
+- set_supply_current(amps)
+  - :param amps: float
+  - :returns: None or error string
+
+
+- get_supply_actual_current()
+  - :returns: float
+  
+
+- get_supply_voltage_limit()
+  - :returns: float
+
+
+- set_supply_voltage_limit(volts)
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_supply_current_limit()
+  - :returns: float
+
+
+- set_supply_current_limit(amps)
+  - :param amps: float
+  - :returns: None or str
+
+###### Temperature DAQ
+
+- get_daq_temp()
+  - :returns: float
+
+
+- get_daq_channel()
+  - :returns: int
+
+
+- set_daq_channel(new_ch)
+  - :param new_ch: int
+  - :returns: None or error string
+  
+  
+- get_daq_tc_type()
+  - :returns: str
+
+
+- set_daq_tc_type(new_tc)
+  - :param new_tc: str
+  - :returns: None or error string
+
+
+- get_daq_temp_units()
+  :returns: str
+
+
+- set_daq_temp_units(new_units)
+  - :param new_units: str
+  - :returns: None or error string
+
+###### PID Settings
+
+- get_pid_setpoint()
+  - :returns: float
+
+
+- set_pid_setpoint?(new_set)
+  - :param new_set: float
+  - :returns: None or error string
+
+
+- get_pid_limits()
+  - :returns: tuple of floats
+
+
+- get_pid_sample_time()
+  - :returns: float
+
+
+- set_pid_sample_time(seconds)
+  - :param seconds: float
+  - :returns: None or error string
+
+
+- get_pid_regulation()
+  - :returns: bool
+
+
+- set_pid_regulation(reg)
+  - :param reg: bool
+  - :returns: None or error string
+
