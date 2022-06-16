@@ -1557,24 +1557,26 @@ class Srs100:
         """
         qry += '\r'
         self._serial_port.write(data=qry.encode('utf-8'))
+        time.sleep(0.3)
         return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8').strip()
 
     def _command_noresponse_(self, cmd):
         cmd += '\r'
         self._serial_port.write(data=cmd.encode('utf-8'))
-        status = self.get_status_byte()
-        self.get_error_message_all(status=status)
-        return status
+        time.sleep(0.3)
+        return self.get_error_message_all()
 
     def _command_(self, cmd):
         """
         :param str cmd:
-        :return int: returns status byte as a decimal integer.
+        :return string or None:
         """
 
-        status = int(self._query_(cmd))
-        self.get_error_message_all(status=status)
-        return status
+        stat = int(self._query_(cmd))
+        return self.get_error_message_all(status=stat)
+
+    def _receive_(self):
+        return self._serial_port.read(4)
 
     # General
     # -------
@@ -1588,12 +1590,32 @@ class Srs100:
 
     # Error handling
     # --------------
-    def _create_error_msg(self, byte, dict):
+    def _create_error_msg(self, byte, lst):
+        """
+        Creates an error message based on a status or error byte and a list containing the error messages
+        corresponding to each bit inside the status byte.
+
+        Parameters
+        ----------
+        byte : int
+            status or error byte. Should be 8-bit
+        lst : list
+            Contains the error messages associated with each bit in the status byte. The index corresponds to
+            the message's respective bit.
+
+        Returns
+        -------
+        None
+            if no errors are found (status byte is 0), return None
+        str
+            else, return the error string
+        """
+        if byte == 0:
+            return None
         final_msg = ''
         for i in range(8):
             if byte & int(2 ** i):
-                final_msg += '- ' + dict[i]
-                final_msg += '\n'
+                final_msg += ' - ' + lst[i] + '\n'
         return final_msg
 
     def get_status_byte(self):
@@ -1624,34 +1646,6 @@ class Srs100:
         """
         return int(self._query_('ER?'))
 
-    def handle_status_byte(self, err_byte=None):
-        """
-        get the error byte as a decimal int for each error type: RS232_ERR, FIL_ERR, CEM_ERR, QMF_ERR,
-        DET_ERR, and PS_ERR.
-        :param int status: the status byte returned by most commands of the RGA, or requested by get_status().
-        :return tuple of ints:
-        """
-        if err_byte is None:
-            err_byte = self.get_status_byte()
-        errors_dict = {
-            0: 'EC?',  # Communications, RS232_ERR
-            1: 'EF?',  # Filament, FIL_ERR
-            2: None,   # not used
-            3: 'EM?',  # Electron Multiplier, CEM_ERR
-            4: 'EQ?',  # Quadrupole Mass Filter, QMF_ERR
-            5: 'ED?',  # Electrometer, DET_ERR
-            6: 'EP?',  # 24V External Power Supply, PS_ERR
-            7: None    # not used
-        }
-        errors = []
-        for i in range(8):
-            if err_byte & int(2**i):
-                errors.append(int(self._query_(errors_dict[i])))
-            else:
-                errors.append(0)
-
-        return tuple(errors)
-
     def get_error_byte_communications(self):
         return int(self._query_('EC?'))
 
@@ -1673,92 +1667,92 @@ class Srs100:
     def get_error_message_communications(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_communications()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'Bad command received',
-            1: 'Bad parameter received',
-            2: 'Command-too-long',
-            3: 'OVERWROTE in receiving',
-            4: 'Transmit buffer overwrite',
-            5: 'Jumper protection violation',
-            6: 'Parameter conflict',
-            7: 'bit not used'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'Bad command received',
+            'Bad parameter received',
+            'Command-too-long',
+            'OVERWROTE in receiving',
+            'Transmit buffer overwrite',
+            'Jumper protection violation',
+            'Parameter conflict',
+            'bit not used'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_filament(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_filament()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'Single filament operation',
-            1: 'bit not used',
-            2: 'bit not used',
-            3: 'bit not used',
-            4: 'bit not used',
-            5: 'Vacuum chamber pressure too high',
-            6: 'unable to set the requested emission current',
-            7: 'no filament detected'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'Single filament operation',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'Vacuum chamber pressure too high',
+            'unable to set the requested emission current',
+            'no filament detected'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_electron_multiplier(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_electron_multiplier()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'bit not used',
-            1: 'bit not used',
-            2: 'bit not used',
-            3: 'bit not used',
-            4: 'bit not used',
-            5: 'bit not used',
-            6: 'bit not used',
-            7: 'No electron multiplier option installed'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'No electron multiplier option installed'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_mass_filter(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_mass_filter()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'bit not used',
-            1: 'bit not used',
-            2: 'bit not used',
-            3: 'bit not used',
-            4: 'Power supply in current limited mode',
-            5: 'bit not used',
-            6: 'Primary current exceeds 2.0 A',
-            7: 'RF_CT exceeds (V_ext - 2V) at M_MAX'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'Power supply in current limited mode',
+            'bit not used',
+            'Primary current exceeds 2.0 A',
+            'RF_CT exceeds (V_ext - 2V) at M_MAX'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_electrometer(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_electrometer()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'bit not used',
-            1: 'Op-amp input offset voltage out of range',
-            2: 'bit not used',
-            3: 'COMPENSATE fails to read -5nA input current',
-            4: 'COMPENSATE fails to read +5nA input current',
-            5: 'DETECT fails to read -5nA input current',
-            6: 'DETECT fails to read +5nA input current',
-            7: 'ADC16 test failure'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'bit not used',
+            'Op-amp input offset voltage out of range',
+            'bit not used',
+            'COMPENSATE fails to read -5nA input current',
+            'COMPENSATE fails to read +5nA input current',
+            'DETECT fails to read -5nA input current',
+            'DETECT fails to read +5nA input current',
+            'ADC16 test failure'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_supply(self, error_byte=None):
         if error_byte is None:
             error_byte = self.get_error_byte_supply()
-        errors_dict = {  # key: bit numer or index. Value: error message if the bit is True.
-            0: 'bit not used',
-            1: 'bit not used',
-            2: 'bit not used',
-            3: 'bit not used',
-            4: 'bit not used',
-            5: 'bit not used',
-            6: 'External 20V power supply error: Voltage > 26V',
-            7: 'External 20V power supply error: Voltage < 22V'
-        }
-        return self._create_error_msg(error_byte, errors_dict)
+        errors_lst = [  # error message if the bit corresponding to the index is True.
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'bit not used',
+            'External 20V power supply error: Voltage > 26V',
+            'External 20V power supply error: Voltage < 22V'
+        ]
+        return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_all(self, status=None):
         if status is None:
@@ -1766,40 +1760,41 @@ class Srs100:
         if status == 0:
             return
         else:
-            msg_lst = {  # key: bit numer or index. Value: error message if the bit is True.
-                0: 'communications',
-                1: 'filament',
-                2: None,
-                3: 'electron_multiplier',
-                4: 'mass_filter',
-                5: 'electrometer',
-                6: 'supply',
-                7: None
-            }
+            status_lst = [  # error message if the bit corresponding to the index is True.
+                'communications',
+                'filament',
+                None,
+                'electron_multiplier',
+                'mass_filter',
+                'electrometer',
+                'supply',
+                None
+            ]
 
-            error_msg_all = '\n' \
-                            '####################\n' \
-                            '      ERROR\n' \
-                            '####################\n'
+            err_lst = [
+                self.get_error_message_communications(),
+                self.get_error_message_filament(),
+                None,
+                self.get_error_message_electron_multiplier(),
+                self.get_error_message_mass_filter(),
+                self.get_error_message_electrometer(),
+                self.get_error_message_supply(),
+                None
+            ]
+
+            error_msg_all = ''
+            # error_msg_all = '\n' \
+            #                 '####################\n' \
+            #                 '      ERROR         \n' \
+            #                 '####################\n'
+
             for i in range(8):
                 if i == 2 or i == 7:
                     pass
                 elif status & int(2**i):
-                    error_msg_all += 'ERROR in:' + str(msg_lst[i]) + '\n'
-                    if i == 0:
-                        error_msg_all += self.get_error_message_communications()
-                    elif i == 1:
-                        error_msg_all += self.get_error_message_filament()
-                    elif i == 3:
-                        error_msg_all += self.get_error_message_electron_multiplier()
-                    elif i == 4:
-                        error_msg_all += self.get_error_message_mass_filter()
-                    elif i == 5:
-                        error_msg_all += self.get_error_message_electrometer()
-                    elif i == 6:
-                        error_msg_all += self.get_error_message_supply()
+                    error_msg_all += 'ERROR in:' + str(msg_lst[i]) + '\n' \
+                                    + err_lst[i]
 
-            print(error_msg_all)
             return error_msg_all
 
     # Ionizer
@@ -1814,14 +1809,13 @@ class Srs100:
         return self._command_('VF' + str(e_volts))
 
     def set_ionizer_filament_state(self, state):
-        if state.lower() == 'on':
-            self._filament_state = True
+        if type(state) is not bool:
+            return 'ERROR: input must be bool'
+        self._filament_state = state
+        if state:
             return self._command_('FL*')
-        elif state.lower() == 'off':
-            self._filament_state = False
-            return self._command_('FL0')
         else:
-            raise ValueError('ERROR: possible states: on or off, not case-sensitive')
+            return self._command_('FL0')
 
     def get_ionizer_filament_state(self):
         return self._filament_state
@@ -1866,10 +1860,15 @@ class Srs100:
         """
         set scan speed using the Noise Floor function.
         :param int speed: noise floor parameter, also a measure of speed. Accepted integers are between 0 and 7.
+        NOTE: manual says it maximum speed is 7, but in reality, values up to 10 are valid.
         Increasing speed also increases noise.
         :return:
         """
-        return self._command_noresponse_('NF' + str(speed))
+        err = self._command_noresponse_('NF' + str(speed))
+        if err is None:
+            return self.zero_detector()
+        else:
+            return err
 
     def get_detector_scan_speed(self):
         return self._query_('NF?')
@@ -1883,19 +1882,82 @@ class Srs100:
         state : bool
             True for on, False for off.
 
-
-
+        Returns
+        -------
+        None
+            if successful, return None
+        str
+            else, return an error string
         """
-        self._cdem_state = True
+        self._cdem_state = state
         if state:
-            return self._command_('HV*')
+            err = self._command_('HV*')
         else:
-            return self._command_('HV0')
+            err = self._command_('HV0')
+
+        if err is None:
+            return self.zero_detector()
+        else:
+            return err
 
     def set_detector_cdem_voltage(self, volts):
-        if volts < 1:
-            self._cdem_state = False
-        return self._command_('HV' + str(volts))
+        err = self._command_('HV' + str(volts))
+        if err is None:
+            self._cdem_state = bool(volts)
+            return self.zero_detector()
+        else:
+            return err
+
+    # Analog scans
+    def set_initial_mass(self, m_lo):
+        return self._command_noresponse_('MI' + str(m_lo))
+
+    def set_final_mass(self, m_hi):
+        return self._command_noresponse_('MF' + str(m_hi))
+
+    def set_steps_per_amu(self, s):
+        return self._command_noresponse_('SA' + str(s))
+
+    def get_number_data_points_analog(self):
+        out = self._query_('AP?')
+        try:
+            return int(out)
+        except ValueError:
+            return out
+
+    def get_analog_scan(self, m_lo=1, m_hi=100, steps_per_amu=10, speed=3 ):
+        err = self.set_initial_mass(m_lo)
+        if err is not None:
+            return err
+        err = self.set_final_mass(m_hi)
+        if err is not None:
+            return err
+        err = self.set_steps_per_amu(steps_per_amu)
+        if err is not None:
+            return err
+        err = self.set_detector_scan_speed(speed)
+        if err is not None:
+            return err
+        err = self.set_ionizer_filament_state(True)
+        if err is not None:
+            return err
+
+        n_points = self.get_number_data_points_analog()
+
+        self._serial_port.write('SC1\r'.encode('utf-8'))  # start scan
+        time.sleep(0.3)
+        out = []
+        for i in range(n_points + 1):
+            raw = self._receive_()  # receive data in chunks of four-digit numbers
+            int_10 = int.from_bytes(raw, 'little')
+            if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
+                int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
+            out.append(int_10)
+
+        return out
+
+    def get_histogram_scan(self):
+        pass
 
     @property
     def idn(self):
