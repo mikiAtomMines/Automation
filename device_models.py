@@ -1547,6 +1547,7 @@ class Srs100:
         self._serial_port = s
         self._filament_state = False
         self._cdem_state = False
+        self._noise_floor = 0
 
         self.initialize()
 
@@ -1582,6 +1583,7 @@ class Srs100:
     # -------
     def initialize(self):
         print(self.idn)
+        self._noise_floor = self.get_detector_scan_speed()
         print('Flushing communication buffers')
         return self.flush_buffers()
 
@@ -1792,7 +1794,7 @@ class Srs100:
                 if i == 2 or i == 7:
                     pass
                 elif status & int(2**i):
-                    error_msg_all += 'ERROR in:' + str(msg_lst[i]) + '\n' \
+                    error_msg_all += 'ERROR in:' + str(status_lst[i]) + '\n' \
                                     + err_lst[i]
 
             return error_msg_all
@@ -1833,6 +1835,9 @@ class Srs100:
     def get_ionizer_filament_current(self):
         return self._query_('FL?')
 
+    def get_ionizer_filament_state(self):
+        return self._filament_state
+
     def degas_ionizer_filament(self, minutes):
         self._serial_port.timeout = minutes*60 + 5
         out = self._command_('DG' + str(minutes))
@@ -1866,6 +1871,7 @@ class Srs100:
         """
         err = self._command_noresponse_('NF' + str(speed))
         if err is None:
+            self._noise_floor = speed
             return self.zero_detector()
         else:
             return err
@@ -1918,7 +1924,7 @@ class Srs100:
     def set_steps_per_amu(self, s):
         return self._command_noresponse_('SA' + str(s))
 
-    def get_number_data_points_analog(self):
+    def get_number_data_points(self, type_):
         out = self._query_('AP?')
         try:
             return int(out)
@@ -1942,12 +1948,12 @@ class Srs100:
         if err is not None:
             return err
 
-        n_points = self.get_number_data_points_analog()
+        n_points = int(self._query_('AP?')) + 1  # final data point is the total pressure
 
         self._serial_port.write('SC1\r'.encode('utf-8'))  # start scan
         time.sleep(0.3)
         out = []
-        for i in range(n_points + 1):
+        for i in range(n_points):
             raw = self._receive_()  # receive data in chunks of four-digit numbers
             int_10 = int.from_bytes(raw, 'little')
             if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
@@ -1956,7 +1962,35 @@ class Srs100:
 
         return out
 
-    def get_histogram_scan(self):
+    def get_histogram_scan(self, m_lo=1, m_hi=100, speed=3 ):
+        err = self.set_initial_mass(m_lo)
+        if err is not None:
+            return err
+        err = self.set_final_mass(m_hi)
+        if err is not None:
+            return err
+        err = self.set_detector_scan_speed(speed)
+        if err is not None:
+            return err
+        err = self.set_ionizer_filament_state(True)
+        if err is not None:
+            return err
+
+        n_points = int(self._query_('HP?')) + 1  # final data point is the total pressure
+
+        self._serial_port.write('HS1\r'.encode('utf-8'))  # start scan
+        time.sleep(0.3)
+        out = []
+        for i in range(n_points):
+            raw = self._receive_()  # receive data in chunks of four-digit numbers
+            int_10 = int.from_bytes(raw, 'little')
+            if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
+                int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
+            out.append(int_10)
+
+        return out
+
+    def get_single_mass_measurement(self, mass, speed, ):
         pass
 
     @property
