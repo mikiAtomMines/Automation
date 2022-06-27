@@ -46,7 +46,7 @@ def get_avg_field(gm, t):
         time.sleep(0.3)
         i += 1
 
-    return sum_/i
+    return abs(sum_/i)
 
 
 def process_file(file_):
@@ -67,7 +67,7 @@ def main():
     ps = Spd3303x('10.176.42.121')
     gm = GM3('COM3', tmout=3)
     v, i, b = get_ivb(ps, gm)
-    coilname = 'large1'
+    coilname = 'medium2'
     filename = 'data_coils/' + coilname + '.txt'
 
     with open(filename, 'w') as file:
