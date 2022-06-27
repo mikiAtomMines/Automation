@@ -142,7 +142,7 @@ class GM3():  # TODO: needs work.
 
         return None
 
-    def get_instantenous_data(self):
+    def get_field(self):
         """
         query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
         Gauss readings of a magnetic field. Note the time points only serve as an index for the data points but do
