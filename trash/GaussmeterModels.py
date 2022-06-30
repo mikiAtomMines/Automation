@@ -9,7 +9,7 @@ Created on Fri Mar 24 13:41 2022
 import serial
 import sys
 import time
-from device_models import GM3
+from device_models import Gm3
 
 error_count = 0
 

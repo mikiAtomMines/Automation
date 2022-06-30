@@ -1,36 +1,38 @@
 import numpy as np
 import time
+from datetime import date
+from datetime import datetime
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 
 from device_models import Spd3303x
-from device_models import GM3
+from device_models import Gm3
 
 
-def get_ivb(ps, gm):
+def get_ivb(ps, gm, vm, incr):
     """
     :param Spd3303x ps:
-    :param GM3 gm:
+    :param Gm3 gm:
     :return:
     """
-    ps.set_current_limit(1, 2.3)
-    ps.set_current(1, 2.0)
+    ps.set_current_limit(1, 3)
+    ps.set_current(1, 3.0)
     ps.set_voltage(1, 0)
     ps.set_channel_state(1, True)
 
-    vmax = 8
-    increment = 0.2
-    v = 0
+    vmax = vm
+    increment = incr
+    v = 2
     vout = []
     iout = []
     bout = []
-    while v < vmax:
+    while v <= vmax:
         ps.set_voltage(1, v)
         time.sleep(1)
         v += increment
         vout.append(ps.get_actual_voltage(1))
         iout.append(ps.get_actual_current(1))
-        bout.append(get_avg_field(gm, t=3))
+        bout.append(get_avg_field(gm, t=10))
 
     ps.zero_all_channels()
 
@@ -42,7 +44,7 @@ def get_avg_field(gm, t):
     sum_ = 0
     i = 0
     while time.time() - ti <= t:
-        sum_ += gm.get_field()[4]
+        sum_ += gm.get_datapoint()[3]
         time.sleep(0.3)
         i += 1
 
@@ -60,23 +62,24 @@ def process_file(file_):
             b.append(float(b_i))
             data = file.readline()
 
-    return i, v, b
+    return v, i, b
 
 
 def main():
     ps = Spd3303x('10.176.42.121')
-    gm = GM3('COM3', tmout=3)
-    v, i, b = get_ivb(ps, gm)
-    coilname = 'medium2'
-    filename = 'data_coils/' + coilname + '.txt'
+    gm = Gm3('COM3', tmout=3)
+    v, i, b = get_ivb(ps, gm, 8, 0.2)
+    coilname = 'small2'
+    time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
+    filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
+
 
     with open(filename, 'w') as file:
         for k in range(len(v)):
             file.write(str(v[k]) + ',' + str(i[k]) + ',' + str(b[k]) + '\n')
-
         file.write('\n')
 
-    i, v, b = process_file(filename)
+    v, i, b = process_file(filename)
 
     model = linregress(i, v)
     x_model = np.asarray(i)
@@ -91,15 +94,19 @@ def main():
     plt.legend()
     plt.show()
 
-    model2 = linregress(i, b)
-    x_model2 = np.asarray(i)
+    model2 = linregress(v, b)
+    x_model2 = np.asarray(v)
     y_model2 = model2.slope*x_model2 + model2.intercept
 
+    with open('field_meaurements.txt', 'a') as file:
+        file.write(coilname + ',' + str(model2.slope) + ',' + str(model2.stderr) + '\n')
+
     plt.figure(figsize=[6, 8])
-    plt.plot(i, b, 'o', label='data')
+    plt.plot(v, b, 'o', label='data')
     plt.plot(x_model2, y_model2, label='model')
     plt.legend()
     plt.show()
 
 
-main()
+for i in range(10):
+    main()

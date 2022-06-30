@@ -7,6 +7,7 @@ import serial
 import time
 from serial import Serial
 from sys import platform
+import pyvisa
 
 from connection_type import SocketEthernetDevice
 from device_type import PowerSupply
@@ -29,11 +30,8 @@ except ModuleNotFoundError:
 # ======================================================================================================================
 # Gaussmeters
 # ======================================================================================================================
-error_count = 0
-
-
-class GM3():  # TODO: needs work.
-    def __init__(self, port, tmout):
+class Gm3():  # TODO: needs work.
+    def __init__(self, port, tmout=3):
         """
         Parameters
         ----------
@@ -51,98 +49,78 @@ class GM3():  # TODO: needs work.
             timeout=tmout
         )
 
-    def query(self, command):
+        self.flush_buffer()
+
+    def _query_(self, qry, read_size):
         """
-        query function for gaussmeter. The function sends the appropriate command to the gaussmeter and reads the
-        appropiate number of bytes and returns them as a byte string. Currently, the only supported commands are:
-        ID_METER_PROP (0x01), ID_METER_SETT (0x02), STREAM_DATA (0x03), and RESET_TIME (0x04).
-        
+        send a 6-length bytes object from qry message. Read the corresponding number of bytes.
+
         Parameters
         ----------
-        command : str
-            the command to send to the gaussmeter. Can be a string with the hex value of the command in the format
-            'AA' or '0xAA' or the command name as it appears in the AlphaApp comm protocol manual.
+        qry : str
+            command code from AlphaLab communication protocol. Format is two digits: 00.
+        read_size : int
+            number of bytes to receive from gaussmeter
 
         Returns
         -------
         bytes
-            byte object containing the response from the gaussmeter. Has variable length depending on the query
-            command used.
+            the stream of bytes from the gaussmeter.
         """
-        global error_count
-
-        qry_dict = {  # command as appears in manual: hex command identifyer
-            'ID_METER_PROP': '01',
-            'ID_METER_SETT': '02',
-            'STREAM_DATA': '03',
-            'RESET_TIME': '04',
-            '01': '01',
-            '02': '02',
-            '03': '03',
-            '04': '04',
-            '0x01': '01',
-            '0x02': '02',
-            '0x03': '03',
-            '0x04': '04',
-        }
-
-        try:
-            qry = qry_dict[command]
-        except KeyError:
-            raise ValueError('ERROR: command', command, 'not found. Possible string commands:',
-                             '\nID_METER_PROP    or    01    or    0x01',
-                             '\nID_METER_SETT    or    02    or    0x02',
-                             '\nSTREAM_DATA      or    03    or    0x03',
-                             '\nRESET_TIME       or    04    or    0x04')
-
-        read_length_dict = {  # read message lenght in bytes
-            '01': 20,
-            '02': 20,
-            '03': 30,
-            '04': 31,
-        }
-        read_length = read_length_dict[qry]
-        ack = ''
-        r = None
-        while ack != bytes.fromhex('08'):  # loop to confirm that the message has been received
+        for i in range(10):
             self._ser.write(bytes.fromhex(qry * 6))
-            r = self._ser.read(read_length)
-            ack = self._ser.read(1)
+            out = self._ser.read(read_size)
+            time.sleep(0.01)
+            if len(out) == read_size:
+                return out
+            time.sleep(0.3)
+            self.flush_buffer()
 
-            if ack != bytes.fromhex('08'):  # count the number of times a message is not received succesfully.
-                error_count += 1
+        return 'ERROR: could not sent query: ' + str(qry)
 
-        if qry == '03' or qry == '04':
-            return r
-
-        while ack != bytes.fromhex('07'):
-            self._ser.write(bytes.fromhex('08' * 6))
-            r += self._ser.read(read_length)
-            ack = self._ser.read(1)
-
-        return r
-
-    def command(self, command):
+    def parse_measurables(self, stream):
         """
-        TODO: Add comments
+        Translate the bytes stream from the STREAM_DATA and RESET_TIME commands into floats. The procedure is as
+        follows:
+            1 - Separate the entire stream into chunks of 6 bytes. Each chunk represents the measured quantities of
+            time, x-field, y-field, z-field, and total magnetic field.
+            2 - For each chunk, separate into individual bytes.
+            3 - To get the raw digits of the measurable, bytes 3, 4, 5, and 6 should be interpreted as a 4-digit
+            256-base number, with byte 3 being the most significant digit, and byte 6 being the least significant digit.
+            3 - To get the sign of the measurable, read the bit in position 00001000 from byte 2. If
+            the bit is 1, the sign is negative. Else, the sign is positive.
+            4 - To get the order of magnitude of the measurable, first read the bits in positions 00000111 as an int. The
+            order of magnitude is given by dividing the raw digits by 10 to the negative power given by the int.
+
+        Parameters
+        ----------
+        stream : bytes
+            the stream of bytes received from the gaussmeter. Should be 31 bytes long for STREAM_DATA, or 32 bytes
+            long for RESET_TIME.
+
+        Returns
+        -------
+        list of floats
+            contains the float values for the measurables in the following order: time, x-field, y-filed, z-field,
+            and total magnitude.
         """
+        t, x, y, z, total = stream[0:6], stream[6:12], stream[12:18], stream[18:24], stream[24:30]
+        variables = [t, x, y, z, total]
+        out = []
+        for var in variables:  # var is a bytes object with 6 bytes
+            b1, b2, b3, b4, b5, b6 = var[0], var[1], var[2], var[3], var[4], var[5]  # bn variable are an int object
+            raw = b3*256**3 + b4*256**2 + b5*256 + b6
+            sign = (-2 * (b2 & 0b00001000) / 8) + 1  # if the bit is 1, sign is negative. If the bit is 0,
+            # sign is positive.
+            magn = 10 ** (b2 & 0b00000111)
+            out.append(raw*sign/magn)
 
-        cmd_dict = {
-            'KILL_ALL_PROCESS': 'FF',
-            'FF': 'FF',
-            '0xFF': 'FF'
-        }
-        try:
-            cmd = cmd_dict[command]
-        except KeyError:
-            raise ValueError('ERROR: command', command, 'not found. Possible string commands:',
-                             '\nKILL_ALL_PROCESS    or    FF    or    0xFF')
+        return out
 
-        self._ser.write(bytes.fromhex(cmd * 6))
+    def flush_buffer(self):
+        self._ser.write(bytes.fromhex('FF' * 6))
 
-        return None
-
-    def get_field(self):
+    def get_datapoint(self):
         """
         query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
         Gauss readings of a magnetic field. Note the time points only serve as an index for the data points but do
@@ -157,41 +135,22 @@ class GM3():  # TODO: needs work.
         The response is then converted into a python string. Since each hex number has two characters, the string is
         60 characters long.
         """
+        try:
+            out = self._query_('03', 31)
+            return self.parse_measurables(out)
+        except IndexError:
+            try:
+                self.flush_buffer()
+                out = self._query_('03', 31)
+                return self.parse_measurables(out)
+            except IndexError:
+                return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
-        query_bytes = self.query('STREAM_DATA')
-        # ack = query_bytes[-1].hex()
-        # print(ack)
-        query_string = query_bytes.hex()
-
+    def reset_time(self):
         """
-        We then divide the string into sections of 12 characters (6 bytes). Each section contains all the information
-        for a single measurable. Within ech section, we identify the second (byte_2) and the third, fourth, fifth, 
-        and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign and magnitude of the 
-        measured quantity. bytes_3456 give the digits. 
-        """
-        number_of_measurables = int(len(query_string) / 2 / 6)  # find number of measurable variables
-        out = []
-        for measurable_i in range(number_of_measurables):
-            section_i = measurable_i * 12
-            byte_2 = int(query_string[section_i + 2: section_i + 4], 16)
-            bytes_3456 = int(query_string[section_i + 4: section_i + 12], 16)
-
-            sign = 1
-            if byte_2 & 0x08:  # 0x08 = 00001000 : if 4th bit = 1, sign is negative. Else, sign is positive
-                sign = -1
-            digits = bytes_3456
-            magnitude = 10 ** (
-                        -1 * int(byte_2 & 0x07))  # 0x07 = 00000111 : 1st, 2nd, 3rd bits give inverse power of 10.
-
-            out.append(sign * digits * magnitude)
-
-        return out
-
-    def get_instantenous_data_t0(self):
-        """
-        reset the time coordinate and query the gaussmeter for an instantenous reading of the time stamp in seconds,
-        x-axis, y-axis, z-axis, and magnitude in Gauss readings of a magnetic field. Note the time points only serve
-        as an index for the data points but do not give meaningful time information.
+        query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
+        Gauss readings of a magnetic field. Note the time points only serve as an index for the data points but do
+        not give meaningful time information.
         :return: list containing the float values for time (s), x-axis (G), y-axis (G), z-axis (G), and magnitude (G).
 
         The response from the gaussmeter comes as a long byte string containing hex numbers in the format 'AA. The
@@ -202,48 +161,55 @@ class GM3():  # TODO: needs work.
         The response is then converted into a python string. Since each hex number has two characters, the string is
         60 characters long.
         """
-
-        query_bytes = self.query('RESET_TIME')
-        # ack = query_bytes[-1].hex()
-        # print(ack)
-        query_string = query_bytes.hex()
-
-        """
-        We then divide the string into sections of 12 characters (6 bytes). Each section contains all the information
-        for a single measurable. Within ech section, we identify the second (byte_2) and the third, fourth, fifth, 
-        and sixth bytes (bytes_3456) from this section. byte_2 gives information on the sign and magnitude of the 
-        measured quantity. bytes_3456 give the digits. 
-        """
-        number_of_measurables = int(len(query_string) / 2 / 6)
-        out = []
-        for measurable_i in range(number_of_measurables):
-            section_i = measurable_i * 12
-            byte_2 = int(query_string[section_i + 2: section_i + 4], 16)
-            bytes_3456 = int(query_string[section_i + 4: section_i + 12], 16)
-
-            sign = 1
-            if byte_2 & 0x08:  # 0x08 = 00001000 : if 4th bit = 1, sign is negative. Else, sign is positive
-                sign = -1
-            digits = bytes_3456
-            magnitude = 10 ** (
-                        -1 * int(byte_2 & 0x07))  # 0x07 = 00000111 : 1st, 2nd, 3rd bits give inverse power of 10.
-
-            out.append(sign * digits * magnitude)
-
-        return out
+        try:
+            out = self._query_('04', 32)
+            return self.parse_measurables(out)
+        except IndexError:
+            try:
+                self.flush_buffer()
+                out = self._query_('04', 32)
+                return self.parse_measurables(out)
+            except IndexError:
+                return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
     @property
-    def properties(self):
-        out = self.query('ID_METER_PROP').decode('utf-8')
-        out = out.replace(':', '\n')
-        return out
+    def idn(self):
+        out = self._query_('01', 21)
+        time.sleep(0.05)
+        while out[-1] != 7:
+            out += self._query_('08', 21)
+            time.sleep(0.05)
+        return str(out)
+
 
     @property
     def settings(self):
-        out = self.query('ID_METER_SETT').decode('utf-8')
-        out = out.replace(':', '\n')
-        return out
+        out = self._query_('02', 21)
+        time.sleep(0.05)
+        while out[-1] != 7:
+            out += self._query_('08', 21)
+            time.sleep(0.05)
+        return str(out)
 
+
+class Series9550():
+    def __init__(self, address):
+        rm = pyvisa.ResourceManager()
+        self._inst = rm.open_resource('GPIB0::' + str(address) + '::INSTR')
+
+    def query(self, qry):
+        return self._inst.query(qry)
+
+    def get_datapoint(self):
+        return float(self._inst.query(':MEASure:FLUX1?').split()[0])
+
+    @property
+    def idn(self):
+        return self._inst.query('*IDN?')
+
+    @property
+    def field(self):
+        return self.get_datapoint()
 
 # ======================================================================================================================
 # Power Supplies

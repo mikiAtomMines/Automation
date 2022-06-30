@@ -23,7 +23,7 @@ def test_GM3(gaussmeter):
     # for i in range(100):
     #     a = gaussmeter.get_instantenous_data()
 
-    print(gaussmeter.properties)
+    print(gaussmeter.idn)
 
     data = [gaussmeter.get_instantenous_data_t0()]
 
@@ -35,7 +35,7 @@ def test_GM3(gaussmeter):
     #     data.append(point)
 
     for i in range(100):
-        point = gaussmeter.get_field()
+        point = gaussmeter.get_datapoint()
         print(point)
         data.append(point)
 
