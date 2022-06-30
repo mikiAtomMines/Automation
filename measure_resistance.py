@@ -89,7 +89,7 @@ def main():
     x_model = np.asarray(i)
     y_model = model.slope*x_model + model.intercept
 
-    with open('resistance_meaurements.txt', 'a') as file:
+    with open('data_coils/resistance_meaurements.txt', 'a') as file:
         file.write(coilname + ',' + str(model.slope) + ',' + str(model.stderr) + '\n')
 
     plt.figure(figsize=[6, 8])
@@ -102,7 +102,7 @@ def main():
     x_model2 = np.asarray(v)
     y_model2 = model2.slope*x_model2 + model2.intercept
 
-    with open('field_meaurements.txt', 'a') as file:
+    with open('data_coils/field_meaurements.txt', 'a') as file:
         file.write(coilname + ',' + str(model2.slope) + ',' + str(model2.stderr) + '\n')
 
     plt.figure(figsize=[6, 8])
