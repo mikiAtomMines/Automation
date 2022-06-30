@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 
 from device_models import Spd3303x
 from device_models import Gm3
+from device_models import Series9550
 
 
-def get_ivb(ps, gm, vm, incr):
+def get_ivb(ps, gm, vmax, vmin, incr, avg_t):
     """
     :param Spd3303x ps:
-    :param Gm3 gm:
+    :param Gm3, Series9550 gm:
     :return:
     """
     ps.set_current_limit(1, 3)
@@ -20,9 +21,9 @@ def get_ivb(ps, gm, vm, incr):
     ps.set_voltage(1, 0)
     ps.set_channel_state(1, True)
 
-    vmax = vm
+    vmax = vmax
     increment = incr
-    v = 2
+    v = vmin
     vout = []
     iout = []
     bout = []
@@ -32,7 +33,7 @@ def get_ivb(ps, gm, vm, incr):
         v += increment
         vout.append(ps.get_actual_voltage(1))
         iout.append(ps.get_actual_current(1))
-        bout.append(get_avg_field(gm, t=10))
+        bout.append(get_avg_field(gm, t=avg_t))
 
     ps.zero_all_channels()
 
@@ -44,8 +45,8 @@ def get_avg_field(gm, t):
     sum_ = 0
     i = 0
     while time.time() - ti <= t:
-        sum_ += gm.get_datapoint()[3]
-        time.sleep(0.3)
+        sum_ += gm.get_zfield()
+        time.sleep(0.2)
         i += 1
 
     return abs(sum_/i)
@@ -54,6 +55,7 @@ def get_avg_field(gm, t):
 def process_file(file_):
     v, i, b = [], [], []
     with open(file_, 'r') as file:
+        file.readline()
         data = file.readline()
         while data != '\n':
             v_i, i_i, b_i = data.split(',')
@@ -67,14 +69,16 @@ def process_file(file_):
 
 def main():
     ps = Spd3303x('10.176.42.121')
-    gm = Gm3('COM3', tmout=3)
-    v, i, b = get_ivb(ps, gm, 8, 0.2)
-    coilname = 'small2'
+    # gm = Gm3('COM3', tmout=3)
+    gm = Series9550(15)
+    v, i, b = get_ivb(ps, gm, 8, 0, 0.2, 10)
+    coilname = 'small1'
     time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
     filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
 
 
     with open(filename, 'w') as file:
+        file.write(gm.idn + '\n')
         for k in range(len(v)):
             file.write(str(v[k]) + ',' + str(i[k]) + ',' + str(b[k]) + '\n')
         file.write('\n')
@@ -108,5 +112,4 @@ def main():
     plt.show()
 
 
-for i in range(10):
-    main()
+main()

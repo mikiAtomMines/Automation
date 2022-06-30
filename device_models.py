@@ -146,6 +146,9 @@ class Gm3():  # TODO: needs work.
             except IndexError:
                 return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
+    def get_zfield(self):
+        return self.get_datapoint()[3]
+
     def reset_time(self):
         """
         query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
@@ -196,12 +199,19 @@ class Series9550():
     def __init__(self, address):
         rm = pyvisa.ResourceManager()
         self._inst = rm.open_resource('GPIB0::' + str(address) + '::INSTR')
+        self.clear()
 
     def query(self, qry):
+        qry += '\n'
         return self._inst.query(qry)
 
-    def get_datapoint(self):
-        return float(self._inst.query(':MEASure:FLUX1?').split()[0])
+    def clear(self):
+        # self._inst.write(':SYSTem:AZERo1\n')
+        self._inst.write('*CLS\n')
+
+    def get_zfield(self):
+        s = self._inst.query(':MEASure:FLUX1?').split('G')[0]
+        return float("".join(s.split()))
 
     @property
     def idn(self):
@@ -209,7 +219,7 @@ class Series9550():
 
     @property
     def field(self):
-        return self.get_datapoint()
+        return self.get_zfield()
 
 # ======================================================================================================================
 # Power Supplies
