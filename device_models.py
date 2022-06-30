@@ -1500,6 +1500,36 @@ class Model8742(SocketEthernetDevice):
         self.set_velocity(chan=4, vel=new_vel)
 
 
+class Vxm():
+    def __init__(self, name):
+        self._ser = serial.Serial(port=name, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
+                                  timeout=3)
+        self.initialize()
+
+    def query(self, qry):
+        self._ser.write(qry.encode('utf-8'))
+        self._ser.read()
+        time.sleep(0.5)
+        self._ser.write('C'.encode('utf-8'))
+
+    def command(self, cmd):
+        self._ser.write(cmd.encode('utf-8'))
+        time.sleep(0.5)
+        self._ser.write('C'.encode('utf-8'))
+
+    def initialize(self):
+        self.command('F')
+        self.command('C')
+
+    def displace(self, channel, steps):
+        self.query('I' + str(channel) + 'M' + str(steps) + ',R')
+
+    def set_position(self, channel, pos):
+        self.query('IA' + str(channel) + 'M' + str(pos) + ',R')
+
+    def set_origin(self, channel):
+        self.query('IA' + str(channel) + 'M-0,R')
+
 # ======================================================================================================================
 # RGA
 # ======================================================================================================================
