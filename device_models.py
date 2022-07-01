@@ -1599,9 +1599,6 @@ class Srs100:
         stat = int(self._query_(cmd))
         return self.get_error_message_all(status=stat)
 
-    def _receive_(self):
-        return self._serial_port.read(4)
-
     # General
     # -------
     def initialize(self):
@@ -1642,6 +1639,13 @@ class Srs100:
             if byte & int(2 ** i):
                 final_msg += ' - ' + lst[i] + '\n'
         return final_msg
+
+    def _translate_to_decimal(self, raw):
+        int_10 = int.from_bytes(raw, 'little')
+        if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
+            int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
+
+        return int_10
 
     def get_status_byte(self):
         """
@@ -1858,9 +1862,6 @@ class Srs100:
     def get_ionizer_filament_current(self):
         return self._query_('FL?')
 
-    def get_ionizer_filament_state(self):
-        return self._filament_state
-
     def degas_ionizer_filament(self, minutes):
         self._serial_port.timeout = minutes*60 + 5
         out = self._command_('DG' + str(minutes))
@@ -1937,7 +1938,7 @@ class Srs100:
         else:
             return err
 
-    # Analog scans
+    # Scans
     def set_initial_mass(self, m_lo):
         return self._command_noresponse_('MI' + str(m_lo))
 
@@ -1977,10 +1978,8 @@ class Srs100:
         time.sleep(0.3)
         out = []
         for i in range(n_points):
-            raw = self._receive_()  # receive data in chunks of four-digit numbers
-            int_10 = int.from_bytes(raw, 'little')
-            if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
-                int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
+            raw = self._serial_port.read(4)  # receive data in chunks of four-digit numbers
+            int_10 = self._translate_to_decimal(raw)
             out.append(int_10)
 
         return out
@@ -2005,16 +2004,23 @@ class Srs100:
         time.sleep(0.3)
         out = []
         for i in range(n_points):
-            raw = self._receive_()  # receive data in chunks of four-digit numbers
-            int_10 = int.from_bytes(raw, 'little')
-            if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
-                int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
+            raw = self._serial_port.read(4)  # receive data in four-digit numbers. Each digit is represented as a byte
+            int_10 = self._translate_to_decimal(raw)
             out.append(int_10)
 
         return out
 
-    def get_single_mass_measurement(self, mass, speed, ):
-        pass
+    def get_single_mass_measurement(self, mass, speed=None):
+        if speed is not None:
+            err = self.set_detector_scan_speed(speed)
+            if err is not None:
+                return err
+
+        msg = 'MR' + str(mass) + '\r'
+        self._serial_port.write(msg.encode('utf-8'))
+        int_10 = self._translate_to_decimal(self._serial_port.read(4))
+        self._serial_port.write('MR0\r'.encode('utf-8'))  # deactivate RF/DC voltages
+        return int_10
 
     @property
     def idn(self):
