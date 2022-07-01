@@ -13,7 +13,10 @@ except ModuleNotFoundError:
 
 error_count = 0
 
-def test_GM3(gaussmeter):
+from device_models import Series9550
+from device_models import Vxm
+
+def testing_GM3(gaussmeter):
     # for i in range(100):
     #     a = gaussmeter.properties
     # print()
@@ -205,6 +208,16 @@ def testing_model8742(controller):
     controller.set_velocity(chan=1, vel=1000),
 
 
+def testing_Series9550(gm):
+    # print(gm.get_zfield())
+    # gm.autozero()
+    gm.disconnect()
+
+
+def testing_Vxm(v):
+    v.disconnect()
+
+
 def simple_plot(file):
     file = open(file, 'r')
     header_size = 5
@@ -229,3 +242,14 @@ def simple_plot(file):
 
     plt.show()
 
+
+def main():
+    # v = Vxm('COM6')
+    # v.disconnect()
+
+    gm = Series9550(15)
+    ax.testing_Series9550(gm)
+
+
+if __name__ == '__main__':
+    main()

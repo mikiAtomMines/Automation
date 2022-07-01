@@ -196,9 +196,9 @@ class Gm3():  # TODO: needs work.
 
 
 class Series9550():
-    def __init__(self, address):
+    def __init__(self, gpib_address):
         rm = pyvisa.ResourceManager()
-        self._inst = rm.open_resource('GPIB0::' + str(address) + '::INSTR')
+        self._inst = rm.open_resource('GPIB0::' + str(gpib_address) + '::INSTR')
         self.clear()
 
     def query(self, qry):
@@ -206,12 +206,18 @@ class Series9550():
         return self._inst.query(qry)
 
     def clear(self):
-        # self._inst.write(':SYSTem:AZERo1\n')
-        self._inst.write('*CLS\n')
+        self._inst.write('*CLS')
+
+    def autozero(self):
+        self._inst.write(':SYSTem:AZERo1')
+        time.sleep(10)
 
     def get_zfield(self):
         s = self._inst.query(':MEASure:FLUX1?').split('G')[0]
         return float("".join(s.split()))
+
+    def disconnect(self):
+        self._inst.write('*GTL')
 
     @property
     def idn(self):
@@ -1501,8 +1507,8 @@ class Model8742(SocketEthernetDevice):
 
 
 class Vxm():
-    def __init__(self, name, tmout=None):
-        self._ser = serial.Serial(port=name, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
+    def __init__(self, port, tmout=None):
+        self._ser = serial.Serial(port=port, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
                                   timeout=tmout)
         self.initialize()
 
@@ -1519,6 +1525,9 @@ class Vxm():
 
     def initialize(self):
         self.command('F')
+
+    def disconnect(self):
+        self._ser.write('Q'.encode('utf-8'))
 
     def displace(self, channel, steps):
         self.query('I' + str(channel) + 'M' + str(steps) + ',R')
