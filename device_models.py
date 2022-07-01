@@ -121,6 +121,9 @@ class Gm3:
     def flush_buffer(self):
         self._ser.write(bytes.fromhex('FF' * 6))
 
+    def autozero(self):
+        pass
+
     def get_datapoint(self):
         """
         query the gaussmeter for an instantenous reading of the time index, x-axis, y-axis, z-axis, and magnitude in
@@ -176,6 +179,17 @@ class Gm3:
             except IndexError:
                 return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
+    def get_avg_zfield(self, t):
+        ti = time.time()
+        sum_ = 0
+        i = 0
+        while time.time() - ti <= t:
+            sum_ += self.get_zfield()
+            time.sleep(0.2)
+            i += 1
+
+        return abs(sum_ / i)
+
     @property
     def idn(self):
         out = self._query_('01', 21)
@@ -210,11 +224,22 @@ class Series9550:
 
     def autozero(self):
         self._inst.write(':SYSTem:AZERo1')
-        time.sleep(10)
+        time.sleep(13)
 
     def get_zfield(self):
         s = self._inst.query(':MEASure:FLUX1?').split('G')[0]
         return float("".join(s.split()))
+
+    def get_avg_zfield(self, t):
+        ti = time.time()
+        sum_ = 0
+        i = 0
+        while time.time() - ti <= t:
+            sum_ += self.get_zfield()
+            time.sleep(0.2)
+            i += 1
+
+        return abs(sum_ / i)
 
     def disconnect(self):
         self._inst.write('*GTL')
@@ -1508,16 +1533,19 @@ class Model8742(SocketEthernetDevice):
 
 
 class Vxm:
-    def __init__(self, port, tmout=None):
+    def __init__(self, port, tmout=10):
         self._ser = serial.Serial(port=port, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
                                   timeout=tmout)
         self.initialize()
 
+
     def query(self, qry):
+        qry += ',R'
         self._ser.write(qry.encode('utf-8'))
-        self._ser.read()
+        out = self._ser.read_until(b'^')
         time.sleep(0.5)
         self._ser.write('C'.encode('utf-8'))
+        return out
 
     def command(self, cmd):
         self._ser.write(cmd.encode('utf-8'))
@@ -1525,19 +1553,24 @@ class Vxm:
         self._ser.write('C'.encode('utf-8'))
 
     def initialize(self):
-        self.command('F')
+        self._ser.write('F'.encode('utf-8'))
+        time.sleep(0.1)
+        self._ser.write('N'.encode('utf-8'))
+        time.sleep(0.1)
+        self._ser.write('C'.encode('utf-8'))
+        time.sleep(0.1)
 
     def disconnect(self):
         self._ser.write('Q'.encode('utf-8'))
 
     def displace(self, channel, steps):
-        self.query('I' + str(channel) + 'M' + str(steps) + ',R')
+        return self.query('I' + str(channel) + 'M' + str(steps))
 
     def set_position(self, channel, pos):
-        self.query('IA' + str(channel) + 'M' + str(pos) + ',R')
+        return self.query('IA' + str(channel) + 'M' + str(pos))
 
     def set_origin(self, channel):
-        self.query('IA' + str(channel) + 'M-0,R')
+        return self.query('IA' + str(channel) + 'M-0')
 
     def set_speed(self, channel, speed):
         """
@@ -1546,7 +1579,7 @@ class Vxm:
         :param int channel:
         :param int speed:
         """
-        self.command('S' + str(channel) + 'M' + str(speed))
+        return self.query('S' + str(channel) + 'M' + str(speed))
 
     def set_acceleration(self, channel, acc):
         """
@@ -1555,9 +1588,11 @@ class Vxm:
         :param int channel:
         :param int acc:
         """
-        self.command('A' + str(channel) + 'M' + str(acc))
+        return self.query('A' + str(channel) + 'M' + str(acc))
 
-
+    @property
+    def idn(self):
+        return 'VXM VelMex motor controller, two channels'
 # ======================================================================================================================
 # RGA
 # ======================================================================================================================
