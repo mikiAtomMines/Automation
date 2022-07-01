@@ -1501,9 +1501,9 @@ class Model8742(SocketEthernetDevice):
 
 
 class Vxm():
-    def __init__(self, name):
+    def __init__(self, name, tmout=None):
         self._ser = serial.Serial(port=name, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
-                                  timeout=3)
+                                  timeout=tmout)
         self.initialize()
 
     def query(self, qry):
@@ -1519,7 +1519,6 @@ class Vxm():
 
     def initialize(self):
         self.command('F')
-        self.command('C')
 
     def displace(self, channel, steps):
         self.query('I' + str(channel) + 'M' + str(steps) + ',R')
@@ -1529,6 +1528,24 @@ class Vxm():
 
     def set_origin(self, channel):
         self.query('IA' + str(channel) + 'M-0,R')
+
+    def set_speed(self, channel, speed):
+        """
+        factory value is 2000 steps per second. 1 <= speed <= 6000
+
+        :param int channel:
+        :param int speed:
+        """
+        self.command('S' + str(channel) + 'M' + str(speed))
+
+    def set_acceleration(self, channel, acc):
+        """
+        factory value is 2. possible values: 1 <= acc <= 127
+
+        :param int channel:
+        :param int acc:
+        """
+        self.command('A' + str(channel) + 'M' + str(acc))
 
 # ======================================================================================================================
 # RGA
