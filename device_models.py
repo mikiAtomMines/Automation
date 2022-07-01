@@ -27,17 +27,18 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 # ======================================================================================================================
 # Gaussmeters
 # ======================================================================================================================
-class Gm3():  # TODO: needs work.
+class Gm3:
     def __init__(self, port, tmout=3):
         """
         Parameters
         ----------
         port : str
             Device port name. Can be found on device manager. Example: COM3
-        timeout : float
+        tmout : float
             read timeout in seconds. Time that read() will wait for response before exiting.
         """
         self._ser = Serial(
@@ -184,7 +185,6 @@ class Gm3():  # TODO: needs work.
             time.sleep(0.05)
         return str(out)
 
-
     @property
     def settings(self):
         out = self._query_('02', 21)
@@ -195,7 +195,7 @@ class Gm3():  # TODO: needs work.
         return str(out)
 
 
-class Series9550():
+class Series9550:
     def __init__(self, gpib_address):
         rm = pyvisa.ResourceManager()
         self._inst = rm.open_resource('GPIB0::' + str(gpib_address) + '::INSTR')
@@ -226,6 +226,7 @@ class Series9550():
     @property
     def field(self):
         return self.get_zfield()
+
 
 # ======================================================================================================================
 # Power Supplies
@@ -1506,7 +1507,7 @@ class Model8742(SocketEthernetDevice):
         self.set_velocity(chan=4, vel=new_vel)
 
 
-class Vxm():
+class Vxm:
     def __init__(self, port, tmout=None):
         self._ser = serial.Serial(port=port, baudrate=9600, bytesize=8, parity=serial.PARITY_NONE, stopbits=1,
                                   timeout=tmout)
@@ -1555,6 +1556,7 @@ class Vxm():
         :param int acc:
         """
         self.command('A' + str(channel) + 'M' + str(acc))
+
 
 # ======================================================================================================================
 # RGA
@@ -1831,7 +1833,7 @@ class Srs100:
                     pass
                 elif status & int(2**i):
                     error_msg_all += 'ERROR in:' + str(status_lst[i]) + '\n' \
-                                    + err_lst[i]
+                                    + str(err_lst[i])
 
             return error_msg_all
 
@@ -1957,7 +1959,7 @@ class Srs100:
     def set_steps_per_amu(self, s):
         return self._command_noresponse_('SA' + str(s))
 
-    def get_number_data_points(self, type_):
+    def get_number_data_points(self):
         out = self._query_('AP?')
         try:
             return int(out)
