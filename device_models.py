@@ -2,7 +2,7 @@
 Created on Thursday, April 7, 2022
 @author: Sebastian Miki-Silva
 """
-
+import numpy as np
 import serial
 import time
 from serial import Serial
@@ -230,16 +230,15 @@ class Series9550:
         s = self._inst.query(':MEASure:FLUX1?').split('G')[0]
         return float("".join(s.split()))
 
-    def get_avg_zfield(self, t):
-        ti = time.time()
-        sum_ = 0
-        i = 0
-        while time.time() - ti <= t:
-            sum_ += self.get_zfield()
+    def get_avg_zfield(self, n):
+        sum_ = np.asarray([])
+        for i in range(n):
+            f = self.get_zfield()
+            sum_ = np.append(sum_, f)
+            print(f)
             time.sleep(0.2)
-            i += 1
 
-        return abs(sum_ / i)
+        return np.average(sum_)
 
     def disconnect(self):
         self._inst.write('*GTL')
@@ -1589,6 +1588,10 @@ class Vxm:
         :param int acc:
         """
         return self.query('A' + str(channel) + 'M' + str(acc))
+
+    def get_negative_limit_switch(self):
+        self._ser.write('?'.encode('utf-8'))
+        return bool(ord(self._ser.read(1).decode('utf-8')) & 0b00000010)
 
     @property
     def idn(self):

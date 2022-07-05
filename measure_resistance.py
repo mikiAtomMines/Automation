@@ -11,7 +11,7 @@ from device_models import Series9550
 from device_models import Vxm
 
 
-def get_pos_b(ps, gm, vx, v, avg_t, st_incr):
+def get_pos_b(ps, gm, vx, v, n, st_incr):
     # vx.displace(1, -16000)
     gm.autozero()
     ps.set_current_limit(1, 3)
@@ -27,13 +27,14 @@ def get_pos_b(ps, gm, vx, v, avg_t, st_incr):
     pos = np.arange(0, 16000, st_incr)
     bout = np.asarray([])
     for i in pos:
-        bout = np.append(bout, gm.get_avg_zfield(t=avg_t))
+        bout = np.append(bout, gm.get_avg_zfield(n))
         vx.displace(1, st_incr)
+        time.sleep(0.3)
 
     ps.zero_all_channels()
     gm.disconnect()
     vx.disconnect()
-    print(len(pos), len(bout))
+
     return pos, bout
 
 
@@ -134,13 +135,18 @@ def measure_b_vs_z():
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
     vx = Vxm('COM4')
-    pos, b = get_pos_b(ps, gm, vx, 8, 2, 500)
+    n = 10
+    incr = 100
+    pos, b = get_pos_b(ps, gm, vx, 8, n, incr)
     coilname = 'small2'
     time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
     filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
 
     with open(filename, 'w') as file:
-        file.write(gm.idn + '\n')
+        file.write(gm.idn + ', average for ' + str(n) + ' datapoints' + '\n')
+        file.write('V = ' + str(ps.get_actual_voltage(1)) + ', A = ' + str(ps.get_actual_current(1)) + '\n')
+        file.write('deltaX = ' + str(incr) + ' steps.' + '\n')
+        file.write('Starting position: tip of probe is touching table surface.')
         for k in range(len(pos)):
             file.write(str(pos[k]) + ',' + str(b[k]) + '\n')
         file.write('\n')

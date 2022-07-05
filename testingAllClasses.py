@@ -218,10 +218,10 @@ def testing_Series9550(gm):
 
 
 def testing_Vxm(v):
-    v.set_origin(1)
-    v.set_speed(1, 1000)
-    v.set_acceleration(1, 1)
-    v.displace(1, 1000)
+    # v.set_origin(1)
+    # v.set_speed(1, 1000)
+    # v.set_acceleration(1, 1)
+    # v.displace(1, -16000)
     # v.set_position(1, 0)
 
     v.disconnect()
