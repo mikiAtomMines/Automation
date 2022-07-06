@@ -3,6 +3,7 @@ import time
 from datetime import date
 from datetime import datetime
 from scipy.stats import linregress
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 from device_models import Spd3303x
@@ -11,31 +12,45 @@ from device_models import Series9550
 from device_models import Vxm
 
 
-def get_pos_b(ps, gm, vx, v, n, st_incr):
+def get_pos_b(coilname, ps, gm, vx, a, n, delta_step):
     # vx.displace(1, -16000)
     gm.autozero()
     ps.set_current_limit(1, 3)
-    ps.set_current(1, 3.0)
-    ps.set_voltage(1, 0)
-    ps.set_voltage(1, v)
+    ps.set_current(1, a)
+    ps.set_voltage(1, 20)
     ps.set_channel_state(1, True)
     time.sleep(1)
 
     vx.set_speed(1, 1000)
     vx.set_acceleration(1, 1)
 
-    pos = np.arange(0, 16000, st_incr)
+    time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
+    filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
+
+    file = open(filename, 'w')
+    file.write(str(gm.idn) + ', average for ' + str(n) + ' data points' + '\n')
+    file.write('V = ' + str(ps.get_actual_voltage(1)) + ', A = ' + str(ps.get_actual_current(1)) + '\n')
+    file.write('deltaX = ' + str(delta_step) + ' steps.' + '\n')
+    file.write('Starting position: tip of probe is 1.8 inches below resting surface of magnetic coil.' + '\n')
+
+    pos = np.arange(0, 16000, delta_step)
     bout = np.asarray([])
-    for i in pos:
-        bout = np.append(bout, gm.get_avg_zfield(n))
-        vx.displace(1, st_incr)
+    berr = np.asarray([])
+    for pos_i in pos:
+        f, sterror = gm.get_avg_zfield(n)
+        bout = np.append(bout, f)
+        berr = np.append(berr, sterror)
+        vx.displace(1, delta_step)
         time.sleep(0.3)
+        file.write(str(pos_i) + ',' + str(f) + ',' + str(sterror) + '\n')
+    file.write('\n')
+    file.close()
 
     ps.zero_all_channels()
     gm.disconnect()
     vx.disconnect()
 
-    return pos, bout
+    return pos, bout, berr
 
 
 def get_ivb(ps, gm, vmax, vmin, incr, avg_t):
@@ -70,19 +85,24 @@ def get_ivb(ps, gm, vmax, vmin, incr, avg_t):
 
     return vout, iout, bout
 
-def process_file(file_):
-    v, i, b = [], [], []
+def process_file(file_, n_cols):
+    out = []
+    for i in range(n_cols):
+        out.append(np.asarray([]))
+
     with open(file_, 'r') as file:
-        file.readline()
         data = file.readline()
         while data != '\n':
-            v_i, i_i, b_i = data.split(',')
-            v.append(float(v_i))
-            i.append(float(i_i))
-            b.append(float(b_i))
+            try:
+                cols = data.split(',')
+                for i in range(n_cols):
+                    out[i] = np.append(out[i], float(cols[i]))
+            except (ValueError, IndexError):
+                pass
+
             data = file.readline()
 
-    return v, i, b
+    return out
 
 
 def measure_v_vs_i_and_b_vs_v():
@@ -130,31 +150,69 @@ def measure_v_vs_i_and_b_vs_v():
     plt.show()
 
 
-def measure_b_vs_z():
+def get_field_fit(pos, b, berr):
+    def coil_field_z_axis(z, N):
+        """
+
+        :param z: steps
+        :param A: scale mu_0 / 2pi
+        :param N: center position of coils in meter
+        :param C: side length of coil in meters
+        :param D: current in amps
+        :return:
+        """
+
+        # C = 0.667893  # meters for small coil
+        C = 0.7028942  # meters for medium coil
+        # C = 0.7378954  # meters for large coil
+
+        D = 2.3 * N  # amps
+        meters = (z - 6260) * 6.35e-6  # convert steps to meters
+
+        x = meters
+        f = 2e-7*D*C**2
+        s = 1 / (x**2 + (C**2)/4)
+        t = 1 / np.sqrt(x**2 + (C**2)/2)
+
+        return f*s*t*10000  # tesla to gauss
+
+    popt, pcov = curve_fit(coil_field_z_axis, pos, b, p0=[60], bounds=([58], [62]))
+    pos_model = np.linspace(pos[0], pos[-1], 1000)
+    b_model = coil_field_z_axis(pos_model, *popt)
+
+    print(popt, pcov)
+
+    return pos_model, b_model
+
+def main():
     ps = Spd3303x('10.176.42.171')
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
     vx = Vxm('COM4')
-    n = 10
-    incr = 100
-    pos, b = get_pos_b(ps, gm, vx, 8, n, incr)
-    coilname = 'small2'
-    time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
-    filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
 
-    with open(filename, 'w') as file:
-        file.write(gm.idn + ', average for ' + str(n) + ' datapoints' + '\n')
-        file.write('V = ' + str(ps.get_actual_voltage(1)) + ', A = ' + str(ps.get_actual_current(1)) + '\n')
-        file.write('deltaX = ' + str(incr) + ' steps.' + '\n')
-        file.write('Starting position: tip of probe is touching table surface.')
-        for k in range(len(pos)):
-            file.write(str(pos[k]) + ',' + str(b[k]) + '\n')
-        file.write('\n')
+    coilname = 'medium1'
+    file_name = '22_07_06__18_11_05.txt'
+
+    # pos, b, berr = get_pos_b(coilname, ps, gm, vx, 2.3, 10, 100)
+
+    file_full = 'data_coils/' + coilname + '/' + file_name
+    pos, b, berr = process_file(file_full, 3)
+    pos_model, b_model = get_field_fit(pos, b, berr)
+
+    coilname2 = 'medium2'
+    file_name2 = '22_07_06__18_33_37.txt'
+    file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
+    pos2, b2, berr2 = process_file(file_full2, 3)
+    pos_model2, b_model2 = get_field_fit(pos2, b2, berr2)
 
     plt.figure(figsize=[6, 8])
-    plt.plot(pos, b, 'o-', label='data')
+    plt.plot(pos, b, '.-', label='data')
+    plt.plot(pos_model, b_model, '-', label='model')
+
+    plt.plot(pos2, b2*61/60, '.-', label='data2')
+    plt.plot(pos_model2, b_model2, '-', label='model2')
     plt.legend()
     plt.show()
 
 
-measure_b_vs_z()
+main()

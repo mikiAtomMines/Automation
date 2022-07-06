@@ -37,7 +37,6 @@ def testing_GM3(gaussmeter):
         print(point)
         data.append(point)
 
-    print(error_count)
     gaussmeter.write(bytes.fromhex('04'*6))
 
     gaussmeter.command('KILL_ALL_PROCESS')
@@ -221,7 +220,7 @@ def testing_Vxm(v):
     # v.set_origin(1)
     # v.set_speed(1, 1000)
     # v.set_acceleration(1, 1)
-    # v.displace(1, -16000)
+    v.displace(1, -16005)
     # v.set_position(1, 0)
 
     v.disconnect()

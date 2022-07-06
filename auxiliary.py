@@ -41,12 +41,30 @@ def simple_plot(file):
     plt.show()
 
 
-def main():
-    # v = Vxm('COM6')
-    # v.disconnect()
+def process_file(file_, n_cols):
+    out = []
+    for i in range(n_cols):
+        out.append([])
 
-    gm = Series9550(15)
-    testing_Series9550(gm)
+    with open(file_, 'r') as file:
+        data = file.readline()
+        while data != '\n':
+            try:
+                cols = data.split(',')
+                for i in range(n_cols):
+                    out[i].append(float(cols[i]))
+            except (ValueError, IndexError):
+                pass
+
+            data = file.readline()
+
+    return out
+
+
+def main():
+
+
+    pass
 
 
 if __name__ == '__main__':

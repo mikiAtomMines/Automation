@@ -230,22 +230,27 @@ class Series9550:
         s = self._inst.query(':MEASure:FLUX1?').split('G')[0]
         return float("".join(s.split()))
 
-    def get_avg_zfield(self, n):
-        sum_ = np.asarray([])
+    def get_avg_zfield(self, n=10):
+        n += 4
+        f_l = np.asarray([])
         for i in range(n):
             f = self.get_zfield()
-            sum_ = np.append(sum_, f)
-            print(f)
             time.sleep(0.2)
+            f_l = np.append(f_l, f)
 
-        return np.average(sum_)
+        f_l.sort()
+        out = np.average(f_l[2:-2])
+        mean_std = np.std(f_l[2:-2]) / np.sqrt(n-4)
+
+        print(round(out, 5), '+-', mean_std)
+        return out, mean_std
 
     def disconnect(self):
         self._inst.write('*GTL')
 
     @property
     def idn(self):
-        return self._inst.query('*IDN?')
+        return str(self._inst.query('*IDN?'))
 
     @property
     def field(self):
@@ -1555,6 +1560,8 @@ class Vxm:
         self._ser.write('F'.encode('utf-8'))
         time.sleep(0.1)
         self._ser.write('N'.encode('utf-8'))
+        time.sleep(0.1)
+        self._ser.write('C'.encode('utf-8'))
         time.sleep(0.1)
         self._ser.write('C'.encode('utf-8'))
         time.sleep(0.1)
