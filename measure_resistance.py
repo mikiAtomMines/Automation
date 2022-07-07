@@ -186,12 +186,12 @@ def get_field_fit(pos, b, berr):
     return pos_model, b_model, residuals
 
 def main():
-    # ps = Spd3303x('10.176.42.171')
-    # # gm = Gm3('COM3', tmout=3)
-    # gm = Series9550(15)
-    # vx = Vxm('COM4')
+    ps = Spd3303x('10.176.42.171')
+    # gm = Gm3('COM3', tmout=3)
+    gm = Series9550(15)
+    vx = Vxm('COM4')
 
-    coilname = 'medium1'
+    coilname = 'medium2'
     file_name = '22_07_06__18_11_05.txt'
 
     # pos, b, berr = get_pos_b(coilname, ps, gm, vx, 2.3, 10, 100)
@@ -200,13 +200,14 @@ def main():
     pos, b, berr = process_file(file_full, 3)
     pos_model, b_model, residuals = get_field_fit(pos, b, berr)
 
-    coilname2 = 'medium2'
-    file_name2 = '22_07_06__18_33_37.txt'
-    file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
-    pos2, b2, berr2 = process_file(file_full2, 3)
-    pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2)
+    # coilname2 = 'medium2'
+    # file_name2 = '22_07_06__18_33_37.txt'
+    # file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
+    # pos2, b2, berr2 = process_file(file_full2, 3)
+    # pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2)
 
     plt.figure(figsize=[6, 8])
+
     plt.plot(pos, b, '.-', label='data')
     plt.plot(pos_model, b_model, '-', label='model')
 
