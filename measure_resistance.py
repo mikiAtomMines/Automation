@@ -151,7 +151,7 @@ def measure_v_vs_i_and_b_vs_v():
 
 
 def get_field_fit(pos, b, berr):
-    def coil_field_z_axis(z, N):
+    def coil_field_z_axis(z, N, B, F):
         """
 
         :param z: steps
@@ -167,7 +167,7 @@ def get_field_fit(pos, b, berr):
         # C = 0.7378954  # meters for large coil
 
         D = 2.3 * N  # amps
-        meters = (z - 6260) * 6.35e-6  # convert steps to meters
+        meters = (z - F) * B  # convert steps to meters
 
         x = meters
         f = 2e-7*D*C**2
@@ -176,19 +176,20 @@ def get_field_fit(pos, b, berr):
 
         return f*s*t*10000  # tesla to gauss
 
-    popt, pcov = curve_fit(coil_field_z_axis, pos, b, p0=[60], bounds=([58], [62]))
+    popt, pcov = curve_fit(coil_field_z_axis, pos, b, p0=[60, 6.35e-6, 6260], bounds=([58, 0, 5500], [62, 1e-5, 6500]))
     pos_model = np.linspace(pos[0], pos[-1], 1000)
     b_model = coil_field_z_axis(pos_model, *popt)
 
-    print(popt, pcov)
+    print(popt)
 
-    return pos_model, b_model
+    residuals = b - coil_field_z_axis(pos, *popt)
+    return pos_model, b_model, residuals
 
 def main():
-    ps = Spd3303x('10.176.42.171')
-    # gm = Gm3('COM3', tmout=3)
-    gm = Series9550(15)
-    vx = Vxm('COM4')
+    # ps = Spd3303x('10.176.42.171')
+    # # gm = Gm3('COM3', tmout=3)
+    # gm = Series9550(15)
+    # vx = Vxm('COM4')
 
     coilname = 'medium1'
     file_name = '22_07_06__18_11_05.txt'
@@ -197,20 +198,27 @@ def main():
 
     file_full = 'data_coils/' + coilname + '/' + file_name
     pos, b, berr = process_file(file_full, 3)
-    pos_model, b_model = get_field_fit(pos, b, berr)
+    pos_model, b_model, residuals = get_field_fit(pos, b, berr)
 
     coilname2 = 'medium2'
     file_name2 = '22_07_06__18_33_37.txt'
     file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
     pos2, b2, berr2 = process_file(file_full2, 3)
-    pos_model2, b_model2 = get_field_fit(pos2, b2, berr2)
+    pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2)
 
     plt.figure(figsize=[6, 8])
     plt.plot(pos, b, '.-', label='data')
     plt.plot(pos_model, b_model, '-', label='model')
 
-    plt.plot(pos2, b2*61/60, '.-', label='data2')
+    plt.plot(pos2, b2, '.-', label='data2')
     plt.plot(pos_model2, b_model2, '-', label='model2')
+    plt.legend()
+    plt.show()
+
+    plt.figure(figsize=[6, 8])
+    plt.plot(pos, residuals, '.-', label='data')
+
+    plt.plot(pos2, residuals2, '.-', label='data2')
     plt.legend()
     plt.show()
 
