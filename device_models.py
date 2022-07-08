@@ -1547,13 +1547,13 @@ class Vxm:
         qry += ',R'
         self._ser.write(qry.encode('utf-8'))
         out = self._ser.read_until(b'^')
-        time.sleep(0.5)
+        time.sleep(0.3)
         self._ser.write('C'.encode('utf-8'))
         return out
 
     def command(self, cmd):
         self._ser.write(cmd.encode('utf-8'))
-        time.sleep(0.5)
+        time.sleep(0.3)
         self._ser.write('C'.encode('utf-8'))
 
     def initialize(self):
@@ -1570,7 +1570,11 @@ class Vxm:
         self._ser.write('Q'.encode('utf-8'))
 
     def displace(self, channel, steps):
-        return self.query('I' + str(channel) + 'M' + str(steps))
+        if abs(steps) > 10000:
+            self.displace(channel, steps//2)
+            return self.displace(channel, steps - steps//2)
+        else:
+            return self.query('I' + str(channel) + 'M' + str(steps))
 
     def set_position(self, channel, pos):
         return self.query('IA' + str(channel) + 'M' + str(pos))

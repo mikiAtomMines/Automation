@@ -218,9 +218,12 @@ def testing_Series9550(gm):
 
 def testing_Vxm(v):
     # v.set_origin(1)
-    # v.set_speed(1, 1000)
-    # v.set_acceleration(1, 1)
+    v.set_speed(1, 1000)
+    v.set_acceleration(1, 1)
+    ti = time.time()
     v.displace(1, -16005)
+    to = time.time()
+    print(to - ti)
     # v.set_position(1, 0)
 
     v.disconnect()

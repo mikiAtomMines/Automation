@@ -12,12 +12,12 @@ from device_models import Series9550
 from device_models import Vxm
 
 
-def get_pos_b(coilname, ps, gm, vx, a, n, delta_step):
+def get_pos_b(coilname, ps, gm, vx, a, n, delta_step, notes=''):
     # vx.displace(1, -16000)
     gm.autozero()
     ps.set_current_limit(1, 3)
-    ps.set_current(1, a)
     ps.set_voltage(1, 20)
+    ps.set_current(1, a)
     ps.set_channel_state(1, True)
     time.sleep(1)
 
@@ -32,7 +32,7 @@ def get_pos_b(coilname, ps, gm, vx, a, n, delta_step):
     file.write('V = ' + str(ps.get_actual_voltage(1)) + ', A = ' + str(ps.get_actual_current(1)) + '\n')
     file.write('deltaX = ' + str(delta_step) + ' steps.' + '\n')
     file.write('Starting position: tip of probe is 1.8 inches below resting surface of magnetic coil.' + '\n')
-
+    file.write(notes)
     pos = np.arange(0, 16000, delta_step)
     bout = np.asarray([])
     berr = np.asarray([])
@@ -150,78 +150,101 @@ def measure_v_vs_i_and_b_vs_v():
     plt.show()
 
 
-def get_field_fit(pos, b, berr):
-    def coil_field_z_axis(z, N, B, F):
+def get_field_fit(pos, b, berr, coilname, amps):
+    def coil_field_z_axis(z, n, z0):
         """
 
         :param z: steps
         :param A: scale mu_0 / 2pi
-        :param N: center position of coils in meter
-        :param C: side length of coil in meters
+        :param n: center position of coils in meter
+        :param side: side length of coil in meters
         :param D: current in amps
         :return:
         """
 
-        # C = 0.667893  # meters for small coil
-        C = 0.7028942  # meters for medium coil
-        # C = 0.7378954  # meters for large coil
+        coil_side = {
+            'small': 0.667893,  # meters
+            'medium': 0.7028942,
+            'large': 0.7378954
+        }
 
-        D = 2.3 * N  # amps
-        meters = (z - F) * B  # convert steps to meters
+        side = coil_side[coilname[:-1]]
+
+        meters = (z - z0) * 6.8E-6  # convert steps to meters
 
         x = meters
-        f = 2e-7*D*C**2
-        s = 1 / (x**2 + (C**2)/4)
-        t = 1 / np.sqrt(x**2 + (C**2)/2)
+        f = 2e-7*amps*n*side**2
+        s = 1 / (x**2 + (side**2)/4)
+        t = 1 / np.sqrt(x**2 + (side**2)/2)
 
         return f*s*t*10000  # tesla to gauss
 
-    popt, pcov = curve_fit(coil_field_z_axis, pos, b, p0=[60, 6.35e-6, 6260], bounds=([58, 0, 5500], [62, 1e-5, 6500]))
+    popt, pcov = curve_fit(coil_field_z_axis, pos, b, p0=[60, 6260], bounds=([58, 5500], [62, 6500]))
     pos_model = np.linspace(pos[0], pos[-1], 1000)
     b_model = coil_field_z_axis(pos_model, *popt)
 
-    print(popt)
+    print(popt, pcov)
 
     residuals = b - coil_field_z_axis(pos, *popt)
     return pos_model, b_model, residuals
 
-def main():
+def measure_field():
     ps = Spd3303x('10.176.42.171')
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
     vx = Vxm('COM4')
 
-    coilname = 'medium2'
-    file_name = '22_07_06__18_11_05.txt'
+    coilname = 'large1'
+    amps = 2.3
 
-    # pos, b, berr = get_pos_b(coilname, ps, gm, vx, 2.3, 10, 100)
-
-    file_full = 'data_coils/' + coilname + '/' + file_name
-    pos, b, berr = process_file(file_full, 3)
-    pos_model, b_model, residuals = get_field_fit(pos, b, berr)
-
-    # coilname2 = 'medium2'
-    # file_name2 = '22_07_06__18_33_37.txt'
-    # file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
-    # pos2, b2, berr2 = process_file(file_full2, 3)
-    # pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2)
+    pos, b, berr = get_pos_b(coilname, ps, gm, vx, amps, 10, 100, notes='Removed one turn of wire to the coil.\n')
+    pos_model, b_model, residuals = get_field_fit(pos, b, berr, coilname, amps)
 
     plt.figure(figsize=[6, 8])
-
     plt.plot(pos, b, '.-', label='data')
     plt.plot(pos_model, b_model, '-', label='model')
+    plt.legend()
+    plt.show()
 
-    plt.plot(pos2, b2, '.-', label='data2')
-    plt.plot(pos_model2, b_model2, '-', label='model2')
+def plot_data():
+    amps = 2.3
+
+    coilname = 'large1'
+    file_name = '22_07_08__12_31_18.txt'
+    file_full = 'data_coils/' + coilname + '/' + file_name
+    pos, b, berr = process_file(file_full, 3)
+    pos_model, b_model, residuals = get_field_fit(pos, b, berr, coilname, amps)
+
+    coilname2 = 'large2'
+    file_name2 = '22_07_08__11_40_12.txt'
+    file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
+    pos2, b2, berr2 = process_file(file_full2, 3)
+    pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2, coilname, amps)
+
+    plt.figure(figsize=[6, 8])
+    plt.title('Coil field vs position')
+    plt.ylabel('Magnetic field (gauss)')
+    plt.xlabel('Probe position (steps)')
+    plt.plot(pos, b, '.-', label=coilname + ' data')
+    plt.plot(pos_model, b_model, '-', label=coilname + 'model')
+
+    plt.plot(pos2, b2, '.-', label=coilname2 + ' data')
+    plt.plot(pos_model2, b_model2, '-', label=coilname2 + 'model')
     plt.legend()
     plt.show()
 
     plt.figure(figsize=[6, 8])
-    plt.plot(pos, residuals, '.-', label='data')
+    plt.title('Residuals')
+    plt.xlabel('Probe position (steps)')
+    plt.plot(pos, residuals, '.-', label=coilname)
 
-    plt.plot(pos2, residuals2, '.-', label='data2')
+    plt.plot(pos2, residuals2, '.-', label=coilname2)
     plt.legend()
     plt.show()
+
+
+def main():
+    plot_data()
 
 
 main()
