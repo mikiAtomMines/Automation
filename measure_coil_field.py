@@ -86,6 +86,20 @@ def get_ivb(ps, gm, vmax, vmin, incr, avg_t):
     return vout, iout, bout
 
 def process_file(file_, n_cols):
+    """
+    Reads n_cols from a file and outputs every column as a numpy array. Will also attempt to ignore a header.
+
+    Parameters
+    ----------
+    file_ : str
+        path to the file to process
+    n_cols : int
+        number of columns of file and number of arrays to output. Must match or else output will not be correct.
+    Returns
+    -------
+    list of numpy arrays
+        a list containing as many numpy arrays as specified by n_cols.
+    """
     out = []
     for i in range(n_cols):
         out.append(np.asarray([]))
