@@ -1543,7 +1543,7 @@ class Vxm:
         self.initialize()
 
 
-    def query(self, qry):
+    def _query_(self, qry):
         qry += ',R'
         self._ser.write(qry.encode('utf-8'))
         out = self._ser.read_until(b'^')
@@ -1551,12 +1551,15 @@ class Vxm:
         self._ser.write('C'.encode('utf-8'))
         return out
 
-    def command(self, cmd):
+    def _command_(self, cmd):
         self._ser.write(cmd.encode('utf-8'))
         time.sleep(0.3)
         self._ser.write('C'.encode('utf-8'))
 
     def initialize(self):
+        """
+        Initialize remote connection to motor controller.
+        """
         self._ser.write('F'.encode('utf-8'))
         time.sleep(0.1)
         self._ser.write('N'.encode('utf-8'))
@@ -1570,35 +1573,56 @@ class Vxm:
         self._ser.write('Q'.encode('utf-8'))
 
     def displace(self, channel, steps):
+        """
+        displace the slide a number of steps with respect to its standing position. If the number of steps to
+        dispalce is larger than 10000, the displacement will be done in two motions.
+        :param int channel: motor channel.
+        :param int steps: steps to displace
+        :return str: return '^' when the motor has completed the motion
+        """
         if abs(steps) > 10000:
             self.displace(channel, steps//2)
             return self.displace(channel, steps - steps//2)
         else:
-            return self.query('I' + str(channel) + 'M' + str(steps))
+            return self._query_('I' + str(channel) + 'M' + str(steps))
 
     def set_position(self, channel, pos):
-        return self.query('IA' + str(channel) + 'M' + str(pos))
+        """
+        displace the slide to the specified position with respect to the origin
+        :param int channel: motor channel.
+        :param int pos: final position with respect to the origin
+        :return str: return '^' when the motor has completed the motion
+        """
+        return self._query_('IA' + str(channel) + 'M' + str(pos))
 
     def set_origin(self, channel):
-        return self.query('IA' + str(channel) + 'M-0')
+        """
+        set the current standing position as the origin
+        :param int channel: motor channel.
+        :return str: return '^' when the motor has completed the motion
+
+        """
+        return self._query_('IA' + str(channel) + 'M-0')
 
     def set_speed(self, channel, speed):
         """
-        factory value is 2000 steps per second. 1 <= speed <= 6000
-
-        :param int channel:
-        :param int speed:
+        set the speed at which the motor will move in steps per second. Factory value is 2000 steps per second. 1 <=
+        speed <= 6000
+        :param int channel: motor channel.
+        :param int speed: steps per second
+        :return str: return '^' when the motor has completed the motion
         """
-        return self.query('S' + str(channel) + 'M' + str(speed))
+        return self._query_('S' + str(channel) + 'M' + str(speed))
 
     def set_acceleration(self, channel, acc):
         """
-        factory value is 2. possible values: 1 <= acc <= 127
-
-        :param int channel:
-        :param int acc:
+        Set the acceleration at which the motor will stop and start movign. Factory value is 2. possible values: 1 <=
+        acc <= 127
+        :param int channel: motor channel.
+        :param int acc: arbitrary units
+        :return str: return '^' when the motor has completed the motion
         """
-        return self.query('A' + str(channel) + 'M' + str(acc))
+        return self._query_('A' + str(channel) + 'M' + str(acc))
 
     def get_negative_limit_switch(self):
         self._ser.write('?'.encode('utf-8'))
@@ -1669,6 +1693,9 @@ class Srs100:
 
     def flush_buffers(self):
         return self._command_('IN0')
+
+    def get_partial_sensitivity_factor(self):
+        return float(self._query_('SP?'))
 
     # Error handling
     # --------------
@@ -2040,7 +2067,7 @@ class Srs100:
         for i in range(n_points):
             raw = self._serial_port.read(4)  # receive data in chunks of four-digit numbers
             int_10 = self._translate_to_decimal(raw)
-            out.append(int_10)
+            out.append(int_10*self.get_partial_sensitivity_factor())
 
         return out
 
@@ -2066,7 +2093,7 @@ class Srs100:
         for i in range(n_points):
             raw = self._serial_port.read(4)  # receive data in four-digit numbers. Each digit is represented as a byte
             int_10 = self._translate_to_decimal(raw)
-            out.append(int_10)
+            out.append(int_10*self.get_partial_sensitivity_factor())
 
         return out
 
@@ -2080,7 +2107,7 @@ class Srs100:
         self._serial_port.write(msg.encode('utf-8'))
         int_10 = self._translate_to_decimal(self._serial_port.read(4))
         self._serial_port.write('MR0\r'.encode('utf-8'))  # deactivate RF/DC voltages
-        return int_10
+        return int_10*self.get_partial_sensitivity_factor()
 
     @property
     def idn(self):

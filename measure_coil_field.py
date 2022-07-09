@@ -13,6 +13,33 @@ from device_models import Vxm
 
 
 def get_pos_b(coilname, ps, gm, vx, a, n, delta_step, notes=''):
+    """
+    collects data on the position and magnetic field, writes it to a file, and then returns the data
+
+    Paramters
+    ---------
+    coilname : {'small1', 'small2', 'medium1', 'medium2', 'large1', 'large2'}
+        name of the coil. Before running, there must be a directory inside data_coils with the name of the coil.
+    ps : Spd3303x
+        power supply to power coils
+    gm : Gm3, Series9550
+        gaussmeter to be used
+    vx : Vxm
+        motor controller
+    a : float
+        current to put through the coil wire
+    n : int
+        number of gaussmeter measurements to average. The measured field is the average of these n measurements
+    delta_step : int
+        the number of steps to displace the probe between datapoints
+    notes : str
+        notes to write in the header of the file
+
+    Returns
+    -------
+    tuple of numpy arrays
+        tuple containing the position array, magnetic field array, and the standard error array.
+    """
     # vx.displace(1, -16000)
     gm.autozero()
     ps.set_current_limit(1, 3)
@@ -95,6 +122,7 @@ def process_file(file_, n_cols):
         path to the file to process
     n_cols : int
         number of columns of file and number of arrays to output. Must match or else output will not be correct.
+
     Returns
     -------
     list of numpy arrays
@@ -165,17 +193,29 @@ def measure_v_vs_i_and_b_vs_v():
 
 
 def get_field_fit(pos, b, berr, coilname, amps):
+    """
+    model for magnetic field.
+
+    Parameters
+    ----------
+    pos : numpy array
+        position data
+    b : numpy array
+        magnetic field data
+    berr : numpy array
+        standard error of data points. Not used currently
+    coilname : {'small1', 'small2', 'medium1', 'medium2', 'large1', 'large2'}
+        name of the coil that was used to get the data
+    amps : float
+        current through the coil at the moment of taking data
+
+    """
     def coil_field_z_axis(z, n, z0):
         """
-
         :param z: steps
-        :param A: scale mu_0 / 2pi
-        :param n: center position of coils in meter
-        :param side: side length of coil in meters
-        :param D: current in amps
-        :return:
+        :param n: number of turns of wire in the coil
+        :param z0: center position of coils in meter
         """
-
         coil_side = {
             'small': 0.667893,  # meters
             'medium': 0.7028942,

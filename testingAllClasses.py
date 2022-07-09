@@ -39,7 +39,7 @@ def testing_GM3(gaussmeter):
 
     gaussmeter.write(bytes.fromhex('04'*6))
 
-    gaussmeter.command('KILL_ALL_PROCESS')
+    gaussmeter._command_('KILL_ALL_PROCESS')
     gaussmeter.close()
 
 
