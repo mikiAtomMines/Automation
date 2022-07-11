@@ -5,7 +5,8 @@ Created on Tuesday, April 19, 2022
 import time
 
 import auxiliary
-import device_models
+import matplotlib.pyplot as plt
+
 from device_models import Mr50040
 from device_models import Series9550
 from device_models import Spd3303x
@@ -259,6 +260,11 @@ def testing_rga(rga):
 
     print(rga._command_(cmd='FL'))
     print(rga.status_byte)
+
+    p = rga.get_analog_scan()
+
+    plt.plot(p)
+    plt.show()
 
 
 def main():

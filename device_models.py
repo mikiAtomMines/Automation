@@ -2042,7 +2042,7 @@ class Srs100:
         except ValueError:
             return out
 
-    def get_analog_scan(self, m_lo=1, m_hi=100, steps_per_amu=10, speed=3 ):
+    def get_analog_scan(self, m_lo=1, m_hi=65, steps_per_amu=10, speed=3 ):
         err = self.set_initial_mass(m_lo)
         if err is not None:
             return err
