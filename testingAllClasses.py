@@ -10,6 +10,7 @@ from device_models import Mr50040
 from device_models import Series9550
 from device_models import Spd3303x
 from device_models import Vxm
+from device_models import Srs100
 
 def testing_GM3(gaussmeter):
     # for i in range(100):
@@ -228,7 +229,7 @@ def testing_Vxm(v):
 
     v.disconnect()
 
-def testing_RGA(rga):
+def testing_rga(rga):
     rga.flush_buffers()
     print(rga.idn)
     rga.flush_buffers()
@@ -255,18 +256,14 @@ def testing_RGA(rga):
     print('RGA filament is off')
     print('filament current:')
     print(rga.get_ionizer_filament_current())
-    print(rga.get_status())
 
     print(rga._command_(cmd='FL'))
     print(rga.status_byte)
 
 
 def main():
-    gm = Series9550(15)
-    ps = Spd3303x('10.176.42.171', zero_on_startup=False)
-    vx = Vxm('COM4')
-
-    testing_Vxm(vx)
+    rga = Srs100('COM14')
+    testing_rga(rga)
 
     pass
 
