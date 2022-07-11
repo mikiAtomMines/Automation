@@ -3,9 +3,10 @@ Created on Tuesday, April 19, 2022
 @author: Sebastian Miki-Silva
 """
 import time
-
+import matplotlib.animation as anim
 import auxiliary
 import matplotlib.pyplot as plt
+import numpy as np
 
 from device_models import Mr50040
 from device_models import Series9550
@@ -231,40 +232,67 @@ def testing_Vxm(v):
     v.disconnect()
 
 def testing_rga(rga):
+
+    def live_plot(x_size=20):
+        """
+        plots current temp and ps_volts
+        :param x_size: number of data points per frame
+        """
+        pressure = [0.0] * x_size
+        time_ = [0.0] * x_size
+        fig = plt.figure()
+        ax = plt.subplot(111)
+
+        def animate(i):
+            press = rga.get_single_mass_measurement()
+
+            time_.pop(0)
+            time_.append(i)
+
+            pressure.pop(0)
+            pressure.append(press)
+
+            ax.cla()
+            ax.plot(time_, pressure)
+            ax.text(time_[-1], pressure[-1], '{:.4e}'.format(pressure[-1]))
+            ax.text(time_[-1], pressure[-1]-0.5e-13, '{:.4e}'.format(np.average(pressure)))
+            ax.set_ylim([0, max(pressure) * 1.2])
+
+        ani = anim.FuncAnimation(fig, animate, interval=2000)
+        plt.show()
+
     rga.flush_buffers()
     print(rga.idn)
     rga.flush_buffers()
 
-    print(rga._query_('EC?'))
-    print(rga._query_('EF?'))
-    print('0\n\r')
-    print(rga._query_('EM?'))
-    print(rga._query_('EQ?'))
-    print(rga._query_('ED?'))
-    print(rga._query_('EP?'))
     print('0\n\r')
 
     print('setting RGA filament on')
-    print(rga.set_ionizer_filament_state(state='on'))
+    print(rga.set_ionizer_filament_state(state=True))
     print('RGA filament is on')
     print('filament current:')
     print(rga.get_ionizer_filament_current())
-    time.sleep(5)
+    # time.sleep(5)
     print()
 
-    print('setting RGA filament off')
-    print(rga.set_ionizer_filament_state(state='off'))
-    print('RGA filament is off')
-    print('filament current:')
+    # print('setting RGA filament off')
+    # print(rga.set_ionizer_filament_state(state=False))
+    # print('RGA filament is off')
+    # print('filament current:')
     print(rga.get_ionizer_filament_current())
 
-    print(rga._command_(cmd='FL'))
     print(rga.status_byte)
 
-    p = rga.get_analog_scan()
+    # p = rga.get_analog_scan()
 
-    plt.plot(p)
-    plt.show()
+    # plt.figure(figsize=[4,6])
+    # plt.plot(p)
+    # plt.show()
+
+    live_plot()
+
+    print(rga.get_partial_sensitivity_factor())
+
 
 
 def main():

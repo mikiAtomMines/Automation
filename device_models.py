@@ -1639,7 +1639,7 @@ class Srs100:
     def __init__(
             self,
             port,
-            read_timeout=10
+            read_timeout=3
     ):
         s = serial.Serial(
             port=port,
@@ -1728,10 +1728,7 @@ class Srs100:
         return final_msg
 
     def _translate_to_decimal(self, raw):
-        int_10 = int.from_bytes(raw, 'little')
-        if raw[3] == 255:  # if the fourth hex digit is 0xff, get its two's complement value
-            int_10 -= int.from_bytes(b'\x00\x00\x00\x00\x01', 'little')  # TODO: CHECK
-
+        int_10 = int.from_bytes(raw, 'little', signed=True)
         return int_10
 
     def get_status_byte(self):
@@ -2025,6 +2022,9 @@ class Srs100:
         else:
             return err
 
+    def get_detector_cdem_voltage(self):
+        return self._query_('HV?')
+
     # Scans
     def set_initial_mass(self, m_lo):
         return self._command_noresponse_('MI' + str(m_lo))
@@ -2063,13 +2063,13 @@ class Srs100:
 
         self._serial_port.write('SC1\r'.encode('utf-8'))  # start scan
         time.sleep(0.3)
-        out = []
+        out = np.asarray([])
         for i in range(n_points):
             raw = self._serial_port.read(4)  # receive data in chunks of four-digit numbers
             int_10 = self._translate_to_decimal(raw)
-            out.append(int_10*self.get_partial_sensitivity_factor())
+            out = np.append(out, int_10)
 
-        return out
+        return out*(1e-13)/self.get_partial_sensitivity_factor()
 
     def get_histogram_scan(self, m_lo=1, m_hi=100, speed=3 ):
         err = self.set_initial_mass(m_lo)
@@ -2097,7 +2097,7 @@ class Srs100:
 
         return out
 
-    def get_single_mass_measurement(self, mass, speed=None):
+    def get_single_mass_measurement(self, mass=28, speed=8):
         if speed is not None:
             err = self.set_detector_scan_speed(speed)
             if err is not None:
@@ -2107,7 +2107,7 @@ class Srs100:
         self._serial_port.write(msg.encode('utf-8'))
         int_10 = self._translate_to_decimal(self._serial_port.read(4))
         self._serial_port.write('MR0\r'.encode('utf-8'))  # deactivate RF/DC voltages
-        return int_10*self.get_partial_sensitivity_factor()
+        return int_10*(1e-16)
 
     @property
     def idn(self):
