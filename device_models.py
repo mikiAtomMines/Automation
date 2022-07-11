@@ -1635,7 +1635,6 @@ class Vxm:
 # RGA
 # ======================================================================================================================
 class Srs100:
-    # TODO: fix error handling. If succesful, should return None. Else, return the error message.
     def __init__(
             self,
             port,
@@ -1660,8 +1659,17 @@ class Srs100:
 
     def _query_(self, qry):
         """
-        :param str qry:
-        :return str:
+        query the RGA.
+
+        Parameters
+        ----------
+        qry : str
+            RGA command to send.
+
+        Returns
+        -------
+        str
+            the requested query or error string
         """
         qry += '\r'
         self._serial_port.write(data=qry.encode('utf-8'))
@@ -1669,6 +1677,23 @@ class Srs100:
         return self._serial_port.read_until(expected='\n\r'.encode('utf-8')).decode('utf-8').strip()
 
     def _command_noresponse_(self, cmd):
+        """
+        send command to RGA. Used only for commands that do not return the status byte once the RGA has completed the
+        command. The status byte is queried once the command has been sent and used for error handling.
+
+        Paramters
+        ---------
+        cmd : str
+            RGA command to send
+
+        Returns
+        -------
+        str
+            If an error occurs, return an error string
+
+        None
+            Else, return None
+        """
         cmd += '\r'
         self._serial_port.write(data=cmd.encode('utf-8'))
         time.sleep(0.3)
@@ -1676,8 +1701,20 @@ class Srs100:
 
     def _command_(self, cmd):
         """
-        :param str cmd:
-        :return string or None:
+        send command to RGA. Used only for commands that return the status byte once the RGA has completed the command.
+
+        Paramters
+        ---------
+        cmd : str
+            RGA command to send
+
+        Returns
+        -------
+        str
+            If an error occurs, return an error string
+
+        None
+            Else, return None
         """
 
         stat = int(self._query_(cmd))
@@ -1693,9 +1730,6 @@ class Srs100:
 
     def flush_buffers(self):
         return self._command_('IN0')
-
-    def get_partial_sensitivity_factor(self):
-        return float(self._query_('SP?'))
 
     # Error handling
     # --------------
@@ -1728,15 +1762,27 @@ class Srs100:
         return final_msg
 
     def _translate_to_decimal(self, raw):
+        """
+        takes raw bytes output from RGA measurement and turns it into a base 10 int. RGA output is 4-bytes int, signed.
+
+        Parameters
+        ----------
+        raw : bytes
+            output from RGA measurements, usually from ion current readings. Should be 4-bytes, little-endian, signed.
+
+        Returns
+        -------
+        int
+            base 10
+        """
         int_10 = int.from_bytes(raw, 'little', signed=True)
         return int_10
 
     def get_status_byte(self):
         """
-        a byte as a decimal int that tells the error types that have occurred or that have not been checked.To
-        interpret it, it needs to be turned into an 8-bit binary number first. Possible error types: RS232_ERR,
-        FIL_ERR, CEM_ERR, QMF_ERR, DET_ERR, and PS_ERR. Use to following table to determine which error types have
-        occurred and what methods to call to see the specific error:
+        Status byte indicates what type of error has occurred. To see details about error, query the appropriate
+        error type, or use self.get_error_message_all() to look for an error across all types.
+
         ----------------------------------------------------------------------------------------------------------------
           bit index  |       internal check       |  Error type  |  query  |  name for class methods
         ----------------------------------------------------------------------------------------------------------------
@@ -1750,31 +1796,84 @@ class Srs100:
               0      | Communications             |  RS232_ERR   |  EC?    |  communications
         ----------------------------------------------------------------------------------------------------------------
 
-        To get an individual error byte for a single error type, use get_error_byte_{name}
-        To get all individual error bytes for each error type, use get_error_bytes.
-        To get individual error messages per error type, use get_error_message_{name}
-
-        :return int byte: status byte as a decimal int. The position or index of the bit indicates the type of error
-        it represents. If the bit is 1, it indicates that its type of error has occurred.
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
         """
         return int(self._query_('ER?'))
 
     def get_error_byte_communications(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('EC?'))
 
     def get_error_byte_filament(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('EF?'))
 
     def get_error_byte_electron_multiplier(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('EM?'))
 
     def get_error_byte_mass_filter(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('EQ?'))
 
     def get_error_byte_electrometer(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('ED?'))
 
     def get_error_byte_supply(self):
+        """
+        Analogous to the status byte.
+
+        Returns
+        -------
+        int
+            should be interpreted as an 8-digit binary byte. Each bit in the byte gives information of a specific
+            error type.
+        """
         return int(self._query_('EP?'))
 
     def get_error_message_communications(self, error_byte=None):
@@ -1868,6 +1967,20 @@ class Srs100:
         return self._create_error_msg(error_byte, errors_lst)
 
     def get_error_message_all(self, status=None):
+        """
+        Looks for any error across any error type and creates an error string.
+
+        Parameters
+        ----------
+        status : int, optional.
+            should be the status byte. If none is given, the status byte will be queried from the RGA at the
+            beginning of the command.
+
+        Returns
+        -------
+        str
+            error string
+        """
         if status is None:
             status = int(self._query_('ER?'))
         if status == 0:
@@ -1934,14 +2047,10 @@ class Srs100:
         return self._filament_state
 
     def set_ionizer_filament_current(self, miliamps):
-        if miliamps == 0:
-            self._filament_state = False
-            status = self._command_('FL' + str(miliamps))
-        else:
-            status = self._command_('FL' + str(miliamps))
-            if status == 0:
-                self._filament_state = True
-        return status
+        err = self._command_('FL' + str(miliamps))
+        if err is None:
+            self._filament_state = bool(miliamps)
+        return err
 
     def get_ionizer_filament_current(self):
         return self._query_('FL?')
@@ -2026,6 +2135,12 @@ class Srs100:
         return self._query_('HV?')
 
     # Scans
+    def get_partial_sensitivity_factor(self):
+        return float(self._query_('SP?'))
+
+    def get_total_sensitivity_factor(self):
+        return float(self._query_('ST?'))
+
     def set_initial_mass(self, m_lo):
         return self._command_noresponse_('MI' + str(m_lo))
 
@@ -2042,14 +2157,35 @@ class Srs100:
         except ValueError:
             return out
 
-    def get_analog_scan(self, m_lo=1, m_hi=65, steps_per_amu=10, speed=3 ):
+    def get_analog_scan(self, m_lo=1, m_hi=65, points_per_amu=10, speed=3):
+        """
+        start an analog scan across an initial to a final mass. Raw output from RGA comes as four-byte signed
+        integers representing the ion currents in units of 0.1 femtoAmps.
+
+        Parameters
+        ---------
+        m_lo : int
+            initial mass in amu to start the scan at
+        m_hi : int
+            final mass in amu to stop the scan at
+        points_per_amu : int
+            number of datapoints to take per unit mass. The analog scan takes current measurements at equally spaced
+            mass intervals. The mass interval is equal to the inverse of points_per_amu
+        speed : int
+            noise floor or speed. Arbitrary units.
+
+        Returns
+        -------
+        np.array
+           1D array containing the measurement in units of Torr
+        """
         err = self.set_initial_mass(m_lo)
         if err is not None:
             return err
         err = self.set_final_mass(m_hi)
         if err is not None:
             return err
-        err = self.set_steps_per_amu(steps_per_amu)
+        err = self.set_steps_per_amu(points_per_amu)
         if err is not None:
             return err
         err = self.set_detector_scan_speed(speed)
@@ -2061,17 +2197,35 @@ class Srs100:
 
         n_points = int(self._query_('AP?')) + 1  # final data point is the total pressure
 
-        self._serial_port.write('SC1\r'.encode('utf-8'))  # start scan
+        self._serial_port.write('SC1\r'.encode('utf-8'))
         time.sleep(0.3)
         out = np.asarray([])
         for i in range(n_points):
-            raw = self._serial_port.read(4)  # receive data in chunks of four-digit numbers
+            raw = self._serial_port.read(4)
             int_10 = self._translate_to_decimal(raw)
             out = np.append(out, int_10)
 
-        return out*(1e-13)/self.get_partial_sensitivity_factor()
+        return out*(1e-13)/self.get_partial_sensitivity_factor()  # convert raw units to Torr
 
     def get_histogram_scan(self, m_lo=1, m_hi=100, speed=3 ):
+        """
+        start a historgam scan across an initial to a final mass. Raw output from RGA comes as four-byte signed
+        integers representing the ion currents in units of 0.1 femtoAmps.
+
+        Parameter
+        ---------
+        m_lo : int
+            initial mass in amu to start the scan at
+        m_hi : int
+            final mass in amu to stop the scan at
+        speed : int
+            noise floor or speed. Arbitrary units.
+
+        Returns
+        -------
+        np.array
+           1D array containing the measurement in units of Torr
+        """
         err = self.set_initial_mass(m_lo)
         if err is not None:
             return err
@@ -2087,27 +2241,41 @@ class Srs100:
 
         n_points = int(self._query_('HP?')) + 1  # final data point is the total pressure
 
-        self._serial_port.write('HS1\r'.encode('utf-8'))  # start scan
+        self._serial_port.write('HS1\r'.encode('utf-8'))
         time.sleep(0.3)
-        out = []
+        out = np.asarray([])
         for i in range(n_points):
-            raw = self._serial_port.read(4)  # receive data in four-digit numbers. Each digit is represented as a byte
+            raw = self._serial_port.read(4)  # receive each data point individually.
             int_10 = self._translate_to_decimal(raw)
-            out.append(int_10*self.get_partial_sensitivity_factor())
+            out = np.append(out, int_10)
 
-        return out
+        return out*(1e-13)/self.get_partial_sensitivity_factor()  # convert raw units to Torr
 
     def get_single_mass_measurement(self, mass=28, speed=8):
-        if speed is not None:
-            err = self.set_detector_scan_speed(speed)
-            if err is not None:
-                return err
+        """
+        get a single mass pressure measurement.
+
+        Parameters
+        ---------
+        mass : int
+            mass in amu at which to take the pressure measurement
+        speed : int
+            noise floor or speed. Arbitrary units.
+
+        Returns
+        -------
+        int
+            pressure measurement. Units of Torr
+        """
+        err = self.set_detector_scan_speed(speed)
+        if err is not None:
+            return err
 
         msg = 'MR' + str(mass) + '\r'
         self._serial_port.write(msg.encode('utf-8'))
         int_10 = self._translate_to_decimal(self._serial_port.read(4))
         self._serial_port.write('MR0\r'.encode('utf-8'))  # deactivate RF/DC voltages
-        return int_10*(1e-16)
+        return int_10*(1e-13)/self.get_partial_sensitivity_factor()  # convert raw units to Torr
 
     @property
     def idn(self):
