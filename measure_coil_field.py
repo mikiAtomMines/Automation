@@ -1,6 +1,5 @@
 import numpy as np
 import time
-from datetime import date
 from datetime import datetime
 from scipy.stats import linregress
 from scipy.optimize import curve_fit
@@ -151,7 +150,7 @@ def measure_v_vs_i_and_b_vs_v():
     ps = Spd3303x('10.176.42.171')
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
-    v, i, b = get_ivb(ps, gm, 8, 0, 0.2, 10)
+    v, i, b = get_ivb(ps, gm, vmax=8, vmin=0, incr=0.2, avg_t=10)
     coilname = 'small1'
     time_now = datetime.now().strftime('%y_%m_%d__%H_%M_%S')
     filename = 'data_coils/' + coilname + '/' + time_now + '.txt'
@@ -242,7 +241,8 @@ def get_field_fit(pos, b, berr, coilname, amps):
     residuals = b - coil_field_z_axis(pos, *popt)
     return pos_model, b_model, residuals
 
-def measure_field():
+
+def collect_field_data():
     ps = Spd3303x('10.176.42.171')
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
@@ -260,7 +260,8 @@ def measure_field():
     plt.legend()
     plt.show()
 
-def plot_data():
+
+def plot_data_from_file():
     amps = 2.3
 
     coilname = 'large1'
@@ -298,7 +299,7 @@ def plot_data():
 
 
 def main():
-    plot_data()
+    plot_data_from_file()
 
 
 main()

@@ -243,6 +243,8 @@ def process_command(cmd, asm_dict):
                 return asm.MAX_voltage
             elif comm == 'MAXA':
                 return asm.MAX_current
+            elif comm == 'DISC':
+                return asm.disconnect()
             else:
                 return 'ERROR: bad command ' + str(comm)
 
@@ -277,7 +279,7 @@ def update_heaters(asm_dict, t0_dict):
     """
     out_dict = {}
     for key, asm in asm_dict.items():
-        if time.time() - t0_dict[key] >= asm.get_pid_sample_time() and asm.pid_is_regulating:
+        if asm.pid_is_regulating and time.time() - t0_dict[key] >= asm.get_pid_sample_time():
             out_or_err = asm.update_supply()
             t0_dict[key] = time.time()
             out_dict[key] = out_or_err
@@ -290,9 +292,10 @@ def update_heaters(asm_dict, t0_dict):
 
 def server_loop(asm_dict):
     """
-    Server that controls all the HeaterAssembly objects to be used in the oven. Listens for commands from a remote
-    machine. The server remembers PID settings even if a connection with the remote machine is lost. This means that
-    temperature regulation can still happen even without a remote machine connected to the server.
+    Server that istens for commands from a remote machine, then executes the command on the respective assembly object.
+    The server will continue to regulate an oven regardless of the connection of the remote machine. This means that if
+    the connection to the remote machine is lost, the server will still continue to regulate the temperature of the
+    heater assembly.
 
     Parameters:
     asm_dict : dictionary of str: HeaterAssembly
@@ -304,7 +307,7 @@ def server_loop(asm_dict):
     for key in keys_raw:  # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
 
-    HOST = get_host_ip(loopback=True)
+    HOST = get_host_ip(loopback=False)
     PORT = 65432
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -314,12 +317,9 @@ def server_loop(asm_dict):
     while True:
         t0_dict = {}
         for key in asm_dict.keys():
-            t0_dict[key] = time.time()  # start timers for all assemblies. Keeps track of the sampling time
+            t0_dict[key] = time.time()  # Keeps track of time for every assembly. Used for update_heaters()
 
-        while True:
-            # While disconnected, listen to connection requests.
-            # Additionally, keep updating the power supplies from the heater assemblies.
-            # break if a connection request is received.
+        while True:  # Listen for connections for one second. If timeout, update heaters using stored PID settings.
             s.settimeout(1)
             try:
                 print('listening')
@@ -329,13 +329,9 @@ def server_loop(asm_dict):
             except socket.timeout:
                 t0_dict, out_dict = update_heaters(asm_dict, t0_dict)
 
-
-        # With the connection: update heaters.
-        # Additionally, receive and process commands.
-        # If connection is broken, power supplies from heater assemblies will continue to be updated.
         conn.setblocking(False)
         print(f"Connected by {addr}")
-        with conn:
+        with conn:  # with connection: regulate oven, then listen for commands to carry on.
             while True:
                 t0_dict, out_dict = update_heaters(asm_dict, t0_dict)
                 time.sleep(0.2)
@@ -353,7 +349,7 @@ def server_loop(asm_dict):
 
                 except BlockingIOError:
                     pass
-                except ConnectionResetError:
+                except ConnectionResetError:  # if connection is lost, go back to listening for connections.
                     print(f"Disconnected by {addr}")
                     break
 
@@ -373,5 +369,6 @@ def main():
     asm_dict = {'asm1': asm1}  # keys for assemblies are not case-sensitive. OVEN is reserved
 
     server_loop(asm_dict)
+
 
 main()

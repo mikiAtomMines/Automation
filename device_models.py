@@ -1156,7 +1156,6 @@ if platform == 'win32':
 
     class ETcWindows(MccDeviceWindows):
         # TODO: check if the io methods can be moved to the super class MccDeviceWindows
-
         def __init__(self, board_number, ip4_address=None, port=54211, default_units='celsius'):
             """
             Class for a Web_Tc device from MCC. Might make a master class for temperature daq

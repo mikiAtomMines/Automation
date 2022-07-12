@@ -23,6 +23,7 @@ printf '\n'
 echo 'Installing Python3 libraries...'
 pip3 install simple_pid
 pip3 install pyserial
+sudo apt-get -y install pyvisa
 sudo apt-get install python3-matplotlib
 printf '\n'
 

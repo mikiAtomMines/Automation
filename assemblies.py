@@ -148,6 +148,11 @@ class HeaterAssembly:
         self.set_pid_regulation(False)
         self._pid.setpoint = 0
 
+    def disconnect(self):
+        self._supply_and_channel[0].disconnect()
+        self._daq_and_channel[0].disconnect()
+        print('disconnected' )
+
     @property
     def MAX_voltage(self):
         return self._MAX_voltage
@@ -486,6 +491,11 @@ class HeaterAssembly:
 
 
 class Oven(SocketEthernetDevice):
+    """
+    The Oven class refers to the combination of a BeagleBoneBlack rev C and a number of HeaterAssembly objects. A single
+    HeaterAssembly object is composed of a power supply, a temperature daq, and a physical heater. The
+    BeagleBoneBlack acts as the "brain" of the oven, commanding the different HeaterAssembly objects.
+    """
     def __init__(self, ip4_address, port=65432, ):
         super().__init__(ip4_address, port)
 
@@ -785,3 +795,6 @@ class Oven(SocketEthernetDevice):
 
     def ready_assembly(self, asm_key):
         return self._command_(asm_key, 'AM:REDY')
+
+    def disconnect_assembly(self, asm_key):
+        return self._command_(asm_key, 'AM:DISC')

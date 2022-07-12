@@ -9,9 +9,8 @@ miki@atommines.com
 ### Connecting to the board
 
 If the BeagleBone Black comes preinstalled with an OS, it is recommended to try to use it either with a monitor, a 
-keyboard, and a mouse, or through another computer using an `ssh` connection. The second option with an ethernet cable 
-connected to the network is recommended for ease of integration with the rest of the production system. More information
-on this in the following video:
+keyboard, and a mouse, or through another computer using an `ssh` connection. More information on this in the following 
+video:
 
 https://www.youtube.com/watch?v=C2KVSy_yTWk
 
@@ -24,24 +23,22 @@ information on how to flash the BeagleBone, refer to the following link:
 
 https://beagleboard.org/getting-started
 
-After flashing the board, get it ready to use its Linux terminal followin the steps in Connecting to the board.
-
-
 
 ## Installation with USB drive
 
 ### Getting installation files ready
 
 Add the folder containing these files into a USB drive compatible with Linux.To make sure the USB drive is compatible, 
-first format the USB drive in a Linux machine to the file system NTFS. 
+first format the USB drive in a Linux machine to the file system NTFS. Formatting the USB drive in a windows machine 
+might cause issues.
 
 
 ### Installation steps
 
 #### Reading from the USB drive
 
-Plug in the USB drive containing the setup folder into the BBB. Wait a couple seconds and run the following commands on 
-the BBB terminal to ensure the USB drive is being recognized correctly and is working properly:
+Plug in the USB drive containing the setup folder into the BBB. Wait a couple of seconds and run the following commands 
+on the BBB terminal to ensure the USB drive is being recognized correctly and is working properly:
 
     $ cd /
     $ sudo fdisk -l
@@ -93,7 +90,7 @@ Run the following commands:
     $ sudo mkdir media/usb1
     $ sudo mount -o rw /dev/sda1 media/usb1
 
-Note that if your path to your USB drive is different from `/dev/sda1`, you need to replace that path with your specific
+Note that if the path to your USB drive is different from `/dev/sda1`, you need to replace that path with your specific
 correct path in the second command. If the command is succesful, the USB drive is now ready for use.
 
 If the USB drive is mounted as read-only, meaning that the files inside cannot be executed, this might indicate an issue
@@ -118,7 +115,7 @@ Before unplugging the USB drive, run the following command:
 If the command runs succesfully, there should be no output and the USB can be safely ejected. 
 
 
-## Installation with setup files
+## Other Installation methods
 
 Alternatively, you can copy the folder containing these files into the BBB using any other method. The destination of 
 the folder does not matter. Once the folder has been copied into the BBB, set it as your working directory and run the 
