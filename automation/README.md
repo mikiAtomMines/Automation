@@ -4,12 +4,11 @@ Author: Sebastian Miki-Silva
 
 #Automation
 Library for automating experiment. The library has a hierarchy in place for the different classes. At the top, there is 
-the classes from the file connection_type.py. These classes generalize methods for different connection types used by 
-lab equipment such as TCP-IP, Serial, etc. Next in line are the classes from the file device_type.py. These classes 
-distinguish between different lab equipment such as power supplies, gaussmeters, temperature daqs, etc. These classes
-inherit from connection_type.py. Next are the classes from device_model.py, which are specific models for different lab
-equipment such as the SPD3303X power supply, or the GM3 gaussmeter. These classes inherit from connection_type.py and 
-from device_type.py. 
+the classes from the file connection_type.py. These classes have general methods for different connection types used by 
+lab equipment such as TCP-IP. Next in line are the classes from the file device_type.py. These classes 
+distinguish between different lab equipment such as power supplies, gaussmeters, temperature daqs, etc. Next are the 
+classes from device_model.py, which are specific models for different lab equipment such as the SPD3303X power supply, 
+or the GM3 gaussmeter. These classes inherit from connection_type.py and from device_type.py. 
 
 ## Classes from connection_type.py
 
@@ -913,7 +912,8 @@ Inherits from SocketEthernetDevice. Represents the Newport Model8742 picomotor.
     ):
         """
         A heater assembly composed of a heater, a temperature measuring device, and a power supply. This assembly
-        should only need to be used by the pid_controller_server.py file running on a BeagleBone Black.
+        should only need to be used by the pid_controller_server.py file running on a BeagleBone Black. This represents
+        the "body" of an Oven object, while the BeagleBoneBlack is the "brain". 
 
         Parameters
         ----------
@@ -1010,6 +1010,9 @@ Inherits from SocketEthernetDevice. Represents the Newport Model8742 picomotor.
 
 - update_supply()
   - :returns: float
+
+
+- disconnect_assembly()
 
 ###### Power supply
 
@@ -1138,3 +1141,255 @@ Inherits from SocketEthernetDevice. Represents the Newport Model8742 picomotor.
   - :param reg: bool
   - :returns: None or error string
 
+
+### Oven
+    Oven(ip4_address, port=65432)
+      
+    """
+    The Oven class refers to the combination of a BeagleBoneBlack rev C and a number of HeaterAssembly objects. A single
+    HeaterAssembly object is composed of a power supply, a temperature daq, and a physical heater. The
+    BeagleBoneBlack acts as the "brain" of the oven, commanding the different HeaterAssembly objects.
+    
+    Parameters
+    ----------
+    ip4_address : str
+        IP v4 address of the BeagleBoneBlack that is controlling the HeaterAssembly objects part of the 
+        physical oven.
+    port : int
+        port number. Default to 65432
+    """
+
+#### Methods
+
+###### Oven
+- get_assemblies_keyes()
+  - :returns: list of str
+  
+###### Power Supply
+- get_supply_idn(asm_key):
+  - :param asm_key: str 
+  - :returns: str
+
+
+- reset_supply(asm_key):
+  - :param asm_key: str
+  - :returns: None or error string
+
+
+- stop_supply(asm_key):
+  - :param asm_key: str
+  - :returns: None or error string
+
+
+- stop_all_supplies():
+
+
+- ready_supply(asm_key):
+  - :param asm_key: str
+  - :returns: None or error string
+
+
+- ready_all_supplies():
+  - :returns: None 
+  
+
+- get_supply_actual_voltage(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string
+
+
+- get_supply_setpoint_voltage(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string
+
+
+- set_supply_voltage(asm_key, volts):
+  - :param asm_key: str
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_supply_actual_current(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string
+
+
+- get_supply_setpoint_current(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string
+  
+
+- set_supply_current(asm_key, amps):
+  - :param asm_key: str
+  - :param amps: float
+  - :returns: None or error string
+
+
+- get_supply_voltage_limit(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string 
+
+
+- set_supply_voltage_limit(asm_key, volts):
+  - :param asm_key: str
+  - :param volts: float
+  - :returns: None or error string
+
+
+- get_supply_current_limit(asm_key):
+  - :param asm_key: str
+  - :returns: float or error string
+
+  
+- set_supply_current_limit(asm_key, amps):
+  - :param asm_key: str
+  - :param amps: float
+  - :returns: None or error string
+  
+
+- get_supply_channel_state(asm_key):
+  - :param asm_key: str
+  - :returns: bool or error string
+
+
+- set_supply_channel_state(self, asm_key, state):
+  - :param asm_key: str
+  - :param state: bool
+  - :returns: None or error string
+  
+
+- get_supply_channel(self, asm_key):
+  - :param asm_key: str
+  - :returns: int or error string
+  
+
+- set_supply_channel(self, asm_key, new_chan):
+  - :param asm_key: str
+  - :param new_chan: int
+  - :returns: None or error string
+
+
+###### Temperature DAQ
+- get_daq_idn(asm_key)
+  - :param asm_key: str
+  - :returns: str 
+
+
+- get_daq_temp(asm_key)
+  - :param asm_key: str
+  - :returns: float or error string
+
+
+- get_daq_channel(asm_key)
+  - :param asm_key: str
+  - :returns: int or error string
+
+
+- set_daq_channel(asm_key, new_ch)
+  - :param asm_key: str
+  - :param new_ch: int
+  - :returns: None or error string
+  
+  
+- get_daq_tc_type(asm_key)
+  - :param asm_key: str
+  - :returns: str or error string
+
+
+- set_daq_tc_type(asm_key, new_tc)
+  - :param asm_key: str
+  - :param new_tc: str
+  - :returns: None or error string
+
+
+- get_daq_temp_units(asm_key)
+  - :param asm_key: str
+  - :returns: str
+
+
+- set_daq_temp_units(asm_key, new_units)
+  - :param asm_key: str
+  - :param new_units: str
+  - :returns: None or error string
+
+
+###### PID settings
+- get_pid_idn(asm_key):
+  - :param asm_key: str
+  - :returns: str
+
+
+- reset_pid(asm_key):
+  - :param asm_key: str
+  - :returns: None or error string
+
+
+- get_pid_limits(asm_key):
+  - :param asm_key: str
+  - :returns: str
+
+
+- reset_pid_limits(asm_key):
+  - :param asm_key: str
+  - :returns: None or error string
+ 
+
+- get_pid_kpro(asm_key):
+  - :returns: float or error string
+  
+
+- set_pid_kpro(asm_key, new_k):
+        return self._command_(asm_key, 'PD:KPRO', new_k)
+
+
+    def get_pid_kint(self, asm_key):
+        qry = self._query_(asm_key, 'PD:KINT ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
+
+    def set_pid_kint(self, asm_key, new_k):
+        return self._command_(asm_key, 'PD:KINT', new_k)
+
+    def get_pid_kder(self, asm_key):
+        qry = self._query_(asm_key, 'PD:KDER ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
+
+    def set_pid_kder(self, asm_key, new_k):
+        return self._command_(asm_key, 'PD:KDER', new_k)
+
+    def get_pid_setpoint(self, asm_key):
+        qry = self._query_(asm_key, 'PD:SETP ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
+
+    def set_pid_setpoint(self, asm_key, new_temp):
+        return self._command_(asm_key, 'PD:SETP', new_temp)
+
+    def get_pid_sample_time(self, asm_key):
+        qry = self._query_(asm_key, 'PD:SAMP ?')
+        try:
+            return float(qry)
+        except ValueError:
+            return qry
+
+    def set_pid_sample_time(self, asm_key, new_t):
+        return self._command_(asm_key, 'PD:SAMP', new_t)
+
+    def get_pid_regulation(self, asm_key):
+        qry = self._query_(asm_key, 'PD:REGT ?')
+        if qry == 'False':
+            return False
+        elif qry == 'True':
+            return True
+        else:
+            return qry
+
+    def set_pid_regulation(self, asm_key, regt):
+        return self._command_(asm_key, 'PD:REGT', int(regt))

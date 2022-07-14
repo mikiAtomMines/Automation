@@ -2,9 +2,8 @@ import socket
 import fcntl
 import struct
 import time
-from device_models import Spd3303x
-from device_type import MccDeviceLinux
-import numpy as np
+from automation.device_models import Spd3303x
+from automation.device_type import MccDeviceLinux
 import simple_pid
 
 

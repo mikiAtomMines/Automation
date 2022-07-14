@@ -615,7 +615,7 @@ class Oven(SocketEthernetDevice):
         try:
             return float(qry)
         except ValueError:
-            return
+            return qry
 
     def set_supply_current(self, asm_key, amps):
         return self._command_(asm_key, 'PS:ASET', amps)

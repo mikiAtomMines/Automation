@@ -4,11 +4,8 @@ Created on Thursday, April 7, 2022
 """
 
 import time
-import auxiliary
-import device_type
-import device_models
+from automation import device_models
 import simple_pid as pid
-import numpy as np
 
 
 # TODO: Make a PID_controller class that has power supplies and web_tc as attributes.
