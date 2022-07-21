@@ -28,8 +28,8 @@ except ModuleNotFoundError:
 class PowerSupply:
     def __init__(
             self,
-            MAX_voltage_limit,
-            MAX_current_limit,
+            MAX_voltage,
+            MAX_current,
             channel_voltage_limits=None,
             channel_current_limits=None,
             number_of_channels=1,
@@ -41,9 +41,9 @@ class PowerSupply:
 
         Parameters
         ----------
-        MAX_voltage_limit : float
+        MAX_voltage : float
             Maximum voltage that the power supply can output based on hardware limitations.
-        MAX_current_limit : float
+        MAX_current : float
             Maximum current that the power supply can output based on hardware limitations.
         channel_voltage_limits : list of float, None
             list containing the individual channel limits for the set voltage. The set voltage of a channel cannot
@@ -59,17 +59,17 @@ class PowerSupply:
             If set to true, will run a method to set the set voltage and current to 0.
         """
 
-        self._MAX_voltage_limit = MAX_voltage_limit
-        self._MAX_current_limit = MAX_current_limit
+        self._MAX_voltage = MAX_voltage
+        self._MAX_current = MAX_current
         self._channel_voltage_limits = channel_voltage_limits
         self._channel_current_limits = channel_current_limits
         self._number_of_channels = number_of_channels
         self._zero_on_startup = zero_on_startup
 
-        if self._channel_voltage_limits is None and self._MAX_voltage_limit is not None:
-            self._channel_voltage_limits = [self._MAX_voltage_limit] * self._number_of_channels
-        if self._channel_current_limits is None and self._MAX_current_limit is not None:
-            self._channel_current_limits = [self._MAX_current_limit] * self._number_of_channels
+        if self._channel_voltage_limits is None and self._MAX_voltage is not None:
+            self._channel_voltage_limits = [self._MAX_voltage] * self._number_of_channels
+        if self._channel_current_limits is None and self._MAX_current is not None:
+            self._channel_current_limits = [self._MAX_current] * self._number_of_channels
 
     def check_valid_channel(self, channel):
         if type(channel) != int:
@@ -274,7 +274,7 @@ class PowerSupply:
         if err is not None:
             return err
 
-        if volts > self._MAX_voltage_limit or volts <= 0:
+        if volts > self._MAX_voltage or volts <= 0:
             return 'Voltage limit not set. New voltage limit is not allowed by the power supply.'
         elif volts < self.get_setpoint_voltage(channel):
             return 'Voltage limit not set. New voltage limit is lower than present channel setpoint voltage.'
@@ -327,7 +327,7 @@ class PowerSupply:
         if err is not None:
             return err
 
-        if amps > self._MAX_current_limit or amps <= 0:
+        if amps > self._MAX_current or amps <= 0:
             return 'Current limit not set. New current limit is not allowed by the power supply.'
         elif amps < self.get_setpoint_current(channel):
             return 'Current limit not set. New current limit is lower than present channel setpoint current.'
@@ -418,8 +418,8 @@ class PowerSupply:
         pass
 
     @property
-    def MAX_voltage_limit(self):
-        return self._MAX_voltage_limit
+    def MAX_voltage(self):
+        return self._MAX_voltage
 
     # @MAX_voltage_limit.setter
     # def MAX_voltage_limit(self, new_MAX_voltage):
@@ -428,8 +428,8 @@ class PowerSupply:
     #     self._MAX_voltage_limit = new_MAX_voltage
 
     @property
-    def MAX_current_limit(self):
-        return self._MAX_current_limit
+    def MAX_current(self):
+        return self._MAX_current
 
     # @MAX_current_limit.setter
     # def MAX_current_limit(self, new_MAX_current):

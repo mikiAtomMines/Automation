@@ -2,10 +2,17 @@ import socket
 from sys import platform
 import time
 
-from device_models import Spd3303x
-from device_models import Mr50040
-from assemblies import HeaterAssembly
-from device_type import Heater
+try:
+    from device_models import Spd3303x
+    from device_models import Mr50040
+    from assemblies import HeaterAssembly
+    from device_type import Heater
+except ModuleNotFoundError:
+    from automation.device_models import Spd3303x
+    from automation.device_models import Mr50040
+    from automation.assemblies import HeaterAssembly
+    from automation.device_type import Heater
+
 try:
     from device_models import ETcWindows
 except (ModuleNotFoundError, ImportError):
@@ -14,6 +21,7 @@ try:
     from device_models import ETcLinux
 except (ModuleNotFoundError, ImportError):
     pass
+
 try:
     import fcntl
     import struct
@@ -297,7 +305,7 @@ def update_heaters(asm_dict, t0_dict):
     """
     out_dict = {}
     for key, asm in asm_dict.items():
-        if asm.pid_is_regulating and time.time() - t0_dict[key] >= asm.get_pid_sample_time():
+        if asm.get_pid_regulation() and time.time() - t0_dict[key] >= asm.get_pid_sample_time():
             out_or_err = asm.update_supply()
             t0_dict[key] = time.time()
             out_dict[key] = out_or_err
@@ -325,7 +333,7 @@ def server_loop(asm_dict):
     for key in keys_raw:  # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
 
-    HOST = get_host_ip(loopback=False)
+    HOST = get_host_ip(loopback=True)
     PORT = 65432
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -393,14 +401,14 @@ def main():
     # Step 1:
     # -------
     # create the power supply object and specify the channel that will be used:
-    ps = Mr50040('10.176.42.220')
+    ps = Spd3303x('10.176.42.121')
     ps_chan = 1
 
 
     # Step 2:
     # -------
     # Create the temeprature DAQ object and specify the channel that will be used
-    daq_ip = '10.176.42.200'
+    daq_ip = '10.176.42.173'
     try:
         daq = ETcWindows(0, daq_ip)
     except NameError:

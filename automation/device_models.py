@@ -9,15 +9,15 @@ from serial import Serial
 from sys import platform
 import pyvisa
 
-from automation.connection_type import SocketEthernetDevice
-from automation.device_type import PowerSupply
+from connection_type import SocketEthernetDevice
+from device_type import PowerSupply
 try:
-    from automation.device_type import MccDeviceWindows
+    from device_type import MccDeviceWindows
 except (ImportError, NameError):
     pass
 
 try:
-    from automation.device_type import MccDeviceLinux
+    from device_type import MccDeviceLinux
 except (ImportError, NameError):
     pass
 
@@ -309,8 +309,8 @@ class Spd3303x(SocketEthernetDevice, PowerSupply):
         )
         PowerSupply.__init__(
             self,
-            MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
-            MAX_current_limit=physical_parameters['MAX_current_limit'],
+            MAX_voltage=physical_parameters['MAX_voltage_limit'],
+            MAX_current=physical_parameters['MAX_current_limit'],
             number_of_channels=physical_parameters['number_of_channels'],
             channel_voltage_limits=channel_voltage_limits,
             channel_current_limits=channel_current_limits,
@@ -716,8 +716,8 @@ class Mr50040(SocketEthernetDevice, PowerSupply):
         )
         PowerSupply.__init__(
             self,
-            MAX_voltage_limit=physical_parameters['MAX_voltage_limit'],
-            MAX_current_limit=physical_parameters['MAX_current_limit'],
+            MAX_voltage=physical_parameters['MAX_voltage_limit'],
+            MAX_current=physical_parameters['MAX_current_limit'],
             number_of_channels=physical_parameters['number_of_channels'],
             channel_voltage_limits=None,  # not used by this class. Limit is enforced by hardware.
             channel_current_limits=None,  # not used by this class. Limit is enforced by hardware.

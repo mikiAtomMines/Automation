@@ -5,10 +5,10 @@ from scipy.stats import linregress
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
-from automation.device_models import Spd3303x
-from automation.device_models import Gm3
-from automation.device_models import Series9550
-from automation.device_models import Vxm
+from device_models import Spd3303x
+from device_models import Gm3
+from device_models import Series9550
+from device_models import Vxm
 
 
 def get_pos_b(coilname, ps, gm, vx, a, n, delta_step, notes=''):
