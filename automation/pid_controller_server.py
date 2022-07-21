@@ -333,7 +333,7 @@ def server_loop(asm_dict):
     for key in keys_raw:  # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
 
-    HOST = get_host_ip(loopback=True)
+    HOST = get_host_ip(loopback=False)
     PORT = 65432
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
