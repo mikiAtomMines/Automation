@@ -75,3 +75,5 @@ def main():
 
     live_plot(oven)
 
+
+main()

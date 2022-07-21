@@ -1347,11 +1347,11 @@ if platform == 'linux' or platform == 'linux2':
 
         @property
         def idn(self):
-            return self.get_info().get_product_id()
+            return str(self.get_info().get_product_id())
 
         @property
         def ip4_address(self):
-            return self.get_config().get_host_ip()
+            return str(self.get_config().get_host_ip())
 
         @property
         def number_temp_channels(self):

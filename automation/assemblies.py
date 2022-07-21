@@ -3,9 +3,15 @@ import time
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
-from connection_type import SocketEthernetDevice
-from device_type import Heater
 import simple_pid
+
+try:
+    from connection_type import SocketEthernetDevice
+    from device_type import Heater
+except ModuleNotFoundError:
+    from automation.connection_type import SocketEthernetDevice
+    from automation.device_type import Heater
+
 
 class HeaterAssembly:
     def __init__(
@@ -561,7 +567,11 @@ class Oven(SocketEthernetDevice):
                 return 'ERROR: index ' + str(asm_key) + ' not valid.'
 
         qry = asm_key + ' ' + msg + '\r'
-        return self._query(qry.encode('utf-8')).decode('utf-8').strip('\r')
+        out = self._query(qry.encode('utf-8'))
+        try:
+            return out.decode('utf-8').strip('\r')
+        except AttributeError:
+            return out
 
     def _command_(self, asm_key, msg, param=''):
         """
