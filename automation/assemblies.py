@@ -148,11 +148,6 @@ class HeaterAssembly:
         self.set_pid_regulation(False)
         self._pid.setpoint = 0
 
-    def disconnect(self):
-        self._supply_and_channel[0].disconnect()
-        self._daq_and_channel[0].disconnect()
-        print('disconnected' )
-
     @property
     def MAX_voltage(self):
         return self._MAX_voltage
@@ -437,6 +432,38 @@ class HeaterAssembly:
     def pid_kd(self, new_kd):
         self._pid.Kd = new_kd
 
+    # Heater settings
+    # ---------------
+    def get_heater_MAX_temp(self):
+        return self._heater.MAX_temp
+
+    def get_heater_MAX_volts(self):
+        return self._heater.MAX_volts
+
+    def get_heater_MAX_current(self):
+        return self._heater.MAX_current
+
+    def set_heater_MAX_temp(self, new_temp):
+        if new_temp < self.get_daq_temp() or new_temp < self.get_pid_setpoint():
+            return 'new heater MAX temp not valid: actual temp or setpoint temp is higher'
+        else:
+            self._heater.MAX_temp = new_temp
+            self._MAX_temp_limit = self._heater.MAX_temp
+
+    def set_heater_MAX_volts(self, new_volts):
+        if new_volts < self.get_supply_actual_voltage() or new_volts < self.get_supply_setpoint_voltage():
+            return 'new heater MAX volts not valid: actual volts or setpoint volts is higher'
+        else:
+            self._heater.MAX_volts = new_volts
+            self._MAX_voltage = min(self._heater.MAX_volts, self._supply_and_channel[0].MAX_voltage)
+
+    def set_heater_MAX_current(self, new_amps):
+        if new_amps < self.get_supply_actual_current() or new_amps < self.get_supply_setpoint_current():
+            return 'new heater MAX current not valid: actual current or setpoint current is higher'
+        else:
+            self._heater.MAX_current = new_amps
+            self._MAX_current = min(self._heater.MAX_current, self._supply_and_channel[0].MAX_current)
+
     # -----------------------------------------------------------------------------
     # methods
     # -----------------------------------------------------------------------------
@@ -498,6 +525,17 @@ class Oven(SocketEthernetDevice):
     """
     def __init__(self, ip4_address, port=65432, ):
         super().__init__(ip4_address, port)
+
+    @property
+    def idn(self):
+        msg = 'Oven with assemblies:\n'
+        for name in self.get_assemblies_keys():
+            msg += '    ' + name + '\n'
+
+            msg += 'Power supply: ' + self.get_supply_idn(name) + '\n'
+            msg += 'Temp DAQ: ' + self.get_daq_idn(name) + '\n'
+
+        return msg
 
     def _query_(self, asm_key, msg):
         """
@@ -772,6 +810,25 @@ class Oven(SocketEthernetDevice):
     def set_pid_regulation(self, asm_key, regt):
         return self._command_(asm_key, 'PD:REGT', int(regt))
 
+    # Heater
+    def get_heater_MAX_temp(self, asm_key):
+        return self._query_(asm_key, 'HT:TMAX ?')
+
+    def set_heater_MAX_temp(self, asm_key, new_temp):
+        return self._command_(asm_key, 'HT:TMAX', new_temp)
+
+    def get_heater_MAX_volts(self, asm_key):
+        return self._query_(asm_key, 'HT:VMAX ?')
+
+    def set_heater_MAX_volts(self, asm_key, new_volts):
+        return self._command_(asm_key, 'HT:VMAX', new_volts)
+
+    def get_heater_MAX_current(self, asm_key):
+        return self._query_(asm_key, 'HT:AMAX ?')
+
+    def set_heater_MAX_current(self, asm_key, new_amps):
+        return self._command_(asm_key, 'HT:AMAX', new_amps)
+
     # Assembly
     def get_assembly_MAX_voltage(self, asm_key):
         qry = self._query_(asm_key, 'AM:MAXV')
@@ -795,6 +852,3 @@ class Oven(SocketEthernetDevice):
 
     def ready_assembly(self, asm_key):
         return self._command_(asm_key, 'AM:REDY')
-
-    def disconnect_assembly(self, asm_key):
-        return self._command_(asm_key, 'AM:DISC')

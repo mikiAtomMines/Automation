@@ -122,3 +122,11 @@ the folder does not matter. Once the folder has been copied into the BBB, set it
 setup file:
 
     $ ./bbb_setup.sh
+
+
+## Setting up the server
+
+Once all the library files and packages have been installed, the loop server that receives messages from the main
+experiment (or master) PC needs to be set up. To do this, first, open the file 'pid_controller_server' inside the 
+'automation' directory. 
+

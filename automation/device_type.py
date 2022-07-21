@@ -4,7 +4,6 @@ Created on Thursday, April 7, 2022
 """
 
 
-import auxiliary
 from sys import platform
 
 try:
@@ -402,7 +401,7 @@ class PowerSupply:
             err3 = self.set_channel_state(channel=chan, state=False)
             if err3 is not None:
                 return err3
-            print('All channels zeroed')
+            print('Channel', chan, 'zeroed.')
 
     # Properties
     # ----------

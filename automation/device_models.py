@@ -9,15 +9,15 @@ from serial import Serial
 from sys import platform
 import pyvisa
 
-from connection_type import SocketEthernetDevice
-from device_type import PowerSupply
+from automation.connection_type import SocketEthernetDevice
+from automation.device_type import PowerSupply
 try:
-    from device_type import MccDeviceWindows
+    from automation.device_type import MccDeviceWindows
 except (ImportError, NameError):
     pass
 
 try:
-    from device_type import MccDeviceLinux
+    from automation.device_type import MccDeviceLinux
 except (ImportError, NameError):
     pass
 

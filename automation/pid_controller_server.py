@@ -231,6 +231,26 @@ def process_command(cmd, asm_dict):
             else:
                 return 'ERROR: bad command ' + str(cmd)
 
+                # Heater settings
+        elif dev == 'HT':
+            if comm == 'TMAX':
+                if param == '?':
+                    return asm.get_heater_MAX_temp()
+                else:
+                    return asm.set_heater_MAX_temp(float(param))
+            elif comm == 'VMAX':
+                if param == '?':
+                    return asm.get_heater_MAX_volts()
+                else:
+                    return asm.set_heater_MAX_volts(float(param))
+            elif comm == 'AMAX':
+                if param == '?':
+                    return asm.get_heater_MAX_current()
+                else:
+                    return asm.set_heater_MAX_current(float(param))
+            else:
+                return 'ERROR: bad command ' + str(cmd)
+
             # Assembly
         elif dev == 'AM':
             if comm == 'STOP':
@@ -243,8 +263,6 @@ def process_command(cmd, asm_dict):
                 return asm.MAX_voltage
             elif comm == 'MAXA':
                 return asm.MAX_current
-            elif comm == 'DISC':
-                return asm.disconnect()
             else:
                 return 'ERROR: bad command ' + str(comm)
 
@@ -354,20 +372,68 @@ def server_loop(asm_dict):
                     break
 
 
+########################################################################################################################
+########################################################################################################################
+#
+# FOR REGULAR SETUP, DO NOT MODIFY CODE ABOVE THESE LINES
+#
+########################################################################################################################
+########################################################################################################################
 def main():
-    ps = Mr50040('10.176.42.220')
-    h = Heater(MAX_temp=100, MAX_volts=30, MAX_current=0.5)
-    daq_ip = '10.176.42.200'
+    """
+    Main setup function to setup the BeagleBone to control a physical Oven.
 
+    The BeagleBone acts as the 'brain' of the physical oven, while the HeaterAssembly object acts as the 'body' and
+    'organs'. The BeagleBone receives commands from the main experiment (or master) PC to control the HeaterAssembly
+    object.
+
+    Follow the steps below to assemble all the separate components into a working oven.
+    """
+
+    # Step 1:
+    # -------
+    # create the power supply object and specify the channel that will be used:
+    ps = Mr50040('10.176.42.220')
+    ps_chan = 1
+
+
+    # Step 2:
+    # -------
+    # Create the temeprature DAQ object and specify the channel that will be used
+    daq_ip = '10.176.42.200'
     try:
         daq = ETcWindows(0, daq_ip)
     except NameError:
         daq = ETcLinux(daq_ip)
+    daq_chan = 0
 
-    asm1 = HeaterAssembly((ps, 1), (daq, 0), h)
 
-    asm_dict = {'asm1': asm1}  # keys for assemblies are not case-sensitive. OVEN is reserved
+    # Step 3:
+    # -------
+    # This step is optional. Create a heater object to set MAX limits for temperature, voltage, and current. If no
+    # heater object is added to the assembly, a dummy Heater object is added automatically with infinite limits.
+    h = Heater(MAX_temp=100, MAX_volts=30, MAX_current=0.5)
 
+
+    # Step 4:
+    # -------
+    # Create the HeaterAssembly object putting all the previous objects together. If more HeaterAssembly
+    # objects are needed, repeat the previous steps until all the needed HeaterAssembly objects are created. The
+    # heater is an optional parameter.
+    asm1 = HeaterAssembly((ps, ps_chan), (daq, daq_chan), h)
+
+
+    # Step 5:
+    # -------
+    # Create a dictionary containing all the assemblies with name strings as the keys. Names for assemblies
+    # are not case-sensitive. 'OVEN' is reserved.
+    asm_dict = {'asm1': asm1}
+
+
+
+    # Step 6:
+    # -------
+    # Setup is complete. Run the following line and the BeagleBone will start to listen for remote connections. 
     server_loop(asm_dict)
 
 
