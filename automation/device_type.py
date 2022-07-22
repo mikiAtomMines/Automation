@@ -1351,7 +1351,7 @@ if platform == 'linux' or platform == 'linux2':
 
         @property
         def ip4_address(self):
-            return str(self.get_config().get_host_ip())
+            return str(self.get_config().get_ip_address())
 
         @property
         def number_temp_channels(self):

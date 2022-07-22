@@ -165,7 +165,7 @@ def get_field_fit(pos, b, berr, coilname, amps):
     return pos_model, b_model, residuals
 
 
-def collect_field_data():
+def main():
     ps = Spd3303x('10.176.42.171')
     # gm = Gm3('COM3', tmout=3)
     gm = Series9550(15)
@@ -182,47 +182,6 @@ def collect_field_data():
     plt.plot(pos_model, b_model, '-', label='model')
     plt.legend()
     plt.show()
-
-
-def plot_data_from_file():
-    amps = 2.3
-
-    coilname = 'large1'
-    file_name = '22_07_08__12_31_18.txt'
-    file_full = 'data_coils/' + coilname + '/' + file_name
-    pos, b, berr = process_file(file_full, 3)
-    pos_model, b_model, residuals = get_field_fit(pos, b, berr, coilname, amps)
-
-    coilname2 = 'large2'
-    file_name2 = '22_07_08__11_40_12.txt'
-    file_full2 = 'data_coils/' + coilname2 + '/' + file_name2
-    pos2, b2, berr2 = process_file(file_full2, 3)
-    pos_model2, b_model2, residuals2 = get_field_fit(pos2, b2, berr2, coilname, amps)
-
-    plt.figure(figsize=[6, 8])
-    plt.title('Coil field vs position')
-    plt.ylabel('Magnetic field (gauss)')
-    plt.xlabel('Probe position (steps)')
-    plt.plot(pos, b, '.-', label=coilname + ' data')
-    plt.plot(pos_model, b_model, '-', label=coilname + 'model')
-
-    plt.plot(pos2, b2, '.-', label=coilname2 + ' data')
-    plt.plot(pos_model2, b_model2, '-', label=coilname2 + 'model')
-    plt.legend()
-    plt.show()
-
-    plt.figure(figsize=[6, 8])
-    plt.title('Residuals')
-    plt.xlabel('Probe position (steps)')
-    plt.plot(pos, residuals, '.-', label=coilname)
-
-    plt.plot(pos2, residuals2, '.-', label=coilname2)
-    plt.legend()
-    plt.show()
-
-
-def main():
-    plot_data_from_file()
 
 
 main()

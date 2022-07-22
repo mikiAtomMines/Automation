@@ -8,24 +8,36 @@ import time
 from serial import Serial
 from sys import platform
 import pyvisa
-
-from connection_type import SocketEthernetDevice
-from device_type import PowerSupply
-try:
-    from device_type import MccDeviceWindows
-except (ImportError, NameError):
-    pass
-
-try:
-    from device_type import MccDeviceLinux
-except (ImportError, NameError):
-    pass
-
 try:
     from mcculw import ul
     from mcculw import enums
 except ModuleNotFoundError:
     pass
+
+
+try:
+    from connection_type import SocketEthernetDevice
+    from device_type import PowerSupply
+    try:
+        from device_type import MccDeviceWindows
+    except (ImportError, NameError):
+        pass
+    try:
+        from device_type import MccDeviceLinux
+    except (ImportError, NameError):
+        pass
+
+except ModuleNotFoundError:
+    from automation.connection_type import SocketEthernetDevice
+    from automation.device_type import PowerSupply
+    try:
+        from automation.device_type import MccDeviceWindows
+    except (ImportError, NameError):
+        pass
+    try:
+        from automation.device_type import MccDeviceLinux
+    except (ImportError, NameError):
+        pass
 
 
 # ======================================================================================================================
@@ -69,7 +81,7 @@ class Gm3:
             the stream of bytes from the gaussmeter.
         """
         for i in range(10):
-            self._ser.write(bytes.fromhex(qry * 6))
+            self._ser.write(bytes.fromhex(qry * 6))  # only first byte matters
             out = self._ser.read(read_size)
             time.sleep(0.01)
             if len(out) == read_size:
@@ -79,7 +91,7 @@ class Gm3:
 
         return 'ERROR: could not sent query: ' + str(qry)
 
-    def parse_measurables(self, stream):
+    def _parse_measurables(self, stream):
         """
         Translate the bytes stream from the STREAM_DATA and RESET_TIME commands into floats. The procedure is as
         follows:
@@ -141,12 +153,12 @@ class Gm3:
         """
         try:
             out = self._query_('03', 31)
-            return self.parse_measurables(out)
+            return self._parse_measurables(out)
         except IndexError:
             try:
                 self.flush_buffer()
                 out = self._query_('03', 31)
-                return self.parse_measurables(out)
+                return self._parse_measurables(out)
             except IndexError:
                 return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
@@ -170,20 +182,19 @@ class Gm3:
         """
         try:
             out = self._query_('04', 32)
-            return self.parse_measurables(out)
+            return self._parse_measurables(out)
         except IndexError:
             try:
                 self.flush_buffer()
                 out = self._query_('04', 32)
-                return self.parse_measurables(out)
+                return self._parse_measurables(out)
             except IndexError:
                 return 'ERROR: field could not be measured. Check connection to gaussmeter.'
 
-    def get_avg_zfield(self, t):
-        ti = time.time()
+    def get_avg_zfield(self, n):
         sum_ = 0
         i = 0
-        while time.time() - ti <= t:
+        for i in range(n):
             sum_ += self.get_zfield()
             time.sleep(0.2)
             i += 1

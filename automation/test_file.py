@@ -4,7 +4,6 @@ Created on Tuesday, April 19, 2022
 """
 import time
 import matplotlib.animation as anim
-import auxiliary
 import matplotlib.pyplot as plt
 import numpy as np
 

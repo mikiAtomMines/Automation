@@ -2,8 +2,6 @@
 Created on Thursday, April 7, 2022
 @author: Sebastian Miki-Silva
 """
-
-
 import socket
 import time
 

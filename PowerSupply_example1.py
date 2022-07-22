@@ -3,7 +3,9 @@ import numpy as np
 import time
 from scipy.stats import linregress
 
+
 from automation.device_models import Spd3303x
+
 
 def get_iv_curve(v_lo, v_hi, n_points, i_max):
     """
@@ -17,7 +19,7 @@ def get_iv_curve(v_lo, v_hi, n_points, i_max):
 
     ps.set_voltage_limit(ps_ch, v_hi)
     ps.set_current_limit(ps_ch, i_max)
-    ps.set_channel_state(1, True)
+    ps.set_channel_state(ps_ch, True)
 
     ps.set_current(ps_ch, i_max)
     time.sleep(0.5)

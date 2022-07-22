@@ -1,32 +1,43 @@
 import socket
 from sys import platform
 import time
+try:
+    import fcntl
+    import struct
+except (ModuleNotFoundError, ImportError):
+    pass
+
 
 try:
     from device_models import Spd3303x
     from device_models import Mr50040
     from assemblies import HeaterAssembly
     from device_type import Heater
+    try:
+        from device_models import ETcWindows
+    except (ModuleNotFoundError, ImportError):
+        pass
+    try:
+        from device_models import ETcLinux
+    except (ModuleNotFoundError, ImportError):
+        pass
+
 except ModuleNotFoundError:
     from automation.device_models import Spd3303x
     from automation.device_models import Mr50040
     from automation.assemblies import HeaterAssembly
     from automation.device_type import Heater
+    try:
+        from automation.device_models import ETcWindows
+    except (ModuleNotFoundError, ImportError):
+        pass
+    try:
+        from automation.device_models import ETcLinux
+    except (ModuleNotFoundError, ImportError):
+        pass
 
-try:
-    from device_models import ETcWindows
-except (ModuleNotFoundError, ImportError):
-    pass
-try:
-    from device_models import ETcLinux
-except (ModuleNotFoundError, ImportError):
-    pass
 
-try:
-    import fcntl
-    import struct
-except (ModuleNotFoundError, ImportError):
-    pass
+
 
 
 def get_host_ip(loopback=False):
@@ -330,10 +341,11 @@ def server_loop(asm_dict):
 
     """
     keys_raw = list(asm_dict)
-    for key in keys_raw:  # change all keys to uppercase
+    for key in keys_raw:      # change all keys to uppercase
         asm_dict[key.upper()] = asm_dict.pop(key)
 
-    HOST = get_host_ip(loopback=False)
+    HOST = get_host_ip(loopback=False)  # set to False for BeagleBoneBlack use,
+    # HOST = get_host_ip(loopback=True)  # set to True for testing with local host,
     PORT = 65432
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -383,7 +395,7 @@ def server_loop(asm_dict):
 ########################################################################################################################
 ########################################################################################################################
 #
-# FOR REGULAR SETUP, DO NOT MODIFY CODE ABOVE THESE LINES
+# FOR REGULAR SETUP, DO NOT MODIFY CODE ABOVE THESE LINES, except for check line 347.
 #
 ########################################################################################################################
 ########################################################################################################################
